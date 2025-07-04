@@ -103,6 +103,23 @@ function createSettingsStore() {
       });
     },
 
+    async updateUserPreferences(updates: Partial<UserPreferences>) {
+      update(state => {
+        const newUserPreferences = {
+          ...state.userPreferences,
+          ...updates,
+        };
+
+        // Save to storage
+        chrome.runtime.sendMessage({
+          type: 'set-storage',
+          payload: { userPreferences: newUserPreferences },
+        });
+
+        return { ...state, userPreferences: newUserPreferences };
+      });
+    },
+
     getDefaultModel() {
       let defaultModel = '';
       update(state => {

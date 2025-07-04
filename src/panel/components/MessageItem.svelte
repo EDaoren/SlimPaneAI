@@ -1,12 +1,18 @@
 <script lang="ts">
-  import { onMount, afterUpdate } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import type { Message } from '@/types';
-  import katex from 'katex';
+  import { mathRenderer } from '@/lib/math-renderer';
+  import { perfMonitor } from '@/lib/performance-monitor';
   import 'katex/dist/katex.min.css';
 
   export let message: Message;
 
   let contentElement: HTMLElement;
+  let messageElement: HTMLElement;
+  let processedContent = '';
+  let isProcessing = false;
+  let lastProcessedContent = '';
+  let isVisible = false;
 
   function formatTime(timestamp: number): string {
     return new Date(timestamp).toLocaleTimeString([], {
@@ -14,8 +20,6 @@
       minute: '2-digit'
     });
   }
-
-
 
   function formatContent(content: string): string {
     // Simple markdown formatting without math processing
@@ -27,12 +31,17 @@
       .replace(/\n/g, '<br>');
   }
 
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // 简化的数学公式渲染
   function formatContentWithMath(content: string): string {
     if (!content) return '';
 
     try {
-      console.log('🔍 Processing content with math:', content.substring(0, 100) + '...');
-
       // First handle code blocks to protect them
       const codeBlocks: string[] = [];
       let processedContent = content.replace(/```([\s\S]*?)```/g, (match, code) => {
@@ -51,62 +60,26 @@
 
       // Handle display math $$...$$
       processedContent = processedContent.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
-        try {
-          const rendered = katex.renderToString(math.trim(), {
-            displayMode: true,
-            throwOnError: false
-          });
-          console.log('✅ Display math rendered:', math.substring(0, 20));
-          return `<div class="math-display">${rendered}</div>`;
-        } catch (e) {
-          console.error('❌ Display math error:', e);
-          return `<div class="math-error">$$${escapeHtml(math)}$$</div>`;
-        }
+        const rendered = mathRenderer.renderMath(math, { displayMode: true, throwOnError: false });
+        return `<div class="math-display">${rendered}</div>`;
       });
 
       // Handle inline math $...$
       processedContent = processedContent.replace(/\$([^$\n]+)\$/g, (match, math) => {
-        try {
-          const rendered = katex.renderToString(math.trim(), {
-            displayMode: false,
-            throwOnError: false
-          });
-          console.log('✅ Inline math rendered:', math.substring(0, 20));
-          return `<span class="math-inline">${rendered}</span>`;
-        } catch (e) {
-          console.error('❌ Inline math error:', e);
-          return `<span class="math-error">$${escapeHtml(math)}$</span>`;
-        }
+        const rendered = mathRenderer.renderMath(math, { displayMode: false, throwOnError: false });
+        return `<span class="math-inline">${rendered}</span>`;
       });
 
       // Handle LaTeX display math \[...\]
       processedContent = processedContent.replace(/\\\\?\[([\s\S]*?)\\\\?\]/g, (match, math) => {
-        try {
-          const rendered = katex.renderToString(math.trim(), {
-            displayMode: true,
-            throwOnError: false
-          });
-          console.log('✅ LaTeX display math rendered:', math.substring(0, 20));
-          return `<div class="math-display">${rendered}</div>`;
-        } catch (e) {
-          console.error('❌ LaTeX display math error:', e);
-          return `<div class="math-error">\\[${escapeHtml(math)}\\]</div>`;
-        }
+        const rendered = mathRenderer.renderMath(math, { displayMode: true, throwOnError: false });
+        return `<div class="math-display">${rendered}</div>`;
       });
 
       // Handle LaTeX inline math \(...\)
       processedContent = processedContent.replace(/\\\\?\((.*?)\\\\?\)/g, (match, math) => {
-        try {
-          const rendered = katex.renderToString(math.trim(), {
-            displayMode: false,
-            throwOnError: false
-          });
-          console.log('✅ LaTeX inline math rendered:', math.substring(0, 20));
-          return `<span class="math-inline">${rendered}</span>`;
-        } catch (e) {
-          console.error('❌ LaTeX inline math error:', e);
-          return `<span class="math-error">\\(${escapeHtml(math)}\\)</span>`;
-        }
+        const rendered = mathRenderer.renderMath(math, { displayMode: false, throwOnError: false });
+        return `<span class="math-inline">${rendered}</span>`;
       });
 
       // Handle other markdown formatting
@@ -124,27 +97,91 @@
         return inlineCodes[parseInt(index)];
       });
 
-      console.log('✅ Content processing completed');
       return processedContent;
     } catch (error) {
-      console.error('❌ Error in formatContentWithMath:', error);
+      console.error('Error in formatContentWithMath:', error);
       return formatContent(content); // 回退到基本格式化
     }
   }
 
-  // 使用响应式计算来处理数学公式渲染
-  $: processedContent = formatContentWithMath(message.content);
+  // 防抖处理内容更新
+  let contentUpdateTimer: number;
 
-  function escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  function updateProcessedContent() {
+    if (isProcessing || message.content === lastProcessedContent) {
+      return;
+    }
+
+    // 如果内容为空，直接返回
+    if (!message.content) {
+      processedContent = '';
+      lastProcessedContent = message.content;
+      return;
+    }
+
+    isProcessing = true;
+    lastProcessedContent = message.content;
+
+    try {
+      // 检查是否包含数学公式
+      const hasMath = mathRenderer.hasMathFormulas(message.content);
+
+      if (hasMath) {
+        // 处理数学公式
+        processedContent = formatContentWithMath(message.content);
+      } else {
+        // 没有数学公式，直接使用简单格式化
+        processedContent = formatContent(message.content);
+      }
+    } catch (error) {
+      console.error('Content update error:', error);
+      // 出错时回退到基本格式化
+      processedContent = formatContent(message.content);
+    } finally {
+      isProcessing = false;
+    }
   }
 
+  // 监听消息内容变化
+  $: if (message.content !== lastProcessedContent) {
+    updateProcessedContent();
+  }
 
+  onMount(() => {
+    // 设置 Intersection Observer 来检测可见性
+    if ('IntersectionObserver' in window && messageElement) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            const wasVisible = isVisible;
+            isVisible = entry.isIntersecting;
+
+            // 当元素变为可见且还没有处理过内容时，立即处理
+            if (isVisible && !wasVisible && message.content && !processedContent) {
+              updateProcessedContent();
+            }
+          });
+        },
+        {
+          rootMargin: '100px', // 提前100px开始渲染
+          threshold: 0.1
+        }
+      );
+
+      observer.observe(messageElement);
+
+      return () => {
+        observer.disconnect();
+      };
+    } else {
+      // 回退方案：直接更新内容
+      isVisible = true;
+      updateProcessedContent();
+    }
+  });
 </script>
 
-<div class="message-item flex gap-2 {message.type === 'user' ? 'flex-row-reverse justify-start' : 'justify-start'} mb-4">
+<div class="message-item flex gap-2 {message.type === 'user' ? 'flex-row-reverse justify-start' : 'justify-start'} mb-4" bind:this={messageElement}>
   <!-- Avatar -->
   <div class="flex-shrink-0">
     {#if message.type === 'user'}
@@ -194,6 +231,9 @@
     width: fit-content;
     max-width: 100%;
     word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
   }
 
   .user-message {
@@ -213,6 +253,11 @@
   .message-content {
     font-size: 0.875rem;
     line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .message-content :global(code) {

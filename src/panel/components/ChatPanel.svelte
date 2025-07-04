@@ -3,8 +3,10 @@
   import { chatStore } from '../stores/chat';
   import { settingsStore } from '../stores/settings';
   import MessageList from './MessageList.svelte';
+  import VirtualMessageList from './VirtualMessageList.svelte';
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
+  import Toolbar from './Toolbar.svelte';
   
   let showSessions = false;
   let messagesContainer: HTMLElement;
@@ -53,6 +55,9 @@
 
   // Check if any models are configured
   $: hasModels = Object.keys(modelSettings).length > 0;
+
+  // 决定是否使用虚拟滚动（当消息数量较多时）
+  $: useVirtualScroll = currentSession && currentSession.messages.length > 50;
 </script>
 
 <div class="chat-panel">
@@ -68,57 +73,45 @@
     </div>
   {/if}
 
-  <!-- Messages Area -->
-  <div class="messages-container" bind:this={messagesContainer}>
-      {#if !hasModels}
-        <!-- No Models Warning -->
-        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <span class="text-sm text-yellow-800">请先配置 AI 模型才能开始聊天</span>
-            <button
-              class="ml-auto text-sm text-yellow-600 hover:text-yellow-800 underline"
-              on:click={() => window.chrome?.runtime?.openOptionsPage()}
-            >
-              去配置
-            </button>
-          </div>
-        </div>
-      {/if}
+  <!-- Main Content Area with Toolbar -->
+  <div class="main-content">
+    <!-- Messages Area -->
+    <div class="messages-container" bind:this={messagesContainer}>
 
       {#if !currentSession || currentSession.messages.length === 0}
         <!-- Empty Chat State -->
-        <div class="flex items-center justify-center h-full">
+        <div class="flex items-center justify-center h-full px-4">
           <div class="text-center max-w-sm">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-2">你好，</h2>
-            <p class="text-lg text-gray-600 mb-8">我今天能帮你什么？</p>
+            <!-- Greeting -->
+            <div class="mb-8">
+              <h2 class="text-2xl font-semibold text-gray-900 mb-2">你好，</h2>
+              <p class="text-lg text-gray-600">我今天能帮你什么？</p>
+            </div>
 
             <!-- Quick Actions -->
             <div class="space-y-3">
-              <div class="w-full p-4 bg-white border border-gray-200 rounded-xl">
+              <div class="w-full p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl hover:shadow-md transition-all duration-200">
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
-                  <div>
+                  <div class="text-left">
                     <div class="font-medium text-gray-900">开始对话</div>
                     <div class="text-sm text-gray-500">在下方输入框输入问题</div>
                   </div>
                 </div>
               </div>
 
-              <div class="w-full p-4 bg-white border border-gray-200 rounded-xl">
+              <div class="w-full p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl hover:shadow-md transition-all duration-200">
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <div>
+                  <div class="text-left">
                     <div class="font-medium text-gray-900">选择文本处理</div>
                     <div class="text-sm text-gray-500">在网页上选择文本，右键使用 AI</div>
                   </div>
@@ -127,18 +120,24 @@
             </div>
           </div>
         </div>
+      {:else if useVirtualScroll}
+        <VirtualMessageList messages={currentSession.messages} {isStreaming} />
       {:else}
         <MessageList messages={currentSession.messages} {isStreaming} />
       {/if}
+    </div>
+
+    <!-- Chat Input -->
+    <div class="input-container">
+      <ChatInput
+        disabled={isStreaming}
+        on:send={handleSendMessage}
+      />
+    </div>
   </div>
 
-  <!-- Chat Input -->
-  <div class="input-container">
-    <ChatInput
-      disabled={isStreaming || !hasModels}
-      on:send={handleSendMessage}
-    />
-  </div>
+  <!-- Right Toolbar -->
+  <Toolbar />
 </div>
 
 <style>
@@ -149,8 +148,15 @@
     right: 0;
     bottom: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     background: white;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
 
   .session-overlay {

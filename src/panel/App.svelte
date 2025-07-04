@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import ChatPanel from './components/ChatPanel.svelte';
-  import Header from './components/Header.svelte';
+  import PerformanceDebugger from './components/PerformanceDebugger.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
   import type { ExtensionMessage, TextSelectionMessage } from '@/types';
@@ -50,8 +50,6 @@
 </script>
 
 <div class="app h-full flex flex-col bg-white">
-  <Header />
-
   <main class="flex-1 overflow-hidden">
     {#if isLoading}
       <div class="flex items-center justify-center h-full">
@@ -61,6 +59,9 @@
       <ChatPanel />
     {/if}
   </main>
+
+  <!-- 性能调试器 -->
+  <PerformanceDebugger />
 </div>
 
 <style>

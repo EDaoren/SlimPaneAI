@@ -2,10 +2,10 @@
   import type { Message } from '@/types';
   import MessageItem from './MessageItem.svelte';
   import TypingIndicator from './TypingIndicator.svelte';
-  
+
   export let messages: Message[];
   export let isStreaming: boolean;
-  
+
   // Filter out system messages for display (they're used for prompts)
   $: displayMessages = messages.filter(msg => msg.type !== 'system');
 </script>

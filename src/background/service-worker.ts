@@ -9,31 +9,21 @@ import type {
 import { createModelAdapter } from '@/lib/model-adapters';
 
 // Helper function to send messages to side panel
-async function sendMessageToSidePanel(message: any) {
+function sendMessageToSidePanel(message: any) {
   try {
-    console.log('🚀 Attempting to send message to side panel:', message);
+    console.log('🚀 [Background] Sending message to side panel:', message);
 
-    // Try multiple methods to ensure message delivery
-
-    // Method 1: Direct runtime message
-    chrome.runtime.sendMessage(message);
-    console.log('✅ Sent via runtime.sendMessage');
-
-    // Method 2: Query and send to specific tabs (fallback)
-    const tabs = await chrome.tabs.query({});
-    console.log('📋 Found tabs:', tabs.length);
-
-    for (const tab of tabs) {
-      try {
-        await chrome.tabs.sendMessage(tab.id!, message);
-        console.log(`✅ Sent to tab ${tab.id}`);
-      } catch (tabError) {
-        // Ignore tab errors (normal for tabs without content scripts)
+    // Send message to all extension contexts
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log('ℹ️ [Background] Runtime message error (this is normal):', chrome.runtime.lastError.message);
+      } else {
+        console.log('✅ [Background] Message sent successfully, response:', response);
       }
-    }
+    });
 
   } catch (error) {
-    console.error('❌ Failed to send message to side panel:', error);
+    console.error('❌ [Background] Failed to send message to side panel:', error);
   }
 }
 
@@ -118,10 +108,28 @@ async function handleMessage(
 async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: any) => void) {
   try {
     const { messages, modelConfig, stream = true } = request.payload;
-    
-    // Validate model configuration
-    if (!modelConfig.apiKey) {
-      throw new Error('API key not configured');
+
+    // Check if model is configured
+    if (!modelConfig || modelConfig.provider === 'none' || !modelConfig.apiKey) {
+      // Send a friendly error message as if it's from the AI assistant
+      console.log('🚨 [Background] No model configured, sending error message');
+      sendMessageToSidePanel({
+        type: 'llm-error',
+        requestId: request.requestId,
+        error: 'No model configured. Please configure a model in settings.'
+      });
+      return;
+    }
+
+    // Validate API key
+    if (!modelConfig.apiKey.trim()) {
+      console.log('🚨 [Background] No API key configured, sending error message');
+      sendMessageToSidePanel({
+        type: 'llm-error',
+        requestId: request.requestId,
+        error: 'API key not configured. Please add your API key in settings.'
+      });
+      return;
     }
     
     const adapter = createModelAdapter(modelConfig);

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学公式性能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .math-content {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .performance-info {
+            background: #eff6ff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #1e40af;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .metrics {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>SlimPaneAI 数学公式性能优化测试</h1>
+    
+    <div class="performance-info">
+        <strong>优化说明：</strong>
+        <ul>
+            <li>✅ 数学公式渲染缓存 - 避免重复计算</li>
+            <li>✅ 异步渲染 - 防止主线程阻塞</li>
+            <li>✅ 可见性检测 - 只渲染可见内容</li>
+            <li>✅ 虚拟滚动 - 优化长列表性能</li>
+            <li>✅ 防抖机制 - 减少不必要的渲染</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>测试用例</h2>
+        <p>以下是一些包含数学公式的测试内容，用于验证优化效果：</p>
+        
+        <div class="math-content">
+            <h3>基础数学公式</h3>
+            <p>行内公式：$E = mc^2$ 和 $\sum_{i=1}^{n} x_i = x_1 + x_2 + \cdots + x_n$</p>
+            
+            <p>显示公式：</p>
+            $$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+            
+            $$\frac{\partial}{\partial t} \Psi(x,t) = \frac{i\hbar}{2m} \frac{\partial^2}{\partial x^2} \Psi(x,t) + V(x)\Psi(x,t)$$
+        </div>
+
+        <div class="math-content">
+            <h3>复杂数学公式</h3>
+            <p>矩阵运算：</p>
+            $$\begin{pmatrix}
+            a & b \\
+            c & d
+            \end{pmatrix}
+            \begin{pmatrix}
+            x \\
+            y
+            \end{pmatrix}
+            =
+            \begin{pmatrix}
+            ax + by \\
+            cx + dy
+            \end{pmatrix}$$
+            
+            <p>积分公式：</p>
+            $$\oint_{\partial D} \mathbf{F} \cdot d\mathbf{r} = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dx\,dy$$
+        </div>
+
+        <div class="math-content">
+            <h3>重复公式测试</h3>
+            <p>这些公式会重复出现，测试缓存效果：</p>
+            <p>$E = mc^2$ (第1次)</p>
+            <p>$E = mc^2$ (第2次 - 应该从缓存加载)</p>
+            <p>$E = mc^2$ (第3次 - 应该从缓存加载)</p>
+            
+            $$\sum_{i=1}^{n} x_i = x_1 + x_2 + \cdots + x_n$$ (第1次)
+            $$\sum_{i=1}^{n} x_i = x_1 + x_2 + \cdots + x_n$$ (第2次 - 应该从缓存加载)
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>性能测试控制</h2>
+        <button onclick="generateManyFormulas()">生成大量公式 (测试滚动性能)</button>
+        <button onclick="clearContent()">清除内容</button>
+        <button onclick="measureRenderTime()">测量渲染时间</button>
+        
+        <div id="metrics" class="metrics"></div>
+        <div id="test-content"></div>
+    </div>
+
+    <script>
+        // 模拟性能监控
+        const perfMonitor = {
+            start: (name) => {
+                window[`start_${name}`] = performance.now();
+            },
+            end: (name) => {
+                const start = window[`start_${name}`];
+                if (start) {
+                    const duration = performance.now() - start;
+                    console.log(`${name}: ${duration.toFixed(2)}ms`);
+                    return duration;
+                }
+            }
+        };
+
+        function generateManyFormulas() {
+            const container = document.getElementById('test-content');
+            const formulas = [
+                '$E = mc^2$',
+                '$\\sum_{i=1}^{n} x_i$',
+                '$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$',
+                '$\\frac{\\partial}{\\partial t} \\Psi(x,t)$',
+                '$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$'
+            ];
+            
+            perfMonitor.start('generate-formulas');
+            
+            let content = '<h3>大量数学公式测试 (滚动测试)</h3>';
+            for (let i = 0; i < 100; i++) {
+                const formula = formulas[i % formulas.length];
+                content += `<div style="padding: 10px; border-bottom: 1px solid #eee;">
+                    <p>消息 ${i + 1}: 这是一个包含数学公式的消息 ${formula}</p>
+                    <p>显示公式：$$\\frac{d}{dx}\\left(\\int_a^x f(t)dt\\right) = f(x)$$</p>
+                </div>`;
+            }
+            
+            container.innerHTML = content;
+            
+            // 模拟 KaTeX 渲染（实际项目中会自动处理）
+            setTimeout(() => {
+                const duration = perfMonitor.end('generate-formulas');
+                updateMetrics(`生成100个数学公式用时: ${duration.toFixed(2)}ms`);
+            }, 100);
+        }
+
+        function clearContent() {
+            document.getElementById('test-content').innerHTML = '';
+            updateMetrics('内容已清除');
+        }
+
+        function measureRenderTime() {
+            perfMonitor.start('render-test');
+            
+            // 模拟复杂渲染
+            const start = performance.now();
+            for (let i = 0; i < 1000; i++) {
+                // 模拟数学公式处理
+                Math.sqrt(Math.random() * 1000);
+            }
+            const end = performance.now();
+            
+            updateMetrics(`模拟渲染测试: ${(end - start).toFixed(2)}ms`);
+        }
+
+        function updateMetrics(message) {
+            const metrics = document.getElementById('metrics');
+            const timestamp = new Date().toLocaleTimeString();
+            metrics.innerHTML += `[${timestamp}] ${message}\n`;
+            metrics.scrollTop = metrics.scrollHeight;
+        }
+
+        // 监控内存使用
+        function logMemoryUsage() {
+            if ('memory' in performance) {
+                const memory = performance.memory;
+                const used = Math.round(memory.usedJSHeapSize / 1048576 * 100) / 100;
+                const total = Math.round(memory.totalJSHeapSize / 1048576 * 100) / 100;
+                updateMetrics(`内存使用: ${used}MB / ${total}MB`);
+            }
+        }
+
+        // 定期更新内存信息
+        setInterval(logMemoryUsage, 5000);
+
+        // 初始化
+        updateMetrics('性能测试页面已加载');
+        updateMetrics('按 Ctrl+Shift+D 打开扩展的性能调试器');
+    </script>
+</body>
+</html>

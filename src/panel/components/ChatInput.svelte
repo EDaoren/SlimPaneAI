@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { settingsStore } from '../stores/settings';
-  
+
   export let disabled = false;
   
   const dispatch = createEventDispatcher<{
@@ -58,17 +58,25 @@
 
 <div class="chat-input border-t border-gray-200 bg-white">
   <!-- Model Selector -->
-  {#if modelOptions.length > 1}
-    <div class="px-4 py-2 border-b border-gray-100">
-      <select 
-        bind:value={selectedModel}
-        class="text-xs bg-transparent border-none outline-none text-gray-600"
-        {disabled}
-      >
-        {#each modelOptions as option}
-          <option value={option.id}>{option.name}</option>
-        {/each}
-      </select>
+  {#if modelOptions.length > 0}
+    <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-700">切换模型</span>
+        <select
+          bind:value={selectedModel}
+          class="text-sm bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 hover:bg-gray-50 transition-colors min-w-0 flex-1 ml-3"
+          {disabled}
+        >
+          {#each modelOptions as option}
+            <option value={option.id}>
+              {option.config.provider === 'openai' ? 'GPT' :
+               option.config.provider === 'claude' ? 'Claude' :
+               option.config.provider === 'gemini' ? 'Gemini' :
+               option.config.provider.toUpperCase()} - {option.config.model}
+            </option>
+          {/each}
+        </select>
+      </div>
     </div>
   {/if}
   
