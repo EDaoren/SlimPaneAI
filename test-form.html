@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试添加模型表单</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            transform: translateY(-1px);
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-card">
+            <h1>SlimPane AI 插件测试</h1>
+            <p>这是一个测试页面，用于验证添加模型功能是否正常工作。</p>
+            
+            <h2>安装步骤：</h2>
+            <ol>
+                <li><strong>打开 Chrome 扩展页面</strong>：在地址栏输入 <code>chrome://extensions/</code></li>
+                <li><strong>启用开发者模式</strong>：点击右上角的"开发者模式"开关</li>
+                <li><strong>加载扩展</strong>：点击"加载已解压的扩展程序"</li>
+                <li><strong>选择文件夹</strong>：选择 <code>E:\augment\SlimPane\dist</code> 文件夹</li>
+                <li><strong>确认安装</strong>：扩展应该出现在列表中</li>
+            </ol>
+
+            <h2>测试步骤：</h2>
+            <ol>
+                <li><strong>打开侧边栏</strong>：点击浏览器工具栏中的 SlimPaneAI 图标</li>
+                <li><strong>进入设置</strong>：在侧边栏中找到设置按钮或直接点击下方按钮</li>
+                <li><strong>添加模型</strong>：点击"添加模型"按钮</li>
+                <li><strong>填写表单</strong>：
+                    <ul>
+                        <li>选择服务商（OpenAI、Claude、Gemini 或自定义）</li>
+                        <li>选择或输入模型名称</li>
+                        <li>输入 API 密钥</li>
+                        <li>如需要，填写 Base URL</li>
+                        <li>调整高级设置（可选）</li>
+                    </ul>
+                </li>
+                <li><strong>保存配置</strong>：点击"添加模型"按钮保存</li>
+                <li><strong>验证保存</strong>：检查模型是否出现在列表中</li>
+            </ol>
+
+            <h2>最新优化内容：</h2>
+            <ul>
+                <li>✅ <strong>智能界面切换</strong>：没有模型时直接显示添加表单，有模型时使用模态框</li>
+                <li>✅ <strong>优化空状态</strong>：更友好的引导界面，包含功能特性介绍</li>
+                <li>✅ <strong>内联表单</strong>：首次配置时的无缝体验</li>
+                <li>✅ <strong>动态按钮</strong>：根据模型数量智能显示/隐藏添加按钮</li>
+                <li>✅ <strong>响应式设计</strong>：适配不同屏幕尺寸</li>
+            </ul>
+
+            <h2>之前修复的问题：</h2>
+            <ul>
+                <li>✅ 修复了事件处理不匹配的问题（save vs saved）</li>
+                <li>✅ 修复了方法名不匹配的问题（removeModel vs removeModelConfig）</li>
+                <li>✅ 修复了用户偏好设置保存方法</li>
+                <li>✅ 优化了UI设计，使其更加美观</li>
+                <li>✅ 添加了中文界面</li>
+                <li>✅ 改进了表单验证提示</li>
+                <li>✅ 增强了视觉效果和动画</li>
+            </ul>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn" onclick="openExtensionOptions()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    打开插件设置
+                </button>
+
+                <button class="btn" onclick="testExtension()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    测试扩展功能
+                </button>
+            </div>
+
+            <div id="status"></div>
+        </div>
+
+        <div class="test-card">
+            <h2>🎨 界面优化亮点</h2>
+
+            <h3>📱 智能界面适配</h3>
+            <ul>
+                <li><strong>空状态优化</strong>：首次使用时显示友好的引导界面</li>
+                <li><strong>内联表单</strong>：没有模型时直接在页面中显示添加表单</li>
+                <li><strong>模态框模式</strong>：有模型时使用模态框进行编辑</li>
+                <li><strong>动态计数</strong>：标题显示当前模型数量</li>
+            </ul>
+
+            <h3>🎯 用户体验改进</h3>
+            <ul>
+                <li><strong>现代化设计</strong>：渐变背景、圆角边框、阴影效果</li>
+                <li><strong>更好的视觉层次</strong>：清晰的标题、图标、颜色区分</li>
+                <li><strong>交互反馈</strong>：悬停效果、焦点状态、动画过渡</li>
+                <li><strong>中文界面</strong>：所有文本都已本地化</li>
+                <li><strong>表单验证</strong>：友好的错误提示</li>
+                <li><strong>高级设置</strong>：可折叠的高级选项</li>
+                <li><strong>响应式设计</strong>：适配移动端和桌面端</li>
+            </ul>
+
+            <h3>✨ 特色功能</h3>
+            <ul>
+                <li><strong>功能特性展示</strong>：空状态时展示产品亮点</li>
+                <li><strong>渐进式引导</strong>：从简单到复杂的配置流程</li>
+                <li><strong>视觉反馈</strong>：丰富的图标和动画效果</li>
+                <li><strong>无缝切换</strong>：不同状态间的平滑过渡</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function openExtensionOptions() {
+            const status = document.getElementById('status');
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                try {
+                    chrome.runtime.openOptionsPage();
+                    status.innerHTML = '<div class="status success">正在打开插件设置页面...</div>';
+                } catch (error) {
+                    status.innerHTML = '<div class="status error">无法打开设置页面：' + error.message + '</div>';
+                }
+            } else {
+                status.innerHTML = '<div class="status error">请在 Chrome 扩展环境中运行此测试</div>';
+            }
+        }
+
+        // 检查插件是否已加载
+        window.addEventListener('load', function() {
+            const status = document.getElementById('status');
+
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                // 尝试获取扩展信息
+                try {
+                    const manifest = chrome.runtime.getManifest();
+                    if (manifest && manifest.name === 'SlimPaneAI') {
+                        status.innerHTML = `
+                            <div class="status success">
+                                ✅ SlimPaneAI 扩展已成功加载<br>
+                                📦 版本: ${manifest.version}<br>
+                                🔧 清单版本: ${manifest.manifest_version}
+                            </div>
+                        `;
+                    } else {
+                        status.innerHTML = '<div class="status error">❌ SlimPaneAI 扩展未找到，请检查是否正确安装</div>';
+                    }
+                } catch (error) {
+                    status.innerHTML = '<div class="status error">❌ 无法访问扩展信息：' + error.message + '</div>';
+                }
+            } else {
+                status.innerHTML = '<div class="status error">❌ 请在 Chrome 扩展环境中运行此测试</div>';
+            }
+        });
+
+        // 添加一个测试按钮来验证扩展功能
+        function testExtension() {
+            const status = document.getElementById('status');
+
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                try {
+                    // 测试发送消息到背景脚本
+                    chrome.runtime.sendMessage({ type: 'ping' }, function(response) {
+                        if (chrome.runtime.lastError) {
+                            status.innerHTML += '<div class="status error">❌ 背景脚本通信失败: ' + chrome.runtime.lastError.message + '</div>';
+                        } else {
+                            status.innerHTML += '<div class="status success">✅ 背景脚本通信正常</div>';
+                        }
+                    });
+                } catch (error) {
+                    status.innerHTML += '<div class="status error">❌ 扩展测试失败: ' + error.message + '</div>';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

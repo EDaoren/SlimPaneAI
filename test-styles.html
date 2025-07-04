@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>样式测试 - SlimPaneAI</title>
+    <link rel="stylesheet" href="dist/assets/index-18ef40e0.css">
+    <link rel="stylesheet" href="dist/assets/index-4bc2b42f.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-section">
+            <h1>SlimPaneAI 样式测试</h1>
+            <p>这个页面用于测试 AI 模型配置部分的样式是否正常。</p>
+        </div>
+
+        <div class="test-section">
+            <h2>模型卡片样式测试</h2>
+            
+            <!-- 模拟模型网格 -->
+            <div class="grid md:grid-cols-2 gap-4">
+                <!-- 模型卡片 1 -->
+                <div class="model-card">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="model-badge model-badge-openai">OpenAI</span>
+                            <span class="model-badge model-badge-custom">默认</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-secondary text-xs">编辑</button>
+                            <button class="btn btn-danger text-xs">删除</button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">gpt-4</h3>
+                    <p class="text-sm text-gray-600 mb-2">默认端点</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>最大令牌: 默认</span>
+                        <span>温度: 0.7</span>
+                    </div>
+                </div>
+
+                <!-- 模型卡片 2 -->
+                <div class="model-card">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="model-badge model-badge-claude">Claude</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-secondary text-xs">编辑</button>
+                            <button class="btn btn-danger text-xs">删除</button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">claude-3-opus-20240229</h3>
+                    <p class="text-sm text-gray-600 mb-2">自定义端点: https://api.anthropic.com</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>最大令牌: 4000</span>
+                        <span>温度: 0.8</span>
+                    </div>
+                </div>
+
+                <!-- 模型卡片 3 -->
+                <div class="model-card">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="model-badge model-badge-gemini">Gemini</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-secondary text-xs">编辑</button>
+                            <button class="btn btn-danger text-xs">删除</button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">gemini-pro</h3>
+                    <p class="text-sm text-gray-600 mb-2">默认端点</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>最大令牌: 2048</span>
+                        <span>温度: 0.9</span>
+                    </div>
+                </div>
+
+                <!-- 模型卡片 4 -->
+                <div class="model-card">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="model-badge model-badge-custom">自定义</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn btn-secondary text-xs">编辑</button>
+                            <button class="btn btn-danger text-xs">删除</button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-1">custom-model-v1</h3>
+                    <p class="text-sm text-gray-600 mb-2">自定义端点: https://api.example.com/v1</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>最大令牌: 8192</span>
+                        <span>温度: 0.5</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>按钮样式测试</h2>
+            <div class="flex gap-4 mb-4">
+                <button class="btn btn-primary">主要按钮</button>
+                <button class="btn btn-secondary">次要按钮</button>
+                <button class="btn btn-danger">危险按钮</button>
+            </div>
+            <div class="flex gap-4">
+                <button class="btn btn-primary text-xs">小号主要</button>
+                <button class="btn btn-secondary text-xs">小号次要</button>
+                <button class="btn btn-danger text-xs">小号危险</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>徽章样式测试</h2>
+            <div class="flex gap-2 mb-4">
+                <span class="model-badge model-badge-openai">OpenAI</span>
+                <span class="model-badge model-badge-claude">Claude</span>
+                <span class="model-badge model-badge-gemini">Gemini</span>
+                <span class="model-badge model-badge-custom">自定义</span>
+            </div>
+            <div class="flex gap-2">
+                <span class="model-badge model-badge-custom">默认</span>
+                <span class="model-badge model-badge-openai">GPT-4</span>
+                <span class="model-badge model-badge-claude">Claude-3</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>布局测试</h2>
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900">AI 模型配置</h2>
+                            <p class="text-sm text-gray-600">管理您的 AI 模型设置 (4 个模型)</p>
+                        </div>
+                        <button class="btn btn-primary">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            添加模型
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-gray-600">这里是卡片内容区域。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>检查结果</h2>
+            <div id="check-results">
+                <p>正在检查样式...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查样式是否正确加载
+        function checkStyles() {
+            const results = [];
+            
+            // 检查模型卡片
+            const modelCard = document.querySelector('.model-card');
+            if (modelCard) {
+                const styles = window.getComputedStyle(modelCard);
+                results.push(`✅ 模型卡片背景: ${styles.backgroundColor}`);
+                results.push(`✅ 模型卡片边框: ${styles.border}`);
+                results.push(`✅ 模型卡片圆角: ${styles.borderRadius}`);
+            } else {
+                results.push('❌ 模型卡片未找到');
+            }
+            
+            // 检查按钮
+            const primaryBtn = document.querySelector('.btn-primary');
+            if (primaryBtn) {
+                const styles = window.getComputedStyle(primaryBtn);
+                results.push(`✅ 主要按钮背景: ${styles.background}`);
+            } else {
+                results.push('❌ 主要按钮未找到');
+            }
+            
+            // 检查徽章
+            const badge = document.querySelector('.model-badge-openai');
+            if (badge) {
+                const styles = window.getComputedStyle(badge);
+                results.push(`✅ OpenAI 徽章背景: ${styles.backgroundColor}`);
+                results.push(`✅ OpenAI 徽章颜色: ${styles.color}`);
+            } else {
+                results.push('❌ OpenAI 徽章未找到');
+            }
+            
+            // 检查 Flexbox
+            const flexContainer = document.querySelector('.flex');
+            if (flexContainer) {
+                const styles = window.getComputedStyle(flexContainer);
+                results.push(`✅ Flex 容器: ${styles.display}`);
+            } else {
+                results.push('❌ Flex 容器未找到');
+            }
+            
+            document.getElementById('check-results').innerHTML = 
+                '<h3>样式检查结果:</h3><ul>' + 
+                results.map(r => `<li>${r}</li>`).join('') + 
+                '</ul>';
+        }
+        
+        // 页面加载完成后检查样式
+        window.addEventListener('load', checkStyles);
+    </script>
+</body>
+</html>
