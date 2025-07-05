@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { settingsStore } from '../panel/stores/settings';
   import ModelConfigForm from '../panel/components/ModelConfigForm.svelte';
-  import type { ModelConfig } from '../types';
+  import ServiceProviderManager from '../panel/components/ServiceProviderManager.svelte';
+  import type { ModelConfig, ServiceProviderSettings } from '../types';
 
   // 导航状态
   let currentPage = 'ai-models'; // 当前页面
@@ -19,7 +20,7 @@
       id: 'ai-models',
       title: 'AI 模型',
       icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
-      description: '管理 AI 模型配置'
+      description: '管理服务提供商和模型'
     },
     {
       id: 'preferences',
@@ -42,11 +43,35 @@
   ];
 
   $: modelEntries = Object.entries($settingsStore.modelSettings);
+  $: serviceProviders = $settingsStore.serviceProviders;
   $: userPreferences = $settingsStore.userPreferences;
 
   onMount(async () => {
     await settingsStore.loadSettings();
+
+    // Initialize service providers if none exist
+    if (Object.keys($settingsStore.serviceProviders).length === 0) {
+      const { getDefaultServiceProviders } = await import('@/lib/service-providers');
+      const defaultProviders = getDefaultServiceProviders();
+      await settingsStore.saveServiceProviders(defaultProviders);
+    }
+
+    // Listen for messages from background script
+    chrome.runtime.onMessage.addListener(handleMessage);
   });
+
+  function handleMessage(message: any) {
+    console.log('🎯 [Options] Received message:', message);
+
+    switch (message.type) {
+      case 'storage-updated':
+        console.log('💾 Storage updated, refreshing settings...');
+        settingsStore.forceRefresh();
+        break;
+      default:
+        console.log('❓ Unknown message type:', message.type);
+    }
+  }
 
   // 导航函数
   function navigateTo(pageId: string) {
@@ -124,6 +149,13 @@
     await settingsStore.saveUserPreferences(newPreferences);
   }
 
+  async function handleServiceProvidersUpdate(e: CustomEvent<{ serviceProviders: ServiceProviderSettings }>) {
+    const { serviceProviders } = e.detail;
+    console.log('💾 [OptionsApp] Saving service providers:', serviceProviders);
+    await settingsStore.saveServiceProviders(serviceProviders);
+    console.log('✅ [OptionsApp] Service providers saved successfully');
+  }
+
   function getProviderBadgeClass(provider: string) {
     switch (provider) {
       case 'openai': return 'model-badge-openai';
@@ -192,21 +224,9 @@
           <div>
             <h2 class="content-title">AI 模型配置</h2>
             <p class="content-subtitle">
-              {#if modelEntries.length === 0}
-                配置您的第一个 AI 模型
-              {:else}
-                管理您的 AI 模型设置 ({modelEntries.length} 个模型)
-              {/if}
+              管理您的 AI 服务提供商和模型配置
             </p>
           </div>
-          {#if modelEntries.length > 0}
-            <button class="btn btn-primary" on:click={handleAddModel}>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              添加模型
-            </button>
-          {/if}
         </div>
       {:else if currentPage === 'preferences'}
         <div>
@@ -230,108 +250,10 @@
     <div class="content-body">
       {#if currentPage === 'ai-models'}
         <!-- AI 模型配置内容 -->
-          {#if modelEntries.length === 0 && !showInlineForm}
-            <!-- Empty State -->
-            <div class="empty-state">
-              <div class="empty-icon">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <div class="empty-content">
-                <h3 class="empty-title">开始配置您的 AI 助手</h3>
-                <p class="empty-description">
-                  SlimPaneAI 支持 OpenAI、Claude、Gemini 等多种 AI 模型。<br>
-                  添加您的第一个模型，开启智能对话体验。
-                </p>
-                <div class="empty-features">
-                  <div class="feature-item">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>支持多种 AI 服务商</span>
-                  </div>
-                  <div class="feature-item">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span>本地安全存储</span>
-                  </div>
-                  <div class="feature-item">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span>快速响应</span>
-                  </div>
-                </div>
-                <button class="btn-get-started" on:click={handleAddModel}>
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                  开始配置
-                </button>
-              </div>
-            </div>
-          {:else if modelEntries.length === 0 && showInlineForm}
-            <!-- Inline Add Form -->
-            <div class="inline-form-container">
-              <div class="inline-form-header">
-                <h3 class="inline-form-title">添加您的第一个 AI 模型</h3>
-                <p class="inline-form-subtitle">配置完成后即可开始使用智能对话功能</p>
-              </div>
-              <ModelConfigForm
-                modelId={null}
-                existingConfig={null}
-                on:save={handleModelSaved}
-                on:cancel={handleCancel}
-              />
-            </div>
-          {:else}
-            <!-- Models Grid -->
-            <div class="grid md:grid-cols-2 gap-4">
-              {#each modelEntries as [id, config]}
-                <div class="model-card">
-                  <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                      <span class="model-badge {getProviderBadgeClass(config.provider)}">
-                        {getProviderName(config.provider)}
-                      </span>
-                      {#if userPreferences.defaultModel === id}
-                        <span class="model-badge model-badge-custom">默认</span>
-                      {/if}
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <button
-                        class="btn btn-secondary text-xs"
-                        on:click={() => handleEditModel(id, config)}
-                      >
-                        编辑
-                      </button>
-                      <button
-                        class="btn btn-danger text-xs"
-                        on:click={() => handleDeleteModel(id)}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 class="font-semibold text-gray-900 mb-1">{config.model}</h3>
-                  <p class="text-sm text-gray-600 mb-2">
-                    {#if config.baseUrl}
-                      自定义端点: {config.baseUrl}
-                    {:else}
-                      默认端点
-                    {/if}
-                  </p>
-                  <div class="flex items-center gap-4 text-xs text-gray-500">
-                    <span>最大令牌: {config.maxTokens || '默认'}</span>
-                    <span>温度: {config.temperature || 0.7}</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
+        <ServiceProviderManager
+          {serviceProviders}
+          on:update={handleServiceProvidersUpdate}
+        />
       {:else if currentPage === 'preferences'}
         <!-- 偏好设置内容 -->
         <div class="settings-grid">
@@ -1003,122 +925,5 @@
     }
   }
 
-  /* 空状态样式 */
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-    text-align: center;
-    max-width: 32rem;
-    margin: 0 auto;
-  }
 
-  .empty-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 4rem;
-    height: 4rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 2px solid #bae6fd;
-    border-radius: 50%;
-    margin-bottom: 1.5rem;
-    color: #0284c7;
-  }
-
-  .empty-content {
-    width: 100%;
-  }
-
-  .empty-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 1rem 0;
-  }
-
-  .empty-description {
-    font-size: 0.875rem;
-    color: #6b7280;
-    line-height: 1.6;
-    margin: 0 0 1.5rem 0;
-  }
-
-  .empty-features {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-    text-align: left;
-  }
-
-  .feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    color: #374151;
-  }
-
-  .feature-item svg {
-    color: #10b981;
-    flex-shrink: 0;
-  }
-
-  .btn-get-started {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.875rem 1.5rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-    border: none;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px -1px rgba(59, 130, 246, 0.3);
-  }
-
-  .btn-get-started:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px -2px rgba(59, 130, 246, 0.4);
-  }
-
-  /* 内联表单样式 */
-  .inline-form-container {
-    background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
-    border: 2px solid #e2e8f0;
-    border-radius: 1rem;
-    overflow: hidden;
-    max-width: 48rem;
-    margin: 0 auto;
-  }
-
-  .inline-form-header {
-    padding: 1.5rem 2rem 1rem;
-    text-align: center;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .inline-form-title {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .inline-form-subtitle {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0;
-  }
 </style>

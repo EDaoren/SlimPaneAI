@@ -3,6 +3,7 @@
   import type { Message } from '@/types';
   import { mathRenderer } from '@/lib/math-renderer';
   import { perfMonitor } from '@/lib/performance-monitor';
+  import { settingsStore } from '../stores/settings';
   import 'katex/dist/katex.min.css';
 
   export let message: Message;
@@ -19,6 +20,17 @@
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  function getModelDisplayName(modelId?: string): string {
+    if (!modelId) return 'AI助手';
+
+    // Get model configuration from settings store
+    const modelConfig = settingsStore.getModelConfig(modelId);
+    if (!modelConfig) return modelId;
+
+    // Return the original model name without formatting
+    return modelConfig.model;
   }
 
   function formatContent(content: string): string {
@@ -181,53 +193,59 @@
   });
 </script>
 
-<div class="message-item flex gap-2 {message.type === 'user' ? 'flex-row-reverse justify-start' : 'justify-start'} mb-4" bind:this={messageElement}>
-  <!-- Avatar -->
-  <div class="flex-shrink-0">
-    {#if message.type === 'user'}
-      <div class="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center">
-        <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-        </svg>
+<div class="message-item mb-4" bind:this={messageElement}>
+  {#if message.type === 'assistant'}
+    <!-- Assistant Message - Left aligned with nickname -->
+    <div style="display: flex; gap: 0.5rem;">
+      <div style="flex-shrink: 0;">
+        <div style="width: 2rem; height: 2rem; background-color: #4b5563; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 1rem; height: 1rem; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+        </div>
       </div>
-    {:else}
-      <div class="w-7 h-7 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      </div>
-    {/if}
-  </div>
-
-  <!-- Message Content -->
-  <div class="flex-1 min-w-0 max-w-[75%]">
-    <div class="message-bubble {message.type === 'user' ? 'user-message' : 'assistant-message'}">
-      <div class="message-content">
-        {#if message.content.trim()}
-          {@html processedContent}
-        {:else if message.type === 'assistant'}
-          <span class="text-gray-400 italic">正在思考...</span>
-        {:else}
-          <span class="text-gray-400 italic">空消息</span>
-        {/if}
-      </div>
-
-      <div class="message-meta">
-        <span class="text-xs opacity-70">
-          {formatTime(message.timestamp)}
-          {#if message.model}
-            · {message.model}
-          {/if}
-        </span>
+      <div style="flex: 1; min-width: 0;">
+        <!-- Model name as nickname -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+          <span style="font-weight: 500; font-size: 0.875rem; color: #111827;">
+            {getModelDisplayName(message.model)}
+          </span>
+          <span style="font-size: 0.75rem; color: #6b7280;">
+            {formatTime(message.timestamp)}
+          </span>
+        </div>
+        <!-- Message content -->
+        <div class="assistant-message-bubble">
+          <div class="message-content">
+            {#if message.content.trim()}
+              {@html processedContent}
+            {:else}
+              <span style="color: #9ca3af; font-style: italic;">正在思考...</span>
+            {/if}
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  {:else}
+    <!-- User Message - Simple right aligned -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+      <div style="max-width: 75%; background-color: #f3f4f6; color: #1f2937; padding: 0.75rem 1rem; border-radius: 1rem; border: 1px solid #e5e7eb;">
+        {#if message.content.trim()}
+          {@html processedContent}
+        {:else}
+          <span style="color: #9ca3af; font-style: italic;">空消息</span>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
-  .message-bubble {
+  .user-message-bubble {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     border-radius: 1rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem 1rem;
     width: fit-content;
     max-width: 100%;
     word-wrap: break-word;
@@ -236,18 +254,25 @@
     white-space: pre-wrap;
   }
 
-  .user-message {
-    background-color: #3b82f6;
-    color: white;
-    border-bottom-right-radius: 0.375rem;
-    margin-left: auto;
+  .assistant-message-bubble {
+    background-color: #f8fafc;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    width: fit-content;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
   }
 
-  .assistant-message {
-    background-color: #f3f4f6;
-    color: #111827;
-    border-bottom-left-radius: 0.375rem;
-    margin-right: auto;
+  .message-time {
+    text-align: right;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    opacity: 0.7;
   }
 
   .message-content {
@@ -352,4 +377,6 @@
     border-radius: 0;
     font-size: inherit;
   }
+
+
 </style>

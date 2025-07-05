@@ -1,14 +1,16 @@
 import { writable } from 'svelte/store';
-import type { ModelSettings, UserPreferences, StorageData } from '@/types';
+import type { ModelSettings, UserPreferences, StorageData, ServiceProviderSettings } from '@/types';
 
 interface SettingsState {
   modelSettings: ModelSettings;
+  serviceProviders: ServiceProviderSettings;
   userPreferences: UserPreferences;
   isLoading: boolean;
 }
 
 const initialState: SettingsState = {
   modelSettings: {},
+  serviceProviders: {},
   userPreferences: {
     language: 'zh',
     theme: 'auto',
@@ -21,26 +23,43 @@ const initialState: SettingsState = {
 function createSettingsStore() {
   const { subscribe, set, update } = writable<SettingsState>(initialState);
 
+  // Listen for storage changes to sync across different contexts
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local') {
+        console.log('🔄 [Settings] Storage changed, reloading settings...');
+        // Reload settings when storage changes
+        loadSettingsInternal();
+      }
+    });
+  }
+
+  async function loadSettingsInternal() {
+    update(state => ({ ...state, isLoading: true }));
+
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'get-storage' });
+      const data: StorageData = response;
+
+      update(state => ({
+        ...state,
+        modelSettings: data.modelSettings || {},
+        serviceProviders: data.serviceProviders || {},
+        userPreferences: data.userPreferences || initialState.userPreferences,
+        isLoading: false,
+      }));
+      console.log('✅ [Settings] Settings loaded successfully');
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      update(state => ({ ...state, isLoading: false }));
+    }
+  }
+
   return {
     subscribe,
-    
+
     async loadSettings() {
-      update(state => ({ ...state, isLoading: true }));
-      
-      try {
-        const response = await chrome.runtime.sendMessage({ type: 'get-storage' });
-        const data: StorageData = response;
-        
-        update(state => ({
-          ...state,
-          modelSettings: data.modelSettings || {},
-          userPreferences: data.userPreferences || initialState.userPreferences,
-          isLoading: false,
-        }));
-      } catch (error) {
-        console.error('Failed to load settings:', error);
-        update(state => ({ ...state, isLoading: false }));
-      }
+      return loadSettingsInternal();
     },
 
     async saveModelSettings(modelSettings: ModelSettings) {
@@ -63,7 +82,7 @@ function createSettingsStore() {
           type: 'set-storage',
           payload: { userPreferences },
         });
-        
+
         update(state => ({ ...state, userPreferences }));
       } catch (error) {
         console.error('Failed to save user preferences:', error);
@@ -71,53 +90,94 @@ function createSettingsStore() {
       }
     },
 
+    async saveServiceProviders(serviceProviders: ServiceProviderSettings) {
+      try {
+        await chrome.runtime.sendMessage({
+          type: 'set-storage',
+          payload: { serviceProviders },
+        });
+
+        update(state => ({ ...state, serviceProviders }));
+      } catch (error) {
+        console.error('Failed to save service providers:', error);
+        throw error;
+      }
+    },
+
     async addModelConfig(id: string, config: any) {
-      update(state => {
-        const newModelSettings = {
-          ...state.modelSettings,
-          [id]: config,
-        };
-        
+      try {
+        const newModelSettings = await new Promise<any>((resolve) => {
+          update(state => {
+            const newSettings = {
+              ...state.modelSettings,
+              [id]: config,
+            };
+            resolve(newSettings);
+            return { ...state, modelSettings: newSettings };
+          });
+        });
+
         // Save to storage
-        chrome.runtime.sendMessage({
+        await chrome.runtime.sendMessage({
           type: 'set-storage',
           payload: { modelSettings: newModelSettings },
         });
-        
-        return { ...state, modelSettings: newModelSettings };
-      });
+
+        console.log('✅ [Settings] Model config added successfully:', id);
+      } catch (error) {
+        console.error('Failed to add model config:', error);
+        throw error;
+      }
     },
 
     async removeModelConfig(id: string) {
-      update(state => {
-        const newModelSettings = { ...state.modelSettings };
-        delete newModelSettings[id];
-        
+      try {
+        const newModelSettings = await new Promise<any>((resolve) => {
+          update(state => {
+            const newSettings = { ...state.modelSettings };
+            delete newSettings[id];
+            resolve(newSettings);
+            return { ...state, modelSettings: newSettings };
+          });
+        });
+
         // Save to storage
-        chrome.runtime.sendMessage({
+        await chrome.runtime.sendMessage({
           type: 'set-storage',
           payload: { modelSettings: newModelSettings },
         });
-        
-        return { ...state, modelSettings: newModelSettings };
-      });
+
+        console.log('✅ [Settings] Model config removed successfully:', id);
+      } catch (error) {
+        console.error('Failed to remove model config:', error);
+        throw error;
+      }
     },
 
     async updateUserPreferences(updates: Partial<UserPreferences>) {
-      update(state => {
-        const newUserPreferences = {
-          ...state.userPreferences,
-          ...updates,
-        };
+      try {
+        const newUserPreferences = await new Promise<any>((resolve) => {
+          update(state => {
+            const newPrefs = {
+              ...state.userPreferences,
+              ...updates,
+            };
+            resolve(newPrefs);
+            return { ...state, userPreferences: newPrefs };
+          });
+        });
 
         // Save to storage
-        chrome.runtime.sendMessage({
+        await chrome.runtime.sendMessage({
           type: 'set-storage',
           payload: { userPreferences: newUserPreferences },
         });
 
-        return { ...state, userPreferences: newUserPreferences };
-      });
+        console.log('✅ [Settings] User preferences updated successfully');
+      } catch (error) {
+        console.error('Failed to update user preferences:', error);
+        throw error;
+      }
     },
 
     getDefaultModel() {
@@ -136,6 +196,22 @@ function createSettingsStore() {
         return state;
       });
       return config;
+    },
+
+    // Force refresh settings from storage
+    async forceRefresh() {
+      console.log('🔄 [Settings] Force refreshing settings...');
+      return loadSettingsInternal();
+    },
+
+    // Get current state snapshot
+    getCurrentState() {
+      let currentState: SettingsState;
+      update(state => {
+        currentState = { ...state };
+        return state;
+      });
+      return currentState!;
     },
   };
 }

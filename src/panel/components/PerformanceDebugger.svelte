@@ -3,13 +3,13 @@
   import { perfMonitor } from '@/lib/performance-monitor';
   import { mathRenderer } from '@/lib/math-renderer';
 
-  let isVisible = false;
+  export let isVisible = false;
   let metrics: any[] = [];
   let memoryInfo: any = null;
   let cacheStats: any = null;
   let updateInterval: number;
 
-  function toggleDebugger() {
+  export function toggleDebugger() {
     isVisible = !isVisible;
     if (isVisible) {
       updateStats();
@@ -62,17 +62,6 @@
     }
   });
 </script>
-
-<!-- 调试按钮 -->
-{#if !isVisible}
-  <button
-    class="debug-toggle"
-    on:click={toggleDebugger}
-    title="打开性能调试器 (Ctrl+Shift+D)"
-  >
-    🔧
-  </button>
-{/if}
 
 <!-- 调试面板 -->
 {#if isVisible}
@@ -137,28 +126,6 @@
 {/if}
 
 <style>
-  .debug-toggle {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #6366f1;
-    color: white;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s;
-  }
-
-  .debug-toggle:hover {
-    background: #5855eb;
-    transform: scale(1.1);
-  }
-
   .debug-panel {
     position: fixed;
     top: 20px;

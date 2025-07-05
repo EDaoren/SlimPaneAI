@@ -29,19 +29,57 @@ function sendMessageToSidePanel(message: any) {
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason === 'install') {
+  console.log('🚀 [Background] Extension installed/updated:', details.reason);
+
+  if (details.reason === 'install' || details.reason === 'update') {
     // Set up default settings
     await initializeDefaultSettings();
-    
+
     // Create context menus
     createContextMenus();
+
+    // Initialize side panel
+    await initializeSidePanel();
   }
 });
 
+// Initialize side panel
+async function initializeSidePanel() {
+  try {
+    if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+      // Set side panel to open on action click
+      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+      console.log('✅ [Background] Side panel behavior set');
+    }
+  } catch (error) {
+    console.log('ℹ️ [Background] Side panel behavior not supported:', error);
+  }
+}
+
 // Handle extension icon click - open side panel
 chrome.action.onClicked.addListener(async (tab) => {
+  console.log('🖱️ [Background] Extension icon clicked, tab:', tab.id);
+
   if (tab.id) {
-    await chrome.sidePanel.open({ tabId: tab.id });
+    try {
+      // For Chrome 114+, use the new sidePanel API
+      if (chrome.sidePanel && chrome.sidePanel.open) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+        console.log('✅ [Background] Side panel opened using sidePanel.open');
+      } else if (chrome.sidePanel && chrome.sidePanel.setOptions) {
+        // Fallback: enable side panel for this tab
+        await chrome.sidePanel.setOptions({
+          tabId: tab.id,
+          enabled: true,
+          path: 'panel.html'
+        });
+        console.log('✅ [Background] Side panel enabled using setOptions');
+      } else {
+        console.error('❌ [Background] sidePanel API not available');
+      }
+    } catch (error) {
+      console.error('❌ [Background] Failed to open side panel:', error);
+    }
   }
 });
 
@@ -66,7 +104,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     };
     
     // Open side panel and send the selected text
-    await chrome.sidePanel.open({ tabId: tab.id });
+    try {
+      if (chrome.sidePanel && chrome.sidePanel.open) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+      } else if (chrome.sidePanel && chrome.sidePanel.setOptions) {
+        await chrome.sidePanel.setOptions({
+          tabId: tab.id,
+          enabled: true,
+          path: 'panel.html'
+        });
+      }
+    } catch (error) {
+      console.error('❌ [Background] Failed to open side panel for text selection:', error);
+    }
     
     // Wait a bit for side panel to load, then send message
     setTimeout(() => {
@@ -93,6 +143,33 @@ async function handleMessage(
         
       case 'set-storage':
         await setStorageData(message.payload);
+
+        // Notify all contexts about storage update
+        try {
+          // Send message to all tabs with the extension
+          const tabs = await chrome.tabs.query({});
+          for (const tab of tabs) {
+            if (tab.id) {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'storage-updated',
+                payload: message.payload
+              }).catch(() => {
+                // Ignore errors for tabs without content script
+              });
+            }
+          }
+
+          // Also send to side panel if it's open
+          chrome.runtime.sendMessage({
+            type: 'storage-updated',
+            payload: message.payload
+          }).catch(() => {
+            // Ignore if no listeners
+          });
+        } catch (error) {
+          console.log('Failed to notify about storage update:', error);
+        }
+
         sendResponse({ success: true });
         break;
         
@@ -101,7 +178,8 @@ async function handleMessage(
     }
   } catch (error) {
     console.error('Error handling message:', error);
-    sendResponse({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    sendResponse({ error: errorMessage });
   }
 }
 
@@ -230,32 +308,36 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
     sendResponse({ success: true });
   } catch (error) {
     console.error('LLM request error:', error);
-    
-    const errorMessage: LLMResponse = {
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    sendMessageToSidePanel({
       type: 'llm-error',
       requestId: request.requestId,
-      payload: {
-        error: error.message,
-      },
-    };
-    
-    await sendMessageToSidePanel(errorMessage);
-    sendResponse({ error: error.message });
+      error: errorMessage,
+    });
+
+    sendResponse({ error: errorMessage });
   }
 }
 
 async function initializeDefaultSettings() {
+  // Check if settings already exist to avoid overwriting user data
+  const existingData = await chrome.storage.local.get();
+
   const defaultData: StorageData = {
-    modelSettings: {},
-    chatSessions: [],
+    modelSettings: existingData.modelSettings || {},
+    serviceProviders: existingData.serviceProviders || {},
+    chatSessions: existingData.chatSessions || [],
     userPreferences: {
       language: 'zh',
       theme: 'auto',
       defaultModel: '',
       autoOpenSidePanel: false,
+      ...existingData.userPreferences,
     },
   };
-  
+
   await chrome.storage.local.set(defaultData);
 }
 

@@ -7,9 +7,11 @@
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
   import Toolbar from './Toolbar.svelte';
-  
+  import PerformanceDebugger from './PerformanceDebugger.svelte';
+
   let showSessions = false;
   let messagesContainer: HTMLElement;
+  let performanceDebugger: PerformanceDebugger;
 
   $: currentSession = $chatStore.currentSession;
   $: sessions = $chatStore.sessions;
@@ -28,9 +30,9 @@
     }
   });
 
-  function handleSendMessage(event: CustomEvent<{ message: string; modelId?: string }>) {
-    const { message, modelId } = event.detail;
-    chatStore.sendMessage(message, modelId);
+  function handleSendMessage(event: CustomEvent<{ message: string; modelId?: string; providerId?: string }>) {
+    const { message, modelId, providerId } = event.detail;
+    chatStore.sendMessage(message, modelId, providerId);
   }
 
   function handleNewChat() {
@@ -51,6 +53,12 @@
 
   function toggleSessions() {
     showSessions = !showSessions;
+  }
+
+  function handleTogglePerformanceDebugger() {
+    if (performanceDebugger) {
+      performanceDebugger.toggleDebugger();
+    }
   }
 
   // Check if any models are configured
@@ -137,8 +145,11 @@
   </div>
 
   <!-- Right Toolbar -->
-  <Toolbar />
+  <Toolbar onTogglePerformanceDebugger={handleTogglePerformanceDebugger} />
 </div>
+
+<!-- Performance Debugger -->
+<PerformanceDebugger bind:this={performanceDebugger} />
 
 <style>
   .chat-panel {

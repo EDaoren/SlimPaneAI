@@ -16,8 +16,32 @@ export interface ChatSession {
 }
 
 // Model provider types
-export type ModelProvider = 'openai' | 'claude' | 'gemini' | 'custom';
+export type ModelProvider = 'openai' | 'claude' | 'gemini' | 'custom' | 'none';
 
+// Service provider and model types
+export interface ServiceProvider {
+  id: string;
+  name: string;
+  icon: string;
+  isBuiltIn: boolean;
+  enabled: boolean;
+  isDefault: boolean;
+  apiKey: string;
+  baseUrl: string;
+  models: Model[];
+}
+
+export interface Model {
+  id: string;
+  name: string;
+  enabled: boolean;
+}
+
+export interface ServiceProviderSettings {
+  [key: string]: ServiceProvider;
+}
+
+// Legacy model config for backward compatibility
 export interface ModelConfig {
   provider: ModelProvider;
   model: string;
@@ -111,7 +135,8 @@ export interface TextSelectionMessage extends ExtensionMessage {
 
 // Storage types
 export interface StorageData {
-  modelSettings?: ModelSettings;
+  modelSettings?: ModelSettings; // Legacy support
+  serviceProviders?: ServiceProviderSettings;
   chatSessions?: ChatSession[];
   currentSessionId?: string;
   userPreferences?: UserPreferences;

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import ChatPanel from './components/ChatPanel.svelte';
-  import PerformanceDebugger from './components/PerformanceDebugger.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
   import type { ExtensionMessage, TextSelectionMessage } from '@/types';
@@ -38,6 +37,10 @@
         console.log('🤖 Forwarding to chat store');
         chatStore.handleMessage(message);
         break;
+      case 'storage-updated':
+        console.log('💾 Storage updated, refreshing settings...');
+        settingsStore.forceRefresh();
+        break;
       default:
         console.log('❓ Unknown message type:', message.type);
     }
@@ -59,9 +62,6 @@
       <ChatPanel />
     {/if}
   </main>
-
-  <!-- 性能调试器 -->
-  <PerformanceDebugger />
 </div>
 
 <style>

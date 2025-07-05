@@ -1,14 +1,16 @@
 import { writable } from 'svelte/store';
-import type { 
-  Message, 
-  ChatSession, 
-  LLMRequest, 
-  LLMResponse, 
+import type {
+  Message,
+  ChatSession,
+  LLMRequest,
+  LLMResponse,
   ExtensionMessage,
-  StorageData 
+  StorageData,
+  ModelConfig
 } from '@/types';
 import { DEFAULT_PROMPTS } from '@/types';
 import { settingsStore } from './settings';
+import { getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
 
 interface ChatState {
   currentSession: ChatSession | null;
@@ -132,7 +134,7 @@ function createChatStore() {
       await this.saveSessions();
     },
 
-    async sendMessage(content: string, modelId?: string) {
+    async sendMessage(content: string, modelId?: string, providerId?: string) {
       if (!content.trim()) return;
 
       // Get current session or create new one
@@ -184,8 +186,56 @@ function createChatStore() {
 
       await this.saveSessions();
 
-      // Get model configuration
-      const modelConfig = settingsStore.getModelConfig(modelId || settingsStore.getDefaultModel());
+      // Get model configuration from service providers
+      let modelConfig: ModelConfig | null = null;
+      let actualModelId = modelId;
+      let actualProviderId = providerId;
+
+      const currentState = settingsStore.getCurrentState();
+      const serviceProviders = currentState.serviceProviders;
+
+      // If no specific model/provider provided, use default
+      if (!actualModelId || !actualProviderId) {
+        const defaultSelection = getDefaultModelSelection(serviceProviders);
+        if (defaultSelection) {
+          const parsed = parseModelSelection(defaultSelection);
+          if (parsed) {
+            actualModelId = parsed.modelId;
+            actualProviderId = parsed.providerId;
+          }
+        }
+      }
+
+      // Get provider and model configuration
+      if (actualProviderId && actualModelId) {
+        const provider = serviceProviders[actualProviderId];
+        if (provider && provider.enabled) {
+          const model = provider.models.find(m => m.id === actualModelId && m.enabled);
+          if (model) {
+            modelConfig = {
+              provider: actualProviderId as any, // Convert to legacy provider type
+              model: actualModelId,
+              apiKey: provider.apiKey,
+              baseUrl: provider.baseUrl,
+              temperature: 0.7,
+              maxTokens: 2000
+            };
+          }
+        }
+      }
+
+      // Update the assistant message with the actual model ID
+      if (actualModelId) {
+        update(state => {
+          if (state.currentSession) {
+            const lastMessage = state.currentSession.messages[state.currentSession.messages.length - 1];
+            if (lastMessage && lastMessage.type === 'assistant') {
+              lastMessage.model = actualModelId;
+            }
+          }
+          return state;
+        });
+      }
 
       // 如果没有配置模型，创建一个空的配置，让后台处理错误
       const finalModelConfig = modelConfig || {
