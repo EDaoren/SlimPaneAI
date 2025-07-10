@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { settingsStore } from '../stores/settings';
   import { getModelDisplayOptions, getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
 
@@ -12,15 +12,27 @@
   let message = '';
   let selectedModel = '';
   let textArea: HTMLTextAreaElement;
+  let isDropdownOpen = false;
+  let dropdownContainer: HTMLElement;
+  let dropdownMenu: HTMLElement;
+  let shouldOpenUpward = false;
 
   $: serviceProviders = $settingsStore.serviceProviders;
+  $: userPreferences = $settingsStore.userPreferences;
   $: modelOptions = getModelDisplayOptions(serviceProviders);
   $: hasModels = modelOptions.length > 0;
 
-  // Set default model
+  // Set model selection priority: last selected > default > first available
   $: if (!selectedModel && hasModels) {
-    const defaultSelection = getDefaultModelSelection(serviceProviders);
-    selectedModel = defaultSelection || '';
+    // Try to use last selected model first
+    const lastSelected = userPreferences.lastSelectedModel;
+    if (lastSelected && modelOptions.some(option => option.id === lastSelected)) {
+      selectedModel = lastSelected;
+    } else {
+      // Fallback to default model selection
+      const defaultSelection = getDefaultModelSelection(serviceProviders);
+      selectedModel = defaultSelection || '';
+    }
   }
   
   function handleSubmit() {
@@ -37,6 +49,82 @@
     message = '';
     adjustTextAreaHeight();
   }
+
+  // Handle model selection change
+  async function handleModelChange() {
+    if (selectedModel) {
+      try {
+        await settingsStore.saveLastSelectedModel(selectedModel);
+      } catch (error) {
+        console.error('Failed to save last selected model:', error);
+      }
+    }
+  }
+
+  // Calculate dropdown position
+  function calculateDropdownPosition() {
+    if (!dropdownContainer) return;
+
+    const rect = dropdownContainer.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const maxDropdownHeight = Math.min(400, viewportHeight * 0.7); // max-height of dropdown menu
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // If there's not enough space below but enough space above, open upward
+    shouldOpenUpward = spaceBelow < maxDropdownHeight && spaceAbove > maxDropdownHeight;
+  }
+
+  // Handle dropdown toggle
+  function toggleDropdown() {
+    if (disabled || !hasModels) return;
+
+    if (!isDropdownOpen) {
+      calculateDropdownPosition();
+    }
+
+    isDropdownOpen = !isDropdownOpen;
+  }
+
+  // Handle model selection from dropdown
+  function selectModel(modelId: string) {
+    selectedModel = modelId;
+    isDropdownOpen = false;
+    handleModelChange();
+  }
+
+  // Close dropdown when clicking outside
+  function handleClickOutside(event: MouseEvent) {
+    if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
+      isDropdownOpen = false;
+    }
+  }
+
+  // Get display name for selected model (reactive)
+  $: selectedModelName = (() => {
+    const option = modelOptions.find(opt => opt.id === selectedModel);
+    return option ? option.name : '选择模型';
+  })();
+
+  // Handle window resize
+  function handleResize() {
+    if (isDropdownOpen) {
+      calculateDropdownPosition();
+    }
+  }
+
+  // Setup event listeners
+  onMount(() => {
+    document.addEventListener('click', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('resize', handleResize);
+    window.removeEventListener('scroll', handleResize);
+  });
   
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -57,9 +145,9 @@
   }
 </script>
 
-<div class="chat-input border-t border-gray-200 bg-white">
+<div class="chat-input" style="border-top: 1px solid var(--border-primary); background: var(--bg-primary);">
   <!-- Top Bar with Model Selection and Actions -->
-  <div style="padding: 0.5rem 0.75rem; border-bottom: 1px solid #f3f4f6; background-color: white;">
+  <div style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-secondary); background: var(--bg-primary);">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <!-- Model Selection -->
       <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -67,19 +155,41 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
         {#if hasModels}
-          <select
-            bind:value={selectedModel}
-            style="font-size: 0.875rem; background-color: #f9fafb; border: none; border-radius: 0.375rem; padding: 0.25rem 0.5rem; color: #374151; transition: background-color 0.2s;"
-            {disabled}
-          >
-            {#each modelOptions as option}
-              <option value={option.id}>
-                {option.name}
-              </option>
-            {/each}
-          </select>
+          <div class="custom-dropdown" bind:this={dropdownContainer}>
+            <button
+              class="model-select"
+              class:open={isDropdownOpen}
+              on:click={toggleDropdown}
+              {disabled}
+              type="button"
+            >
+              <span class="selected-text">{selectedModelName}</span>
+              <svg class="dropdown-arrow" class:rotated={isDropdownOpen} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {#if isDropdownOpen}
+              <div
+                class="dropdown-menu"
+                class:upward={shouldOpenUpward}
+                bind:this={dropdownMenu}
+              >
+                {#each modelOptions as option}
+                  <button
+                    class="dropdown-item"
+                    class:selected={option.id === selectedModel}
+                    on:click={() => selectModel(option.id)}
+                    type="button"
+                  >
+                    {option.name}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {:else}
-          <span style="font-size: 0.875rem; color: #dc2626; font-weight: 500;">
+          <span class="no-models-text">
             未配置模型
           </span>
         {/if}
@@ -130,23 +240,23 @@
     </div>
   
   <!-- Input Area -->
-  <div style="padding: 1rem; background-color: white; border-top: 1px solid #e5e7eb;">
-    <div style="position: relative; background-color: white; border-radius: 0.75rem; border: 2px solid #d1d5db; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+  <div style="padding: 1rem; background: var(--bg-primary); border-top: 1px solid var(--border-primary);">
+    <div class="input-wrapper" style="position: relative; background: var(--input-bg); border-radius: 0.75rem; border: 2px solid var(--input-border); transition: all 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
       <textarea
         bind:this={textArea}
         bind:value={message}
         on:input={handleInput}
         on:keydown={handleKeyDown}
         on:focus={(e) => {
-          e.target.parentElement.style.borderColor = '#3b82f6';
-          e.target.parentElement.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px rgba(0, 0, 0, 0.1)';
+          e.target.parentElement.style.borderColor = 'var(--input-focus-border)';
+          e.target.parentElement.style.boxShadow = 'var(--input-focus-shadow), 0 4px 6px rgba(0, 0, 0, 0.1)';
         }}
         on:blur={(e) => {
-          e.target.parentElement.style.borderColor = '#d1d5db';
+          e.target.parentElement.style.borderColor = 'var(--input-border)';
           e.target.parentElement.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
         }}
         placeholder="有什么问题，尽管问我..."
-        style="width: 100%; background: transparent; border: none; outline: none; resize: none; min-height: 52px; max-height: 128px; padding: 0.75rem 3rem 0.75rem 1rem; color: #111827; font-size: 0.875rem; line-height: 1.5;"
+        style="width: 100%; background: transparent; border: none; outline: none; resize: none; min-height: 52px; max-height: 128px; padding: 0.75rem 3rem 0.75rem 1rem; color: var(--text-primary); font-size: var(--font-size-base); line-height: 1.5;"
         rows="1"
         {disabled}
       />
@@ -188,8 +298,8 @@
     </div>
 
     <!-- Tips -->
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b7280; text-align: center;">
-      按 <span style="padding: 0.125rem 0.375rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0.25rem; color: #4b5563; font-family: monospace; font-size: 0.75rem;">Enter</span> 发送，<span style="padding: 0.125rem 0.375rem; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0.25rem; color: #4b5563; font-family: monospace; font-size: 0.75rem;">Shift + Enter</span> 换行
+    <div style="margin-top: 0.5rem; font-size: var(--font-size-small); color: var(--text-muted); text-align: center;">
+      按 <span style="padding: 0.125rem 0.375rem; background: var(--bg-tertiary); border: 1px solid var(--border-secondary); border-radius: 0.25rem; color: var(--text-secondary); font-family: monospace; font-size: var(--font-size-small);">Enter</span> 发送，<span style="padding: 0.125rem 0.375rem; background: var(--bg-tertiary); border: 1px solid var(--border-secondary); border-radius: 0.25rem; color: var(--text-secondary); font-family: monospace; font-size: var(--font-size-small);">Shift + Enter</span> 换行
     </div>
   </div>
 
@@ -197,6 +307,183 @@
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    .custom-dropdown {
+      position: relative;
+      width: 140px;
+    }
+
+    .model-select {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--font-size-small);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      gap: 0.5rem;
+    }
+
+    .model-select:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-primary);
+    }
+
+    .model-select:focus {
+      outline: none;
+      background: var(--bg-tertiary);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .model-select.open {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .model-select:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .selected-text {
+      flex: 1;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dropdown-arrow {
+      width: 1rem;
+      height: 1rem;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .dropdown-arrow.rotated {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 0.25rem);
+      left: 0;
+      min-width: 100%;
+      width: max-content;
+      max-width: 300px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      z-index: 1000;
+      max-height: min(400px, 70vh);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0.5rem;
+      transform-origin: top center;
+      animation: dropdownSlideDown 0.15s ease-out;
+
+      /* 只在内容超出时显示滚动条 */
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-secondary) transparent;
+    }
+
+    .dropdown-menu.upward {
+      top: auto;
+      bottom: calc(100% + 0.25rem);
+      transform-origin: bottom center;
+      animation: dropdownSlideUp 0.15s ease-out;
+    }
+
+    @keyframes dropdownSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes dropdownSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .dropdown-item {
+      width: 100%;
+      display: block;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: var(--font-size-small);
+      color: var(--text-primary);
+      background: transparent;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 0.125rem;
+      white-space: nowrap;
+      overflow: visible;
+    }
+
+    .dropdown-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .dropdown-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .dropdown-item.selected {
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 500;
+    }
+
+    .dropdown-item.selected:hover {
+      background: #dbeafe;
+    }
+
+    /* 滚动条样式 */
+    .dropdown-menu::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb {
+      background: var(--border-secondary);
+      border-radius: 3px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .no-models-text {
+      font-size: 0.875rem;
+      color: #dc2626;
+      font-weight: 500;
+      width: 140px;
+      text-align: center;
     }
   </style>
 </div>

@@ -2,7 +2,6 @@
   import { onMount, tick } from 'svelte';
   import type { Message } from '@/types';
   import { mathRenderer } from '@/lib/math-renderer';
-  import { perfMonitor } from '@/lib/performance-monitor';
   import { settingsStore } from '../stores/settings';
   import 'katex/dist/katex.min.css';
 
@@ -193,7 +192,7 @@
   });
 </script>
 
-<div class="message-item mb-4" bind:this={messageElement}>
+<div class="message-item" style="margin-bottom: var(--message-spacing);" bind:this={messageElement}>
   {#if message.type === 'assistant'}
     <!-- Assistant Message - Left aligned with nickname -->
     <div style="display: flex; gap: 0.5rem;">
@@ -228,13 +227,15 @@
     </div>
   {:else}
     <!-- User Message - Simple right aligned -->
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-      <div style="max-width: 75%; background-color: #f3f4f6; color: #1f2937; padding: 0.75rem 1rem; border-radius: 1rem; border: 1px solid #e5e7eb;">
-        {#if message.content.trim()}
-          {@html processedContent}
-        {:else}
-          <span style="color: #9ca3af; font-style: italic;">空消息</span>
-        {/if}
+    <div style="display: flex; justify-content: flex-end;">
+      <div style="max-width: 75%; background: var(--message-user-bg); color: var(--message-user-text); padding: var(--message-padding); border-radius: 1rem; transition: background 0.2s ease, color 0.2s ease;">
+        <div class="message-content">
+          {#if message.content.trim()}
+            {@html processedContent}
+          {:else}
+            <span style="opacity: 0.7; font-style: italic;">空消息</span>
+          {/if}
+        </div>
       </div>
     </div>
   {/if}
@@ -255,17 +256,18 @@
   }
 
   .assistant-message-bubble {
-    background-color: #f8fafc;
-    color: #1e293b;
-    border: 1px solid #e2e8f0;
+    background: var(--message-assistant-bg);
+    color: var(--message-assistant-text);
+    border: 1px solid var(--message-assistant-border);
     border-radius: 1rem;
-    padding: 0.75rem 1rem;
+    padding: var(--message-padding);
     width: fit-content;
     max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
     white-space: pre-wrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
   .message-time {
@@ -276,7 +278,7 @@
   }
 
   .message-content {
-    font-size: 0.875rem;
+    font-size: var(--font-size-base);
     line-height: 1.6;
     word-wrap: break-word;
     overflow-wrap: break-word;

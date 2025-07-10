@@ -2,25 +2,39 @@
   import { onMount, afterUpdate } from 'svelte';
   import { chatStore } from '../stores/chat';
   import { settingsStore } from '../stores/settings';
+  import { applyTheme, watchSystemTheme } from '@/lib/theme-manager';
   import MessageList from './MessageList.svelte';
   import VirtualMessageList from './VirtualMessageList.svelte';
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
   import Toolbar from './Toolbar.svelte';
-  import PerformanceDebugger from './PerformanceDebugger.svelte';
 
   let showSessions = false;
   let messagesContainer: HTMLElement;
-  let performanceDebugger: PerformanceDebugger;
 
   $: currentSession = $chatStore.currentSession;
   $: sessions = $chatStore.sessions;
   $: isStreaming = $chatStore.isStreaming;
   $: modelSettings = $settingsStore.modelSettings;
+  $: userPreferences = $settingsStore.userPreferences;
+
+  // 应用主题变化
+  $: if (userPreferences) {
+    applyTheme(userPreferences);
+  }
 
   onMount(() => {
     // Don't create session automatically - let user start the conversation
     // Sessions will be created when user sends first message
+
+    // 监听系统主题变化
+    const unwatch = watchSystemTheme(() => {
+      if (userPreferences?.theme === 'auto') {
+        applyTheme(userPreferences);
+      }
+    });
+
+    return unwatch;
   });
 
   afterUpdate(() => {
@@ -55,10 +69,8 @@
     showSessions = !showSessions;
   }
 
-  function handleTogglePerformanceDebugger() {
-    if (performanceDebugger) {
-      performanceDebugger.toggleDebugger();
-    }
+  function handleToggleChatHistory() {
+    showSessions = !showSessions;
   }
 
   // Check if any models are configured
@@ -140,16 +152,16 @@
       <ChatInput
         disabled={isStreaming}
         on:send={handleSendMessage}
+        on:clear={handleClearChat}
       />
     </div>
   </div>
 
   <!-- Right Toolbar -->
-  <Toolbar onTogglePerformanceDebugger={handleTogglePerformanceDebugger} />
+  <Toolbar
+    onToggleChatHistory={handleToggleChatHistory}
+  />
 </div>
-
-<!-- Performance Debugger -->
-<PerformanceDebugger bind:this={performanceDebugger} />
 
 <style>
   .chat-panel {
@@ -160,7 +172,9 @@
     bottom: 0;
     display: flex;
     flex-direction: row;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   .main-content {
@@ -176,7 +190,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
+    background: var(--bg-primary);
     z-index: 10;
   }
 
@@ -191,7 +205,7 @@
   .input-container {
     flex-shrink: 0;
     padding: 1rem;
-    border-top: 1px solid #e5e7eb;
-    background: white;
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-primary);
   }
 </style>

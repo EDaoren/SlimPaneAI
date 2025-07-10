@@ -55,10 +55,11 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f9fafb;
-  color: #1f2937;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-primary, #1f2937);
   font-size: 14px;
   line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 html, body {
@@ -73,7 +74,7 @@ html, body {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
-  background: white !important;
+  background: var(--bg-primary, white) !important;
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -854,4 +855,76 @@ code {
 
 .hover\:bg-gray-50:hover {
   background-color: #f9fafb;
+}
+
+
+
+/* CSS Variables for theming - fallback values */
+:root {
+  /* Light theme defaults */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+
+  --message-user-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --message-user-text: #ffffff;
+  --message-assistant-bg: #f8fafc;
+  --message-assistant-text: #1e293b;
+  --message-assistant-border: #e2e8f0;
+
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-border: #3b82f6;
+  --input-focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+  --font-size-base: 0.875rem;
+  --font-size-small: 0.75rem;
+  --font-size-large: 1rem;
+
+  --message-spacing: 1rem;
+  --message-padding: 0.75rem 1rem;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+
+
+/* Scrollbar theming */
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Code block theming */
+pre {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+code {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Typing indicator theming */
+.typing-dot {
+  background: var(--text-muted) !important;
 }

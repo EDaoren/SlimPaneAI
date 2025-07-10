@@ -1,8 +1,7 @@
 <script lang="ts">
   import { chatStore } from '../stores/chat';
 
-  // 性能调试器相关
-  export let onTogglePerformanceDebugger: () => void;
+  export let onToggleChatHistory: () => void;
 
   function openSettings() {
     window.chrome?.runtime?.openOptionsPage();
@@ -12,20 +11,8 @@
     chatStore.createNewSession();
   }
 
-  function handleClearChat() {
-    if (confirm('确定要清空当前对话吗？')) {
-      chatStore.clearCurrentSession();
-    }
-  }
-
-  // 可以添加更多工具栏功能
-  function handleExportChat() {
-    // TODO: 实现导出功能
-    console.log('导出对话功能待实现');
-  }
-
-  function handlePerformanceDebugger() {
-    onTogglePerformanceDebugger();
+  function handleChatHistory() {
+    onToggleChatHistory();
   }
 </script>
 
@@ -41,43 +28,18 @@
     </svg>
   </button>
 
-  <!-- 清空对话 -->
+  <!-- 聊天记录 -->
   <button
     class="toolbar-button"
-    on:click={handleClearChat}
-    title="清空当前对话"
+    on:click={handleChatHistory}
+    title="聊天记录"
   >
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     </svg>
   </button>
 
   <!-- 分隔线 -->
-  <div class="toolbar-divider"></div>
-
-  <!-- 导出对话 -->
-  <button
-    class="toolbar-button"
-    on:click={handleExportChat}
-    title="导出对话"
-  >
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  </button>
-
-  <!-- 性能调试 -->
-  <button
-    class="toolbar-button"
-    on:click={handlePerformanceDebugger}
-    title="性能调试器 (Ctrl+Shift+D)"
-  >
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-    </svg>
-  </button>
-
-  <!-- 另一个分隔线 -->
   <div class="toolbar-divider"></div>
 
   <!-- 设置 -->
@@ -99,11 +61,12 @@
     flex-direction: column;
     align-items: center;
     padding: 16px 8px;
-    background: #f9fafb;
-    border-left: 1px solid #e5e7eb;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-primary);
     gap: 8px;
     width: 56px;
     height: 100%;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .toolbar-button {
@@ -114,7 +77,7 @@
     height: 40px;
     border: none;
     background: transparent;
-    color: #6b7280;
+    color: var(--text-muted);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -122,8 +85,8 @@
   }
 
   .toolbar-button:hover {
-    background: #e5e7eb;
-    color: #374151;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     transform: scale(1.05);
   }
 
@@ -134,7 +97,7 @@
   .toolbar-divider {
     width: 24px;
     height: 1px;
-    background: #d1d5db;
+    background: var(--border-secondary);
     margin: 4px 0;
   }
 

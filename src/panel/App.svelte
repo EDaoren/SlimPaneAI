@@ -3,6 +3,7 @@
   import ChatPanel from './components/ChatPanel.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
+  import { applyTheme } from '@/lib/theme-manager';
   import type { ExtensionMessage, TextSelectionMessage } from '@/types';
 
   let isLoading = true;
@@ -13,6 +14,12 @@
     // Load settings and chat history
     await settingsStore.loadSettings();
     await chatStore.loadChatHistory();
+
+    // Apply initial theme
+    const currentSettings = settingsStore.getCurrentState();
+    if (currentSettings.userPreferences) {
+      applyTheme(currentSettings.userPreferences);
+    }
 
     console.log('📡 Setting up message listener...');
     // Listen for messages from background script

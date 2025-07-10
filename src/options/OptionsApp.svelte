@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '../panel/stores/settings';
+  import { applyTheme, watchSystemTheme } from '@/lib/theme-manager';
   import ModelConfigForm from '../panel/components/ModelConfigForm.svelte';
   import ServiceProviderManager from '../panel/components/ServiceProviderManager.svelte';
+  import { getModelDisplayOptions } from '../lib/service-providers';
   import type { ModelConfig, ServiceProviderSettings } from '../types';
 
   // 导航状态
@@ -45,6 +47,13 @@
   $: modelEntries = Object.entries($settingsStore.modelSettings);
   $: serviceProviders = $settingsStore.serviceProviders;
   $: userPreferences = $settingsStore.userPreferences;
+  $: modelOptions = getModelDisplayOptions(serviceProviders);
+  $: hasModels = modelOptions.length > 0;
+
+  // 应用主题变化
+  $: if (userPreferences) {
+    applyTheme(userPreferences);
+  }
 
   onMount(async () => {
     await settingsStore.loadSettings();
@@ -55,6 +64,22 @@
       const defaultProviders = getDefaultServiceProviders();
       await settingsStore.saveServiceProviders(defaultProviders);
     }
+
+    // 应用初始主题
+    const currentSettings = settingsStore.getCurrentState();
+    if (currentSettings.userPreferences) {
+      applyTheme(currentSettings.userPreferences);
+    }
+
+    // 监听系统主题变化
+    const unwatch = watchSystemTheme(() => {
+      const currentSettings = settingsStore.getCurrentState();
+      if (currentSettings.userPreferences?.theme === 'auto') {
+        applyTheme(currentSettings.userPreferences);
+      }
+    });
+
+    return unwatch;
 
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener(handleMessage);
@@ -131,23 +156,35 @@
     await settingsStore.saveUserPreferences(newPreferences);
   }
 
-  async function handleLanguageChange(e: Event) {
-    const target = e.target as HTMLSelectElement;
+
+
+  async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
     const newPreferences = {
       ...userPreferences,
-      language: target.value as 'en' | 'zh'
+      theme
     };
     await settingsStore.saveUserPreferences(newPreferences);
   }
 
-  async function handleThemeChange(e: Event) {
-    const target = e.target as HTMLSelectElement;
+
+
+  async function handleFontSizeChange(fontSize: 'small' | 'medium' | 'large') {
     const newPreferences = {
       ...userPreferences,
-      theme: target.value as 'light' | 'dark' | 'auto'
+      fontSize
     };
     await settingsStore.saveUserPreferences(newPreferences);
   }
+
+  async function handleMessageDensityChange(messageDensity: 'compact' | 'normal' | 'relaxed') {
+    const newPreferences = {
+      ...userPreferences,
+      messageDensity
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+  }
+
+
 
   async function handleServiceProvidersUpdate(e: CustomEvent<{ serviceProviders: ServiceProviderSettings }>) {
     const { serviceProviders } = e.detail;
@@ -258,7 +295,7 @@
         <!-- 偏好设置内容 -->
         <div class="settings-grid">
           <!-- 默认模型 -->
-          {#if modelEntries.length > 0}
+          {#if hasModels}
             <div class="setting-item">
               <div class="setting-header">
                 <h3 class="setting-title">默认模型</h3>
@@ -271,76 +308,205 @@
                   on:change={handleDefaultModelChange}
                 >
                   <option value="">请选择默认模型</option>
-                  {#each modelEntries as [id, config]}
-                    <option value={id}>{getProviderName(config.provider)} - {config.model}</option>
+                  {#each modelOptions as option}
+                    <option value={option.id}>{option.name}</option>
                   {/each}
                 </select>
               </div>
             </div>
+          {:else}
+            <div class="setting-item">
+              <div class="setting-header">
+                <h3 class="setting-title">默认模型</h3>
+                <p class="setting-description">请先在 AI 模型页面配置服务提供商和模型</p>
+              </div>
+              <div class="setting-control">
+                <button
+                  class="btn-primary"
+                  on:click={() => currentPage = 'ai-models'}
+                >
+                  配置 AI 模型
+                </button>
+              </div>
+            </div>
           {/if}
 
-          <!-- 语言设置 -->
-          <div class="setting-item">
-            <div class="setting-header">
-              <h3 class="setting-title">界面语言</h3>
-              <p class="setting-description">选择界面显示语言</p>
-            </div>
-            <div class="setting-control">
-              <select
-                class="form-select"
-                value={userPreferences.language}
-                on:change={handleLanguageChange}
-              >
-                <option value="zh">中文</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-          </div>
 
-          <!-- 主题设置 -->
+
+
+
+          <!-- 快捷键设置 -->
           <div class="setting-item">
             <div class="setting-header">
-              <h3 class="setting-title">主题模式</h3>
-              <p class="setting-description">选择界面主题</p>
+              <h3 class="setting-title">快捷键</h3>
+              <p class="setting-description">自定义常用操作的快捷键</p>
             </div>
             <div class="setting-control">
-              <select
-                class="form-select"
-                value={userPreferences.theme}
-                on:change={handleThemeChange}
-              >
-                <option value="auto">跟随系统</option>
-                <option value="light">浅色模式</option>
-                <option value="dark">深色模式</option>
-              </select>
+              <div class="shortcut-list">
+                <div class="shortcut-item">
+                  <span class="shortcut-name">打开/关闭侧边栏</span>
+                  <kbd class="shortcut-key">Ctrl + Shift + Y</kbd>
+                </div>
+                <div class="shortcut-item">
+                  <span class="shortcut-name">发送消息</span>
+                  <kbd class="shortcut-key">Enter</kbd>
+                </div>
+                <div class="shortcut-item">
+                  <span class="shortcut-name">换行</span>
+                  <kbd class="shortcut-key">Shift + Enter</kbd>
+                </div>
+                <div class="shortcut-item">
+                  <span class="shortcut-name">清空对话</span>
+                  <kbd class="shortcut-key">Ctrl + Shift + Delete</kbd>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       {:else if currentPage === 'appearance'}
         <!-- 外观设置内容 -->
         <div class="settings-grid">
+          <!-- 主题设置 -->
           <div class="setting-item">
             <div class="setting-header">
               <h3 class="setting-title">界面主题</h3>
-              <p class="setting-description">自定义界面外观和颜色</p>
+              <p class="setting-description">选择界面的颜色主题</p>
             </div>
             <div class="setting-control">
               <div class="theme-options">
-                <div class="theme-option">
-                  <div class="theme-preview theme-light"></div>
-                  <span>浅色</span>
-                </div>
-                <div class="theme-option">
-                  <div class="theme-preview theme-dark"></div>
-                  <span>深色</span>
-                </div>
-                <div class="theme-option">
-                  <div class="theme-preview theme-auto"></div>
-                  <span>自动</span>
-                </div>
+                <button
+                  class="theme-option {userPreferences.theme === 'light' ? 'theme-option-active' : ''}"
+                  on:click={() => handleThemeChange('light')}
+                >
+                  <div class="theme-preview theme-light">
+                    <div class="theme-preview-content">
+                      <div class="theme-preview-header"></div>
+                      <div class="theme-preview-body">
+                        <div class="theme-preview-text"></div>
+                        <div class="theme-preview-text short"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="theme-name">浅色模式</span>
+                  <span class="theme-description">明亮清爽的界面</span>
+                </button>
+
+                <button
+                  class="theme-option {userPreferences.theme === 'dark' ? 'theme-option-active' : ''}"
+                  on:click={() => handleThemeChange('dark')}
+                >
+                  <div class="theme-preview theme-dark">
+                    <div class="theme-preview-content">
+                      <div class="theme-preview-header"></div>
+                      <div class="theme-preview-body">
+                        <div class="theme-preview-text"></div>
+                        <div class="theme-preview-text short"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="theme-name">深色模式</span>
+                  <span class="theme-description">护眼的深色界面</span>
+                </button>
+
+                <button
+                  class="theme-option {userPreferences.theme === 'auto' ? 'theme-option-active' : ''}"
+                  on:click={() => handleThemeChange('auto')}
+                >
+                  <div class="theme-preview theme-auto">
+                    <div class="theme-preview-content">
+                      <div class="theme-preview-header"></div>
+                      <div class="theme-preview-body">
+                        <div class="theme-preview-text"></div>
+                        <div class="theme-preview-text short"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="theme-name">跟随系统</span>
+                  <span class="theme-description">自动适应系统主题</span>
+                </button>
               </div>
             </div>
           </div>
+
+          <!-- 字体设置 -->
+          <div class="setting-item">
+            <div class="setting-header">
+              <h3 class="setting-title">字体大小</h3>
+              <p class="setting-description">调整聊天消息的字体大小</p>
+            </div>
+            <div class="setting-control">
+              <div class="font-size-options">
+                <button
+                  class="font-size-option font-size-small {userPreferences.fontSize === 'small' ? 'font-size-active' : ''}"
+                  on:click={() => handleFontSizeChange('small')}
+                >
+                  <span class="font-size-preview">Aa</span>
+                  <span>小</span>
+                </button>
+                <button
+                  class="font-size-option font-size-medium {userPreferences.fontSize === 'medium' ? 'font-size-active' : ''}"
+                  on:click={() => handleFontSizeChange('medium')}
+                >
+                  <span class="font-size-preview">Aa</span>
+                  <span>中</span>
+                </button>
+                <button
+                  class="font-size-option font-size-large {userPreferences.fontSize === 'large' ? 'font-size-active' : ''}"
+                  on:click={() => handleFontSizeChange('large')}
+                >
+                  <span class="font-size-preview">Aa</span>
+                  <span>大</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 消息密度 -->
+          <div class="setting-item">
+            <div class="setting-header">
+              <h3 class="setting-title">消息密度</h3>
+              <p class="setting-description">调整消息之间的间距</p>
+            </div>
+            <div class="setting-control">
+              <div class="density-options">
+                <button
+                  class="density-option {userPreferences.messageDensity === 'compact' ? 'density-active' : ''}"
+                  on:click={() => handleMessageDensityChange('compact')}
+                >
+                  <div class="density-preview density-compact">
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                  </div>
+                  <span>紧凑</span>
+                </button>
+                <button
+                  class="density-option {userPreferences.messageDensity === 'normal' ? 'density-active' : ''}"
+                  on:click={() => handleMessageDensityChange('normal')}
+                >
+                  <div class="density-preview density-normal">
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                  </div>
+                  <span>标准</span>
+                </button>
+                <button
+                  class="density-option {userPreferences.messageDensity === 'relaxed' ? 'density-active' : ''}"
+                  on:click={() => handleMessageDensityChange('relaxed')}
+                >
+                  <div class="density-preview density-relaxed">
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                    <div class="density-message"></div>
+                  </div>
+                  <span>宽松</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+
         </div>
       {:else if currentPage === 'about'}
         <!-- 关于页面内容 -->
@@ -404,24 +570,27 @@
   .app-container {
     display: flex;
     min-height: 100vh;
-    background: #f8fafc;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* 侧边栏 */
   .sidebar {
     width: 280px;
-    background: white;
-    border-right: 1px solid #e5e7eb;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border-primary);
     display: flex;
     flex-direction: column;
     position: fixed;
     height: 100vh;
     overflow-y: auto;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .sidebar-header {
     padding: 1.5rem 1.5rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-secondary);
   }
 
   .sidebar-logo {
@@ -449,14 +618,14 @@
   .logo-title {
     font-size: 1.125rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-primary);
     margin: 0;
     line-height: 1.2;
   }
 
   .logo-subtitle {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--text-muted);
     margin: 0;
     line-height: 1;
   }
@@ -480,12 +649,12 @@
     text-align: left;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #6b7280;
+    color: var(--text-muted);
   }
 
   .nav-item:hover {
-    background: #f8fafc;
-    color: #374151;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
   }
 
   .nav-item-active {
@@ -524,7 +693,7 @@
   .nav-description {
     display: block;
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: var(--text-muted);
     margin-top: 0.125rem;
     line-height: 1.25;
   }
@@ -539,25 +708,28 @@
     margin-left: 280px;
     display: flex;
     flex-direction: column;
+    background: var(--bg-primary);
+    transition: background-color 0.2s ease;
   }
 
   .content-header {
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-primary);
     padding: 1.5rem 2rem 1rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .content-title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-primary);
     margin: 0 0 0.25rem 0;
     line-height: 1.3;
   }
 
   .content-subtitle {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--text-muted);
     margin: 0;
     line-height: 1.4;
   }
@@ -565,6 +737,8 @@
   .content-body {
     flex: 1;
     padding: 1.5rem 2rem;
+    background: var(--bg-secondary);
+    transition: background-color 0.2s ease;
   }
 
   /* 设置网格 */
@@ -575,15 +749,15 @@
   }
 
   .setting-item {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
     border-radius: 1rem;
     padding: 2rem;
     transition: all 0.2s ease;
   }
 
   .setting-item:hover {
-    border-color: #d1d5db;
+    border-color: var(--border-secondary);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   }
 
@@ -594,13 +768,13 @@
   .setting-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
     margin: 0 0 0.5rem 0;
   }
 
   .setting-description {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -610,13 +784,167 @@
     gap: 1rem;
   }
 
+
+
+  /* 快捷键列表 */
+  .shortcut-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-primary);
+  }
+
+  .shortcut-name {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .shortcut-key {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-secondary);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--text-muted);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
   /* 主题选项 */
   .theme-options {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
   }
 
   .theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    text-align: center;
+  }
+
+  .theme-option:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-option-active {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .theme-preview {
+    width: 4rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .theme-preview-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .theme-preview-header {
+    height: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .theme-preview-body {
+    flex: 1;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .theme-preview-text {
+    height: 0.25rem;
+    border-radius: 0.125rem;
+    opacity: 0.6;
+  }
+
+  .theme-preview-text.short {
+    width: 60%;
+  }
+
+  .theme-light {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  }
+
+  .theme-light .theme-preview-header {
+    background: #f1f5f9;
+  }
+
+  .theme-light .theme-preview-text {
+    background: #cbd5e1;
+  }
+
+  .theme-dark {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  }
+
+  .theme-dark .theme-preview-header {
+    background: #374151;
+  }
+
+  .theme-dark .theme-preview-text {
+    background: #6b7280;
+  }
+
+  .theme-auto {
+    background: linear-gradient(135deg, #ffffff 0%, #1f2937 100%);
+  }
+
+  .theme-auto .theme-preview-header {
+    background: linear-gradient(90deg, #f1f5f9 0%, #374151 100%);
+  }
+
+  .theme-auto .theme-preview-text {
+    background: linear-gradient(90deg, #cbd5e1 0%, #6b7280 100%);
+  }
+
+  .theme-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .theme-description {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  /* 字体大小选项 */
+  .font-size-options {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .font-size-option {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -626,29 +954,90 @@
     border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    background: white;
+    min-width: 4rem;
   }
 
-  .theme-option:hover {
+  .font-size-option:hover {
     border-color: #3b82f6;
   }
 
-  .theme-preview {
-    width: 3rem;
+  .font-size-active {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .font-size-preview {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .font-size-small .font-size-preview {
+    font-size: 1rem;
+  }
+
+  .font-size-medium .font-size-preview {
+    font-size: 1.25rem;
+  }
+
+  .font-size-large .font-size-preview {
+    font-size: 1.5rem;
+  }
+
+  /* 消息密度选项 */
+  .density-options {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .density-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    min-width: 4rem;
+  }
+
+  .density-option:hover {
+    border-color: #3b82f6;
+  }
+
+  .density-active {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .density-preview {
+    width: 2rem;
     height: 2rem;
-    border-radius: 0.375rem;
-    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.125rem;
   }
 
-  .theme-light {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  .density-message {
+    height: 0.25rem;
+    background: #cbd5e1;
+    border-radius: 0.125rem;
   }
 
-  .theme-dark {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  .density-compact {
+    gap: 0.0625rem;
   }
 
-  .theme-auto {
-    background: linear-gradient(135deg, #ffffff 0%, #1f2937 100%);
+  .density-normal {
+    gap: 0.125rem;
+  }
+
+  .density-relaxed {
+    gap: 0.25rem;
   }
 
   /* 关于页面 */

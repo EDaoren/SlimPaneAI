@@ -143,10 +143,11 @@ export interface StorageData {
 }
 
 export interface UserPreferences {
-  language: 'en' | 'zh';
   theme: 'light' | 'dark' | 'auto';
   defaultModel: string;
-  autoOpenSidePanel: boolean;
+  lastSelectedModel: string;
+  fontSize: 'small' | 'medium' | 'large';
+  messageDensity: 'compact' | 'normal' | 'relaxed';
 }
 
 // Prompt templates

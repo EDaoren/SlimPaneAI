@@ -44,26 +44,26 @@
   }
 </script>
 
-<div class="session-list h-full flex flex-col bg-white">
+<div class="session-list">
   <!-- Header -->
-  <div class="flex items-center justify-between p-4 border-b border-gray-200">
-    <h2 class="text-lg font-semibold text-gray-900">Chat Sessions</h2>
-    <div class="flex items-center gap-2">
+  <div class="session-header">
+    <h2 class="session-title">聊天记录</h2>
+    <div class="header-actions">
       <button
-        class="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        class="header-button"
         on:click={createNewSession}
-        title="New Chat"
+        title="新建对话"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
       </button>
       <button
-        class="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        class="header-button"
         on:click={() => dispatch('close')}
-        title="Close"
+        title="关闭"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -71,51 +71,49 @@
   </div>
   
   <!-- Session List -->
-  <div class="flex-1 overflow-y-auto">
+  <div class="session-content">
     {#if sessions.length === 0}
-      <div class="flex items-center justify-center h-full p-6">
-        <div class="text-center">
-          <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No chat sessions</h3>
-          <p class="text-gray-600 mb-4">Start a new conversation to begin.</p>
-          <button
-            class="btn-primary"
-            on:click={createNewSession}
-          >
-            New Chat
-          </button>
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg class="icon-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
         </div>
+        <h3 class="empty-title">暂无聊天记录</h3>
+        <p class="empty-description">开始新的对话来创建聊天记录</p>
+        <button
+          class="btn-primary"
+          on:click={createNewSession}
+        >
+          新建对话
+        </button>
       </div>
     {:else}
-      <div class="p-2">
+      <div class="sessions-container">
         {#each sessions as session (session.id)}
           <div
-            class="session-item p-3 rounded-lg cursor-pointer transition-colors {session.id === currentSessionId ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'}"
+            class="session-item {session.id === currentSessionId ? 'active' : ''}"
             on:click={() => selectSession(session.id)}
             role="button"
             tabindex="0"
             on:keydown={(e) => e.key === 'Enter' && selectSession(session.id)}
           >
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium text-gray-900 truncate">
+            <div class="session-content-wrapper">
+              <div class="session-info">
+                <h3 class="session-title-text">
                   {session.title}
                 </h3>
-                <p class="text-xs text-gray-500 mt-1">
-                  {formatDate(session.updatedAt)} · {session.messages.filter(m => m.type !== 'system').length} messages
+                <p class="session-meta">
+                  {formatDate(session.updatedAt)} · {session.messages.filter(m => m.type !== 'system').length} 条消息
                 </p>
               </div>
-              
+
               <button
-                class="flex-shrink-0 p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                class="delete-button"
                 on:click={(e) => deleteSession(session.id, e)}
-                title="Delete session"
+                title="删除对话"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
@@ -125,4 +123,209 @@
       </div>
     {/if}
   </div>
-</div>
+
+<style>
+  .session-list {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
+
+  .session-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-secondary);
+    background: var(--bg-secondary);
+  }
+
+  .session-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .header-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .header-button:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    transform: scale(1.05);
+  }
+
+  .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .session-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .empty-icon {
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-large {
+    width: 2rem;
+    height: 2rem;
+    color: var(--text-muted);
+  }
+
+  .empty-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-description {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+    font-size: 0.875rem;
+  }
+
+  .sessions-container {
+    padding: 0.75rem;
+  }
+
+  .session-item {
+    padding: 0.875rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+
+  .session-item:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .session-item.active {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .session-content-wrapper {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .session-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .session-title-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .session-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .delete-button {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+  }
+
+  .delete-button:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .icon-small {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* 滚动条样式 */
+  .session-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .session-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .session-content::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: 3px;
+  }
+
+  .session-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+</style></div>

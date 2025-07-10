@@ -56,6 +56,8 @@ async function initializeSidePanel() {
   }
 }
 
+
+
 // Handle extension icon click - open side panel
 chrome.action.onClicked.addListener(async (tab) => {
   console.log('🖱️ [Background] Extension icon clicked, tab:', tab.id);
@@ -82,6 +84,8 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
   }
 });
+
+
 
 // Handle messages from content script and side panel
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
@@ -330,10 +334,11 @@ async function initializeDefaultSettings() {
     serviceProviders: existingData.serviceProviders || {},
     chatSessions: existingData.chatSessions || [],
     userPreferences: {
-      language: 'zh',
       theme: 'auto',
       defaultModel: '',
-      autoOpenSidePanel: false,
+      lastSelectedModel: '',
+      fontSize: 'medium',
+      messageDensity: 'normal',
       ...existingData.userPreferences,
     },
   };

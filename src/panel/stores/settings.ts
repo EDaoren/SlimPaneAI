@@ -12,10 +12,11 @@ const initialState: SettingsState = {
   modelSettings: {},
   serviceProviders: {},
   userPreferences: {
-    language: 'zh',
     theme: 'auto',
     defaultModel: '',
-    autoOpenSidePanel: false,
+    lastSelectedModel: '',
+    fontSize: 'medium',
+    messageDensity: 'normal',
   },
   isLoading: false,
 };
@@ -187,6 +188,41 @@ function createSettingsStore() {
         return state;
       });
       return defaultModel;
+    },
+
+    async saveLastSelectedModel(modelSelection: string) {
+      try {
+        const newUserPreferences = await new Promise<any>((resolve) => {
+          update(state => {
+            const newPrefs = {
+              ...state.userPreferences,
+              lastSelectedModel: modelSelection,
+            };
+            resolve(newPrefs);
+            return { ...state, userPreferences: newPrefs };
+          });
+        });
+
+        // Save to storage
+        await chrome.runtime.sendMessage({
+          type: 'set-storage',
+          payload: { userPreferences: newUserPreferences },
+        });
+
+        console.log('✅ [Settings] Last selected model saved:', modelSelection);
+      } catch (error) {
+        console.error('Failed to save last selected model:', error);
+        throw error;
+      }
+    },
+
+    getLastSelectedModel() {
+      let lastSelectedModel = '';
+      update(state => {
+        lastSelectedModel = state.userPreferences.lastSelectedModel;
+        return state;
+      });
+      return lastSelectedModel;
     },
 
     getModelConfig(modelId: string) {
