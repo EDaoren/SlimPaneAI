@@ -3,6 +3,8 @@
   import type { Message } from '@/types';
   import { mathRenderer } from '@/lib/math-renderer';
   import { settingsStore } from '../stores/settings';
+  import { t } from '@/lib/i18n';
+  import { supportsReasoning, getModelDisplayName } from '@/lib/model-capabilities';
   import 'katex/dist/katex.min.css';
 
   export let message: Message;
@@ -21,16 +23,57 @@
     });
   }
 
-  function getModelDisplayName(modelId?: string): string {
-    if (!modelId) return 'AI助手';
+  // 为不同模型生成头像
+  function getModelAvatar(modelId?: string) {
+    if (!modelId) {
+      return {
+        bg: '#6b7280',
+        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
+      };
+    }
 
-    // Get model configuration from settings store
-    const modelConfig = settingsStore.getModelConfig(modelId);
-    if (!modelConfig) return modelId;
+    const modelLower = modelId.toLowerCase();
 
-    // Return the original model name without formatting
-    return modelConfig.model;
+    // GPT 系列 - 绿色
+    if (modelLower.includes('gpt')) {
+      return {
+        bg: '#10b981',
+        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
+      };
+    }
+
+    // Claude 系列 - 橙色
+    if (modelLower.includes('claude')) {
+      return {
+        bg: '#f59e0b',
+        icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
+      };
+    }
+
+    // Gemini 系列 - 蓝色
+    if (modelLower.includes('gemini')) {
+      return {
+        bg: '#3b82f6',
+        icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
+      };
+    }
+
+    // o1 系列 - 紫色
+    if (modelLower.includes('o1')) {
+      return {
+        bg: '#8b5cf6',
+        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
+      };
+    }
+
+    // 默认 - 灰色
+    return {
+      bg: '#6b7280',
+      icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'
+    };
   }
+
+
 
   function formatContent(content: string): string {
     // Simple markdown formatting without math processing
@@ -196,12 +239,22 @@
   {#if message.type === 'assistant'}
     <!-- Assistant Message - Left aligned with nickname -->
     <div style="display: flex; gap: 0.5rem;">
+      <!-- Model Avatar -->
       <div style="flex-shrink: 0;">
-        <div style="width: 2rem; height: 2rem; background-color: #4b5563; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 1rem; height: 1rem; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-        </div>
+        {#if message.model}
+          {@const avatar = getModelAvatar(message.model)}
+          <div style="width: 2rem; height: 2rem; background-color: {avatar.bg}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <svg style="width: 1rem; height: 1rem; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{avatar.icon}" />
+            </svg>
+          </div>
+        {:else}
+          <div style="width: 2rem; height: 2rem; background-color: #6b7280; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <svg style="width: 1rem; height: 1rem; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+        {/if}
       </div>
       <div style="flex: 1; min-width: 0;">
         <!-- Model name as nickname -->
@@ -214,15 +267,26 @@
           </span>
         </div>
         <!-- Message content -->
-        <div class="assistant-message-bubble">
-          <div class="message-content">
-            {#if message.content.trim()}
-              {@html processedContent}
-            {:else}
-              <span style="color: #9ca3af; font-style: italic;">正在思考...</span>
-            {/if}
+        <!-- 思考过程（如果存在） -->
+        {#if message.reasoning && message.reasoning.trim()}
+          <div class="reasoning-section" style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f8fafc; border-left: 3px solid #e2e8f0; border-radius: 0.375rem;">
+            <div style="font-size: 0.875rem; font-weight: 500; color: #64748b; margin-bottom: 0.5rem;">{$t('chat.reasoning')}</div>
+            <div style="font-size: 0.875rem; color: #475569; line-height: 1.5; white-space: pre-wrap;">{message.reasoning}</div>
           </div>
-        </div>
+        {/if}
+
+        <!-- 主要回答内容（只有在有内容或思考状态时才显示bubble） -->
+        {#if message.content.trim() || (supportsReasoning(message.model) && message.isThinking)}
+          <div class="assistant-message-bubble">
+            <div class="message-content">
+              {#if message.content.trim()}
+                {@html processedContent}
+              {:else if supportsReasoning(message.model) && message.isThinking}
+                <span style="color: #9ca3af; font-style: italic;">{$t('chat.thinking')}</span>
+              {/if}
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   {:else}
@@ -233,7 +297,7 @@
           {#if message.content.trim()}
             {@html processedContent}
           {:else}
-            <span style="opacity: 0.7; font-style: italic;">空消息</span>
+            <span style="opacity: 0.7; font-style: italic;">{$t('chat.emptyMessage')}</span>
           {/if}
         </div>
       </div>

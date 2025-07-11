@@ -335,6 +335,7 @@ async function initializeDefaultSettings() {
     chatSessions: existingData.chatSessions || [],
     userPreferences: {
       theme: 'auto',
+      language: 'zh',
       defaultModel: '',
       lastSelectedModel: '',
       fontSize: 'medium',

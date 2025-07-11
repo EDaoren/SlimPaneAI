@@ -1,5 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import CustomSelect from './CustomSelect.svelte';
+  import { t } from '@/lib/i18n';
   import type { ModelConfig, ModelProvider } from '@/types';
   import { DEFAULT_MODELS } from '@/lib/model-adapters';
   
@@ -26,6 +28,34 @@
   $: availableModels = DEFAULT_MODELS[provider] || [];
   $: isCustomProvider = provider === 'custom';
   $: isCustomModel = model === 'custom';
+
+  // 提供商选项
+  const providerOptions = [
+    { id: 'openai', name: 'OpenAI', icon: '🤖' },
+    { id: 'claude', name: 'Anthropic Claude', icon: '🧠' },
+    { id: 'gemini', name: 'Google Gemini', icon: '💎' },
+    { id: 'custom', name: $t('settings.customModel'), icon: '⚙️' }
+  ];
+
+  // 模型选项（动态生成）
+  $: modelOptions = [
+    ...availableModels.map(modelOption => ({
+      id: modelOption.model,
+      name: modelOption.name,
+      icon: getProviderIcon(provider)
+    })),
+    { id: 'custom', name: $t('settings.customModel') + '...', icon: '🔧' }
+  ];
+
+  function getProviderIcon(provider: string): string {
+    const icons: Record<string, string> = {
+      'openai': '🤖',
+      'claude': '🧠',
+      'gemini': '💎',
+      'custom': '⚙️'
+    };
+    return icons[provider] || '🔧';
+  }
   
   // Update generated ID when provider changes
   $: if (!modelId) {
@@ -39,11 +69,21 @@
       customModelName = '';
     }
   }
-  
+
   function handleModelChange() {
     if (model !== 'custom') {
       customModelName = '';
     }
+  }
+
+  function handleProviderSelectChange(event: CustomEvent) {
+    provider = event.detail.value;
+    handleProviderChange();
+  }
+
+  function handleModelSelectChange(event: CustomEvent) {
+    model = event.detail.value;
+    handleModelChange();
   }
   
   function handleSave() {
@@ -122,17 +162,17 @@
         </div>
         <div>
           <h2 class="text-xl font-bold text-gray-900">
-            {modelId ? '编辑模型' : '添加模型'}
+            {modelId ? $t('settings.editModel') : $t('settings.addModel')}
           </h2>
           <p class="text-sm text-gray-600 mt-1">
-            {modelId ? '修改现有AI模型配置' : '配置新的AI模型'}
+            {modelId ? $t('settings.editModel') : $t('settings.addModel')}
           </p>
         </div>
       </div>
       <button
         class="close-button"
         on:click={handleCancel}
-        title="关闭"
+        title={$t('common.close')}
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -147,34 +187,23 @@
       <!-- Provider -->
       <div class="form-group">
         <label for="provider" class="form-label">
-          <span class="label-text">服务商</span>
+          <span class="label-text">{$t('settings.provider')}</span>
           <span class="label-required">*</span>
         </label>
-        <div class="select-wrapper">
-          <select
-            id="provider"
-            bind:value={provider}
-            on:change={handleProviderChange}
-            class="form-select"
-            required
-          >
-            <option value="openai">OpenAI</option>
-            <option value="claude">Anthropic Claude</option>
-            <option value="gemini">Google Gemini</option>
-            <option value="custom">自定义</option>
-          </select>
-          <div class="select-icon">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
+        <CustomSelect
+          options={providerOptions}
+          bind:value={provider}
+          placeholder={$t('settings.provider')}
+          size="md"
+          variant="default"
+          on:change={handleProviderSelectChange}
+        />
       </div>
       
       <!-- Model -->
       <div class="form-group">
         <label for="model" class="form-label">
-          <span class="label-text">模型</span>
+          <span class="label-text">{$t('settings.model')}</span>
           <span class="label-required">*</span>
         </label>
         {#if isCustomProvider}
@@ -184,31 +213,19 @@
               bind:value={model}
               type="text"
               class="form-input"
-              placeholder="输入模型名称 (例如: gpt-4, claude-3-opus)"
+              placeholder={$t('settings.enterModelName')}
               required
             />
           </div>
         {:else}
-          <div class="select-wrapper">
-            <select
-              id="model"
-              bind:value={model}
-              on:change={handleModelChange}
-              class="form-select"
-              required
-            >
-              <option value="">选择模型</option>
-              {#each availableModels as modelOption}
-                <option value={modelOption.model}>{modelOption.name}</option>
-              {/each}
-              <option value="custom">自定义模型...</option>
-            </select>
-            <div class="select-icon">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+          <CustomSelect
+            options={modelOptions}
+            bind:value={model}
+            placeholder={$t('settings.selectModel')}
+            size="md"
+            variant="default"
+            on:change={handleModelSelectChange}
+          />
 
           {#if isCustomModel}
             <div class="input-wrapper mt-3">
@@ -216,7 +233,7 @@
                 bind:value={customModelName}
                 type="text"
                 class="form-input"
-                placeholder="输入自定义模型名称"
+                placeholder={$t('settings.enterCustomModelName')}
                 required
               />
             </div>
@@ -227,7 +244,7 @@
       <!-- API Key -->
       <div class="form-group">
         <label for="api-key" class="form-label">
-          <span class="label-text">API 密钥</span>
+          <span class="label-text">{$t('settings.apiKey')}</span>
           <span class="label-required">*</span>
         </label>
         <div class="input-wrapper">
@@ -236,7 +253,7 @@
             bind:value={apiKey}
             type="password"
             class="form-input"
-            placeholder="输入您的 API 密钥"
+            placeholder={$t('settings.apiKeyPlaceholder')}
             required
           />
           <div class="input-icon">
@@ -247,7 +264,7 @@
           </div>
         </div>
         <p class="form-help">
-          您的 API 密钥将安全地存储在本地，不会被分享。
+          {$t('settings.apiKeyHelp')}
         </p>
       </div>
       
@@ -258,7 +275,7 @@
           {#if isCustomProvider}
             <span class="label-required">*</span>
           {:else}
-            <span class="label-optional">(可选)</span>
+            <span class="label-optional">{$t('settings.baseUrlOptional')}</span>
           {/if}
         </label>
         <div class="input-wrapper">
@@ -267,7 +284,7 @@
             bind:value={baseUrl}
             type="url"
             class="form-input"
-            placeholder={getDefaultBaseUrl(provider) || '输入 API 基础 URL'}
+            placeholder={getDefaultBaseUrl(provider) || $t('settings.baseUrlPlaceholder')}
             required={isCustomProvider}
           />
           <div class="input-icon">
@@ -278,9 +295,9 @@
         </div>
         <p class="form-help">
           {#if isCustomProvider}
-            自定义 API 端点 URL
+            {$t('settings.baseUrlHelpCustom')}
           {:else}
-            留空将使用默认端点
+            {$t('settings.baseUrlHelp')}
           {/if}
         </p>
       </div>
@@ -293,7 +310,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>高级设置</span>
+            <span>{$t('settings.advancedSettings')}</span>
           </div>
           <svg class="chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -303,7 +320,7 @@
           <!-- Max Tokens -->
           <div class="form-group">
             <label for="max-tokens" class="form-label">
-              <span class="label-text">最大令牌数</span>
+              <span class="label-text">{$t('settings.maxTokens')}</span>
             </label>
             <div class="input-wrapper">
               <input
@@ -313,7 +330,7 @@
                 min="1"
                 max="32000"
                 class="form-input"
-                placeholder="默认"
+                placeholder={$t('settings.maxTokensPlaceholder')}
               />
               <div class="input-icon">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,14 +339,14 @@
               </div>
             </div>
             <p class="form-help">
-              生成的最大令牌数量（留空使用默认值）
+              {$t('settings.maxTokensHelp')}
             </p>
           </div>
 
           <!-- Temperature -->
           <div class="form-group">
             <label for="temperature" class="form-label">
-              <span class="label-text">温度值: {temperature}</span>
+              <span class="label-text">{$t('settings.temperature')}: {temperature}</span>
             </label>
             <div class="range-wrapper">
               <input
@@ -342,8 +359,8 @@
                 class="form-range"
               />
               <div class="range-labels">
-                <span>更专注 (0)</span>
-                <span>更创意 (2)</span>
+                <span>{$t('settings.temperatureFocused')}</span>
+                <span>{$t('settings.temperatureCreative')}</span>
               </div>
             </div>
           </div>
@@ -359,14 +376,14 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          {modelId ? '更新模型' : '添加模型'}
+          {modelId ? $t('settings.updateModel') : $t('settings.addModel')}
         </button>
         <button
           type="button"
           class="btn-secondary"
           on:click={handleCancel}
         >
-          取消
+          {$t('common.cancel')}
         </button>
       </div>
     </form>

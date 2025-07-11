@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { t } from '@/lib/i18n';
   import type { ServiceProvider, Model } from '@/types';
 
   export let provider: ServiceProvider | null = null;
@@ -60,17 +61,17 @@
 
   function validateForm(): boolean {
     if (!formData.name?.trim()) {
-      alert('请输入服务提供商名称');
+      alert($t('settings.pleaseEnterProviderName'));
       return false;
     }
 
     if (!formData.apiKey?.trim()) {
-      alert('请输入 API Key');
+      alert($t('settings.pleaseEnterApiKey'));
       return false;
     }
 
     if (!formData.baseUrl?.trim()) {
-      alert('请输入 API 端点 URL');
+      alert($t('settings.pleaseEnterBaseUrl'));
       return false;
     }
 
@@ -79,7 +80,7 @@
 
   async function testConnection() {
     if (!formData.apiKey || !formData.baseUrl) {
-      alert('请先填写 API Key 和端点 URL');
+      alert($t('settings.pleaseFillApiKeyAndUrl'));
       return;
     }
 
@@ -95,12 +96,12 @@
       });
 
       if (response.ok) {
-        testResult = { success: true, message: '连接成功！' };
+        testResult = { success: true, message: $t('settings.connectionSuccessful') };
       } else {
-        testResult = { success: false, message: `连接失败: ${response.status} ${response.statusText}` };
+        testResult = { success: false, message: `${$t('errors.connectionFailed')}: ${response.status} ${response.statusText}` };
       }
     } catch (error) {
-      testResult = { success: false, message: `连接错误: ${error.message}` };
+      testResult = { success: false, message: `${$t('errors.connectionFailed')}: ${error.message}` };
     } finally {
       isLoading = false;
     }
@@ -108,7 +109,7 @@
 
   async function updateModelList() {
     if (!formData.apiKey || !formData.baseUrl) {
-      alert('请先填写 API Key 和端点 URL');
+      alert($t('settings.pleaseFillApiKeyAndUrl'));
       return;
     }
 
@@ -201,29 +202,29 @@
         <form on:submit|preventDefault={handleSave} class="form">
           <!-- Basic Info -->
           <div class="form-section">
-            <h3 class="section-title">基本信息</h3>
+            <h3 class="section-title">{$t('settings.basicInfo')}</h3>
             
             {#if !formData.isBuiltIn}
               <div class="form-group">
-                <label for="name" class="form-label">服务商名称 *</label>
+                <label for="name" class="form-label">{$t('settings.providerNameRequired')}</label>
                 <input
                   id="name"
                   type="text"
                   bind:value={formData.name}
                   class="form-input"
-                  placeholder="例如: OpenAI"
+                  placeholder={$t('settings.providerNamePlaceholder')}
                   required
                 />
               </div>
 
               <div class="form-group">
-                <label for="icon" class="form-label">图标</label>
+                <label for="icon" class="form-label">{$t('settings.icon')}</label>
                 <input
                   id="icon"
                   type="text"
                   bind:value={formData.icon}
                   class="form-input"
-                  placeholder="例如: 🤖"
+                  placeholder={$t('settings.iconPlaceholder')}
                 />
               </div>
             {/if}
@@ -231,17 +232,17 @@
 
           <!-- API Configuration -->
           <div class="form-section">
-            <h3 class="section-title">API 配置</h3>
+            <h3 class="section-title">{$t('settings.apiConfiguration')}</h3>
             
             <div class="form-group">
-              <label for="apiKey" class="form-label">API Key *</label>
+              <label for="apiKey" class="form-label">{$t('settings.apiKeyRequired')}</label>
               <div class="input-with-button">
                 <input
                   id="apiKey"
                   type="password"
                   bind:value={formData.apiKey}
                   class="form-input"
-                  placeholder="输入您的 API Key"
+                  placeholder={$t('settings.enterApiKey')}
                   required
                   on:input={() => console.log('🔧 [ServiceProviderModal] API Key input:', formData.apiKey)}
                 />
@@ -264,13 +265,13 @@
             </div>
 
             <div class="form-group">
-              <label for="baseUrl" class="form-label">API 代理 URL {formData.isBuiltIn ? '(可选)' : '*'}</label>
+              <label for="baseUrl" class="form-label">{$t('settings.apiProxyUrl')} {formData.isBuiltIn ? $t('settings.optional') : $t('settings.required')}</label>
               <input
                 id="baseUrl"
                 type="url"
                 bind:value={formData.baseUrl}
                 class="form-input"
-                placeholder={formData.isBuiltIn ? '留空使用默认端点' : 'https://api.example.com/v1'}
+                placeholder={formData.isBuiltIn ? $t('settings.leaveEmptyForDefault') : 'https://api.example.com/v1'}
                 required={!formData.isBuiltIn}
               />
             </div>
@@ -288,9 +289,9 @@
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    测试中...
+                    {$t('settings.testing')}
                   {:else}
-                    检查连接
+                    {$t('settings.checkConnection')}
                   {/if}
                 </button>
 
@@ -306,7 +307,7 @@
           <!-- Model Management -->
           <div class="form-section">
             <div class="section-header">
-              <h3 class="section-title">模型列表 ({formData.models?.length || 0} 个模型)</h3>
+              <h3 class="section-title">{$t('settings.modelList')} ({formData.models?.length || 0} {$t('settings.modelsCount')})</h3>
               <div class="section-actions">
                 <button
                   type="button"
@@ -319,12 +320,12 @@
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    更新中...
+                    {$t('settings.updating')}
                   {:else}
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Update list
+                    {$t('settings.updateList')}
                   {/if}
                 </button>
                 <button
@@ -335,7 +336,7 @@
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
-                  添加
+                  {$t('settings.add')}
                 </button>
               </div>
             </div>

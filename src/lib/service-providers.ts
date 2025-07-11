@@ -115,11 +115,23 @@ export function getAvailableModels(serviceProviders: ServiceProviderSettings) {
   return models;
 }
 
+// 获取提供商图标
+function getProviderIcon(providerId: string): string {
+  const icons: Record<string, string> = {
+    'openai': '🤖',
+    'claude': '🧠',
+    'gemini': '💎',
+    'custom': '⚙️'
+  };
+  return icons[providerId] || '🔧';
+}
+
 export function getModelDisplayOptions(serviceProviders: ServiceProviderSettings) {
   const models = getAvailableModels(serviceProviders);
   return models.map(model => ({
     id: `${model.providerId}:${model.modelId}`,
     name: `${model.providerName} - ${model.modelName}`,
+    icon: getProviderIcon(model.providerId),
     providerId: model.providerId,
     modelId: model.modelId
   }));

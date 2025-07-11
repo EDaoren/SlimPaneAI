@@ -5,6 +5,8 @@ export interface Message {
   content: string;
   timestamp: number;
   model?: string;
+  reasoning?: string; // 思考过程，某些模型会提供
+  isThinking?: boolean; // 是否正在思考（仅对支持思考过程的模型有效）
 }
 
 export interface ChatSession {
@@ -144,6 +146,7 @@ export interface StorageData {
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'auto';
+  language: 'zh' | 'en';
   defaultModel: string;
   lastSelectedModel: string;
   fontSize: 'small' | 'medium' | 'large';

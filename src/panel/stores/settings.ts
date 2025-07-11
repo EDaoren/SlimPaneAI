@@ -13,6 +13,7 @@ const initialState: SettingsState = {
   serviceProviders: {},
   userPreferences: {
     theme: 'auto',
+    language: 'zh',
     defaultModel: '',
     lastSelectedModel: '',
     fontSize: 'medium',

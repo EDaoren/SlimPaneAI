@@ -11,6 +11,7 @@ import type {
 import { DEFAULT_PROMPTS } from '@/types';
 import { settingsStore } from './settings';
 import { getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
+import { supportsReasoning } from '@/lib/model-capabilities';
 
 interface ChatState {
   currentSession: ChatSession | null;
@@ -163,6 +164,7 @@ function createChatStore() {
         content: '',
         timestamp: Date.now(),
         model: modelId,
+        isThinking: supportsReasoning(modelId), // 只有支持思考过程的模型才设置为思考状态
       };
 
       // Add messages to session
@@ -321,7 +323,9 @@ function createChatStore() {
             const newContent = response.payload.content || '';
             const updatedMessage = {
               ...lastMessage,
-              content: lastMessage.content + newContent
+              content: lastMessage.content + newContent,
+              // 当开始接收内容时，清除思考状态
+              isThinking: newContent ? false : lastMessage.isThinking
             };
 
             console.log('🔄 Updating message:', {

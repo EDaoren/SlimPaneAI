@@ -1,6 +1,8 @@
 <script lang="ts">
   import { settingsStore } from '../stores/settings';
   import ModelConfigForm from './ModelConfigForm.svelte';
+  import CustomSelect from './CustomSelect.svelte';
+  import { applyTheme } from '@/lib/theme-manager';
   import type { ModelConfig } from '@/types';
   
   let showAddModel = false;
@@ -9,6 +11,35 @@
   $: modelSettings = $settingsStore.modelSettings;
   $: userPreferences = $settingsStore.userPreferences;
   $: modelEntries = Object.entries(modelSettings);
+  $: modelOptions = modelEntries.map(([modelId, config]) => ({
+    id: modelId,
+    name: `${config.provider} - ${config.model}`,
+    icon: getProviderIcon(config.provider)
+  }));
+
+  // 获取提供商图标
+  function getProviderIcon(provider: string): string {
+    const icons: Record<string, string> = {
+      'openai': '🤖',
+      'claude': '🧠',
+      'gemini': '💎',
+      'custom': '⚙️'
+    };
+    return icons[provider.toLowerCase()] || '🔧';
+  }
+
+  // 语言选项
+  const languageOptions = [
+    { id: 'en', name: 'English', icon: '🇺🇸' },
+    { id: 'zh', name: '中文', icon: '🇨🇳' }
+  ];
+
+  // 主题选项
+  const themeOptions = [
+    { id: 'auto', name: '自动', icon: '🌓' },
+    { id: 'light', name: '浅色', icon: '☀️' },
+    { id: 'dark', name: '深色', icon: '🌙' }
+  ];
   
   function handleAddModel() {
     showAddModel = true;
@@ -46,6 +77,32 @@
     };
     await settingsStore.saveUserPreferences(newPreferences);
   }
+
+  async function handleDefaultModelSelectChange(event: CustomEvent) {
+    const newPreferences = {
+      ...userPreferences,
+      defaultModel: event.detail.value,
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+  }
+
+  async function handleLanguageSelectChange(event: CustomEvent) {
+    const newPreferences = {
+      ...userPreferences,
+      language: event.detail.value,
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+  }
+
+  async function handleThemeSelectChange(event: CustomEvent) {
+    const newPreferences = {
+      ...userPreferences,
+      theme: event.detail.value,
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+    // 立即应用主题
+    applyTheme(newPreferences);
+  }
   
   async function handleLanguageChange(event: Event) {
     const target = event.target as HTMLSelectElement;
@@ -55,7 +112,7 @@
     };
     await settingsStore.saveUserPreferences(newPreferences);
   }
-  
+
   async function handleThemeChange(event: Event) {
     const target = event.target as HTMLSelectElement;
     const newPreferences = {
@@ -164,19 +221,14 @@
               <label for="default-model" class="block text-sm font-medium text-gray-700 mb-2">
                 默认模型
               </label>
-              <select
-                id="default-model"
-                class="input-base w-full"
-                value={userPreferences.defaultModel}
-                on:change={handleDefaultModelChange}
-              >
-                <option value="">选择默认模型</option>
-                {#each modelEntries as [modelId, config]}
-                  <option value={modelId}>
-                    {config.provider} - {config.model}
-                  </option>
-                {/each}
-              </select>
+              <CustomSelect
+                options={modelOptions}
+                bind:value={userPreferences.defaultModel}
+                placeholder="选择默认模型"
+                size="md"
+                variant="default"
+                on:change={handleDefaultModelSelectChange}
+              />
             </div>
           {/if}
           
@@ -185,15 +237,14 @@
             <label for="language" class="block text-sm font-medium text-gray-700 mb-2">
               语言
             </label>
-            <select
-              id="language"
-              class="input-base w-full"
-              value={userPreferences.language}
-              on:change={handleLanguageChange}
-            >
-              <option value="en">English</option>
-              <option value="zh">中文</option>
-            </select>
+            <CustomSelect
+              options={languageOptions}
+              bind:value={userPreferences.language}
+              placeholder="选择语言"
+              size="md"
+              variant="default"
+              on:change={handleLanguageSelectChange}
+            />
           </div>
           
           <!-- Theme -->
@@ -201,16 +252,14 @@
             <label for="theme" class="block text-sm font-medium text-gray-700 mb-2">
               主题
             </label>
-            <select
-              id="theme"
-              class="input-base w-full"
-              value={userPreferences.theme}
-              on:change={handleThemeChange}
-            >
-              <option value="auto">自动</option>
-              <option value="light">浅色</option>
-              <option value="dark">深色</option>
-            </select>
+            <CustomSelect
+              options={themeOptions}
+              bind:value={userPreferences.theme}
+              placeholder="选择主题"
+              size="md"
+              variant="default"
+              on:change={handleThemeSelectChange}
+            />
           </div>
         </div>
       </section>

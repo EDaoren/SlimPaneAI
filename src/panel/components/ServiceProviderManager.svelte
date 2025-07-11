@@ -2,6 +2,8 @@
   import { createEventDispatcher } from 'svelte';
   import ServiceProviderCard from './ServiceProviderCard.svelte';
   import ServiceProviderModal from './ServiceProviderModal.svelte';
+  import CustomSelect from './CustomSelect.svelte';
+  import { t } from '@/lib/i18n';
   import { getDefaultServiceProviders } from '@/lib/service-providers';
   import type { ServiceProvider, ServiceProviderSettings } from '@/types';
 
@@ -13,6 +15,15 @@
 
   let showModal = false;
   let editingProvider: ServiceProvider | null = null;
+  let filterValue = 'all';
+
+  // 过滤选项
+  const filterOptions = [
+    { id: 'all', name: $t('settings.allProviders'), icon: '📋' },
+    { id: 'enabled', name: $t('settings.enabled'), icon: '✅' },
+    { id: 'builtin', name: $t('settings.builtinProviders'), icon: '🏠' },
+    { id: 'custom', name: $t('settings.customProviders'), icon: '⚙️' }
+  ];
 
   // Convert object to array for easier iteration
   $: providerList = Object.values(serviceProviders);
@@ -21,6 +32,11 @@
   function handleAddCustomProvider() {
     editingProvider = null;
     showModal = true;
+  }
+
+  function handleFilterChange(event: CustomEvent) {
+    filterValue = event.detail.value;
+    // TODO: 实现过滤逻辑
   }
 
   function handleEditProvider(event: CustomEvent<{ provider: ServiceProvider }>) {
@@ -97,15 +113,15 @@
         </svg>
       </div>
       <div class="empty-content">
-        <h3 class="empty-title">配置 AI 服务提供商</h3>
+        <h3 class="empty-title">{$t('settings.configureProviders')}</h3>
         <p class="empty-description">
-          开始配置您的 AI 服务提供商，支持 OpenAI、Claude、Gemini 等多种服务。
+          {$t('settings.configureProvidersDesc')}
         </p>
         <button class="btn-get-started" on:click={initializeBuiltInProviders}>
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          开始配置
+          {$t('settings.getStarted')}
         </button>
       </div>
     </div>
@@ -114,23 +130,27 @@
     <div class="provider-list">
       <div class="provider-header">
         <div class="header-info">
-          <h3 class="header-title">服务提供商</h3>
+          <h3 class="header-title">{$t('settings.serviceProviders')}</h3>
           <p class="header-description">
-            管理您的 AI 服务提供商配置，支持内置和自定义服务商
+            {$t('settings.manageProvidersDesc')}
           </p>
         </div>
         <div class="header-actions">
-          <select class="provider-filter">
-            <option value="all">全部服务商</option>
-            <option value="enabled">已启用</option>
-            <option value="builtin">内置服务商</option>
-            <option value="custom">自定义服务商</option>
-          </select>
+          <div style="width: 160px;">
+            <CustomSelect
+              options={filterOptions}
+              bind:value={filterValue}
+              placeholder={$t('settings.filterProviders')}
+              size="sm"
+              variant="secondary"
+              on:change={handleFilterChange}
+            />
+          </div>
           <button class="btn btn-primary" on:click={handleAddCustomProvider}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            自定义 API 密钥
+            {$t('settings.customApiKey')}
           </button>
         </div>
       </div>
@@ -155,9 +175,9 @@
             </svg>
           </div>
           <div class="warning-content">
-            <h4 class="warning-title">没有启用的服务提供商</h4>
+            <h4 class="warning-title">{$t('settings.noEnabledProviders')}</h4>
             <p class="warning-description">
-              请至少启用一个服务提供商并配置 API Key 才能使用 AI 功能。
+              {$t('settings.noEnabledProvidersDesc')}
             </p>
           </div>
         </div>

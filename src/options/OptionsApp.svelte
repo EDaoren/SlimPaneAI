@@ -4,7 +4,9 @@
   import { applyTheme, watchSystemTheme } from '@/lib/theme-manager';
   import ModelConfigForm from '../panel/components/ModelConfigForm.svelte';
   import ServiceProviderManager from '../panel/components/ServiceProviderManager.svelte';
+  import CustomSelect from '../panel/components/CustomSelect.svelte';
   import { getModelDisplayOptions } from '../lib/service-providers';
+  import { t, initializeLanguage, setLanguage } from '@/lib/i18n';
   import type { ModelConfig, ServiceProviderSettings } from '../types';
 
   // 导航状态
@@ -17,32 +19,37 @@
   let showInlineForm = false;
 
   // 导航菜单项
-  const navigationItems = [
-    {
-      id: 'ai-models',
-      title: 'AI 模型',
-      icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
-      description: '管理服务提供商和模型'
-    },
-    {
-      id: 'preferences',
-      title: '偏好设置',
-      icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
-      description: '自定义使用体验'
-    },
-    {
-      id: 'appearance',
-      title: '外观',
-      icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4 4 4 0 004-4V5z',
-      description: '界面主题和显示设置'
-    },
-    {
-      id: 'about',
-      title: '关于',
-      icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-      description: '版本信息和帮助'
-    }
-  ];
+  let navigationItems = [];
+
+  // 在国际化系统初始化后更新导航项
+  $: if (userPreferences) {
+    navigationItems = [
+      {
+        id: 'ai-models',
+        title: $t('settings.models'),
+        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+        description: $t('settings.modelSettings')
+      },
+      {
+        id: 'preferences',
+        title: $t('settings.preferences'),
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+        description: $t('settings.general')
+      },
+      {
+        id: 'appearance',
+        title: $t('settings.appearance'),
+        icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4 4 4 0 004-4V5z',
+        description: $t('settings.theme')
+      },
+      {
+        id: 'about',
+        title: $t('settings.about'),
+        icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+        description: $t('settings.about')
+      }
+    ];
+  }
 
   $: modelEntries = Object.entries($settingsStore.modelSettings);
   $: serviceProviders = $settingsStore.serviceProviders;
@@ -50,9 +57,13 @@
   $: modelOptions = getModelDisplayOptions(serviceProviders);
   $: hasModels = modelOptions.length > 0;
 
-  // 应用主题变化
+  // 应用主题变化和语言初始化
   $: if (userPreferences) {
+    console.log('🌍 [Options] Applying preferences:', userPreferences);
     applyTheme(userPreferences);
+    // 初始化国际化系统
+    console.log('🌍 [Options] Initializing language:', userPreferences.language);
+    initializeLanguage(userPreferences);
   }
 
   onMount(async () => {
@@ -65,7 +76,7 @@
       await settingsStore.saveServiceProviders(defaultProviders);
     }
 
-    // 应用初始主题
+    // 应用初始主题（语言初始化通过响应式语句处理）
     const currentSettings = settingsStore.getCurrentState();
     if (currentSettings.userPreferences) {
       applyTheme(currentSettings.userPreferences);
@@ -156,6 +167,14 @@
     await settingsStore.saveUserPreferences(newPreferences);
   }
 
+  async function handleDefaultModelSelectChange(event: CustomEvent) {
+    const newPreferences = {
+      ...userPreferences,
+      defaultModel: event.detail.value
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+  }
+
 
 
   async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
@@ -164,9 +183,21 @@
       theme
     };
     await settingsStore.saveUserPreferences(newPreferences);
+    // 立即应用主题
+    applyTheme(newPreferences);
   }
 
-
+  async function handleLanguageChange(language: 'en' | 'zh') {
+    console.log('🌍 [Options] Language change requested:', language);
+    const newPreferences = {
+      ...userPreferences,
+      language
+    };
+    await settingsStore.saveUserPreferences(newPreferences);
+    // 立即切换界面语言
+    console.log('🌍 [Options] Setting language immediately:', language);
+    setLanguage(language);
+  }
 
   async function handleFontSizeChange(fontSize: 'small' | 'medium' | 'large') {
     const newPreferences = {
@@ -174,6 +205,8 @@
       fontSize
     };
     await settingsStore.saveUserPreferences(newPreferences);
+    // 立即应用字体大小
+    applyTheme(newPreferences);
   }
 
   async function handleMessageDensityChange(messageDensity: 'compact' | 'normal' | 'relaxed') {
@@ -182,6 +215,8 @@
       messageDensity
     };
     await settingsStore.saveUserPreferences(newPreferences);
+    // 立即应用消息密度
+    applyTheme(newPreferences);
   }
 
 
@@ -259,26 +294,26 @@
       {#if currentPage === 'ai-models'}
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="content-title">AI 模型配置</h2>
+            <h2 class="content-title">{$t('settings.modelSettings')}</h2>
             <p class="content-subtitle">
-              管理您的 AI 服务提供商和模型配置
+              {$t('settings.modelSettings')}
             </p>
           </div>
         </div>
       {:else if currentPage === 'preferences'}
         <div>
-          <h2 class="content-title">偏好设置</h2>
-          <p class="content-subtitle">自定义您的使用体验</p>
+          <h2 class="content-title">{$t('settings.preferences')}</h2>
+          <p class="content-subtitle">{$t('settings.general')}</p>
         </div>
       {:else if currentPage === 'appearance'}
         <div>
-          <h2 class="content-title">外观设置</h2>
-          <p class="content-subtitle">界面主题和显示设置</p>
+          <h2 class="content-title">{$t('settings.appearance')}</h2>
+          <p class="content-subtitle">{$t('settings.theme')}</p>
         </div>
       {:else if currentPage === 'about'}
         <div>
-          <h2 class="content-title">关于 SlimPaneAI</h2>
-          <p class="content-subtitle">版本信息和帮助</p>
+          <h2 class="content-title">{$t('settings.about')}</h2>
+          <p class="content-subtitle">{$t('settings.about')}</p>
         </div>
       {/if}
     </div>
@@ -298,34 +333,32 @@
           {#if hasModels}
             <div class="setting-item">
               <div class="setting-header">
-                <h3 class="setting-title">默认模型</h3>
-                <p class="setting-description">选择默认使用的 AI 模型</p>
+                <h3 class="setting-title">{$t('settings.defaultModel')}</h3>
+                <p class="setting-description">{$t('settings.selectDefaultModel')}</p>
               </div>
               <div class="setting-control">
-                <select
-                  class="form-select"
-                  value={userPreferences.defaultModel}
-                  on:change={handleDefaultModelChange}
-                >
-                  <option value="">请选择默认模型</option>
-                  {#each modelOptions as option}
-                    <option value={option.id}>{option.name}</option>
-                  {/each}
-                </select>
+                <CustomSelect
+                  options={modelOptions}
+                  bind:value={userPreferences.defaultModel}
+                  placeholder={$t('settings.selectDefaultModel')}
+                  size="md"
+                  variant="default"
+                  on:change={handleDefaultModelSelectChange}
+                />
               </div>
             </div>
           {:else}
             <div class="setting-item">
               <div class="setting-header">
-                <h3 class="setting-title">默认模型</h3>
-                <p class="setting-description">请先在 AI 模型页面配置服务提供商和模型</p>
+                <h3 class="setting-title">{$t('settings.defaultModel')}</h3>
+                <p class="setting-description">{$t('settings.modelSettings')}</p>
               </div>
               <div class="setting-control">
                 <button
                   class="btn-primary"
                   on:click={() => currentPage = 'ai-models'}
                 >
-                  配置 AI 模型
+                  {$t('settings.addModel')}
                 </button>
               </div>
             </div>
@@ -338,25 +371,25 @@
           <!-- 快捷键设置 -->
           <div class="setting-item">
             <div class="setting-header">
-              <h3 class="setting-title">快捷键</h3>
-              <p class="setting-description">自定义常用操作的快捷键</p>
+              <h3 class="setting-title">{$t('settings.shortcuts')}</h3>
+              <p class="setting-description">{$t('settings.shortcutsDesc')}</p>
             </div>
             <div class="setting-control">
               <div class="shortcut-list">
                 <div class="shortcut-item">
-                  <span class="shortcut-name">打开/关闭侧边栏</span>
+                  <span class="shortcut-name">{$t('settings.toggleSidebar')}</span>
                   <kbd class="shortcut-key">Ctrl + Shift + Y</kbd>
                 </div>
                 <div class="shortcut-item">
-                  <span class="shortcut-name">发送消息</span>
+                  <span class="shortcut-name">{$t('chat.sendMessage')}</span>
                   <kbd class="shortcut-key">Enter</kbd>
                 </div>
                 <div class="shortcut-item">
-                  <span class="shortcut-name">换行</span>
+                  <span class="shortcut-name">{$t('settings.newLine')}</span>
                   <kbd class="shortcut-key">Shift + Enter</kbd>
                 </div>
                 <div class="shortcut-item">
-                  <span class="shortcut-name">清空对话</span>
+                  <span class="shortcut-name">{$t('chat.clearChat')}</span>
                   <kbd class="shortcut-key">Ctrl + Shift + Delete</kbd>
                 </div>
               </div>
@@ -369,8 +402,8 @@
           <!-- 主题设置 -->
           <div class="setting-item">
             <div class="setting-header">
-              <h3 class="setting-title">界面主题</h3>
-              <p class="setting-description">选择界面的颜色主题</p>
+              <h3 class="setting-title">{$t('settings.theme')}</h3>
+              <p class="setting-description">{$t('settings.themeDesc')}</p>
             </div>
             <div class="setting-control">
               <div class="theme-options">
@@ -387,8 +420,8 @@
                       </div>
                     </div>
                   </div>
-                  <span class="theme-name">浅色模式</span>
-                  <span class="theme-description">明亮清爽的界面</span>
+                  <span class="theme-name">{$t('settings.themeLight')}</span>
+                  <span class="theme-description">{$t('settings.themeLightDesc')}</span>
                 </button>
 
                 <button
@@ -404,8 +437,8 @@
                       </div>
                     </div>
                   </div>
-                  <span class="theme-name">深色模式</span>
-                  <span class="theme-description">护眼的深色界面</span>
+                  <span class="theme-name">{$t('settings.themeDark')}</span>
+                  <span class="theme-description">{$t('settings.themeDarkDesc')}</span>
                 </button>
 
                 <button
@@ -421,8 +454,40 @@
                       </div>
                     </div>
                   </div>
-                  <span class="theme-name">跟随系统</span>
-                  <span class="theme-description">自动适应系统主题</span>
+                  <span class="theme-name">{$t('settings.themeAuto')}</span>
+                  <span class="theme-description">{$t('settings.themeAutoDesc')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 语言设置 -->
+          <div class="setting-item">
+            <div class="setting-header">
+              <h3 class="setting-title">{$t('settings.language')}</h3>
+              <p class="setting-description">{$t('settings.languageDesc')}</p>
+            </div>
+            <div class="setting-control">
+              <div class="language-options">
+                <button
+                  class="language-option {userPreferences.language === 'zh' ? 'language-option-active' : ''}"
+                  on:click={() => handleLanguageChange('zh')}
+                >
+                  <div class="language-flag">🇨🇳</div>
+                  <div class="language-info">
+                    <span class="language-name">{$t('settings.languageChinese')}</span>
+                    <span class="language-description">{$t('settings.languageChineseDesc')}</span>
+                  </div>
+                </button>
+                <button
+                  class="language-option {userPreferences.language === 'en' ? 'language-option-active' : ''}"
+                  on:click={() => handleLanguageChange('en')}
+                >
+                  <div class="language-flag">🇺🇸</div>
+                  <div class="language-info">
+                    <span class="language-name">{$t('settings.languageEnglish')}</span>
+                    <span class="language-description">{$t('settings.languageEnglishDesc')}</span>
+                  </div>
                 </button>
               </div>
             </div>
@@ -431,8 +496,8 @@
           <!-- 字体设置 -->
           <div class="setting-item">
             <div class="setting-header">
-              <h3 class="setting-title">字体大小</h3>
-              <p class="setting-description">调整聊天消息的字体大小</p>
+              <h3 class="setting-title">{$t('settings.fontSize')}</h3>
+              <p class="setting-description">{$t('settings.fontSizeDesc')}</p>
             </div>
             <div class="setting-control">
               <div class="font-size-options">
@@ -441,21 +506,21 @@
                   on:click={() => handleFontSizeChange('small')}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>小</span>
+                  <span>{$t('settings.fontSizeSmall')}</span>
                 </button>
                 <button
                   class="font-size-option font-size-medium {userPreferences.fontSize === 'medium' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('medium')}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>中</span>
+                  <span>{$t('settings.fontSizeMedium')}</span>
                 </button>
                 <button
                   class="font-size-option font-size-large {userPreferences.fontSize === 'large' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('large')}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>大</span>
+                  <span>{$t('settings.fontSizeLarge')}</span>
                 </button>
               </div>
             </div>
@@ -464,8 +529,8 @@
           <!-- 消息密度 -->
           <div class="setting-item">
             <div class="setting-header">
-              <h3 class="setting-title">消息密度</h3>
-              <p class="setting-description">调整消息之间的间距</p>
+              <h3 class="setting-title">{$t('settings.messageDensity')}</h3>
+              <p class="setting-description">{$t('settings.messageDensityDesc')}</p>
             </div>
             <div class="setting-control">
               <div class="density-options">
@@ -478,7 +543,7 @@
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                   </div>
-                  <span>紧凑</span>
+                  <span>{$t('settings.densityCompact')}</span>
                 </button>
                 <button
                   class="density-option {userPreferences.messageDensity === 'normal' ? 'density-active' : ''}"
@@ -489,7 +554,7 @@
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                   </div>
-                  <span>标准</span>
+                  <span>{$t('settings.densityNormal')}</span>
                 </button>
                 <button
                   class="density-option {userPreferences.messageDensity === 'relaxed' ? 'density-active' : ''}"
@@ -500,7 +565,7 @@
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                   </div>
-                  <span>宽松</span>
+                  <span>{$t('settings.densityRelaxed')}</span>
                 </button>
               </div>
             </div>
@@ -934,6 +999,59 @@
   }
 
   .theme-description {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  /* 语言选项 */
+  .language-options {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .language-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    min-width: 200px;
+  }
+
+  .language-option:hover {
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .language-option-active {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  }
+
+  .language-flag {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+
+  .language-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .language-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .language-description {
     font-size: 0.75rem;
     color: #6b7280;
   }

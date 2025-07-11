@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import type { ChatSession } from '@/types';
   import { chatStore } from '../stores/chat';
+  import { t } from '@/lib/i18n';
   
   export let sessions: ChatSession[];
   export let currentSessionId: string | undefined;
@@ -47,12 +48,12 @@
 <div class="session-list">
   <!-- Header -->
   <div class="session-header">
-    <h2 class="session-title">聊天记录</h2>
+    <h2 class="session-title">{$t('chat.messageHistory')}</h2>
     <div class="header-actions">
       <button
         class="header-button"
         on:click={createNewSession}
-        title="新建对话"
+        title={$t('chat.newChat')}
       >
         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -61,7 +62,7 @@
       <button
         class="header-button"
         on:click={() => dispatch('close')}
-        title="关闭"
+        title={$t('common.close')}
       >
         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -79,13 +80,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </div>
-        <h3 class="empty-title">暂无聊天记录</h3>
-        <p class="empty-description">开始新的对话来创建聊天记录</p>
+        <h3 class="empty-title">{$t('chat.noChats')}</h3>
+        <p class="empty-description">{$t('chat.noChatDesc')}</p>
         <button
           class="btn-primary"
           on:click={createNewSession}
         >
-          新建对话
+          {$t('chat.newChat')}
         </button>
       </div>
     {:else}
@@ -104,14 +105,14 @@
                   {session.title}
                 </h3>
                 <p class="session-meta">
-                  {formatDate(session.updatedAt)} · {session.messages.filter(m => m.type !== 'system').length} 条消息
+                  {formatDate(session.updatedAt)} · {session.messages.filter(m => m.type !== 'system').length} {$t('chat.messages')}
                 </p>
               </div>
 
               <button
                 class="delete-button"
                 on:click={(e) => deleteSession(session.id, e)}
-                title="删除对话"
+                title={$t('chat.deleteSession')}
               >
                 <svg class="icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
