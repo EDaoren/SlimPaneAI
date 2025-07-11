@@ -11,26 +11,19 @@ import { createModelAdapter } from '@/lib/model-adapters';
 // Helper function to send messages to side panel
 function sendMessageToSidePanel(message: any) {
   try {
-    console.log('🚀 [Background] Sending message to side panel:', message);
-
     // Send message to all extension contexts
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) {
-        console.log('ℹ️ [Background] Runtime message error (this is normal):', chrome.runtime.lastError.message);
-      } else {
-        console.log('✅ [Background] Message sent successfully, response:', response);
+        // This is normal when no listeners are present
       }
     });
-
   } catch (error) {
-    console.error('❌ [Background] Failed to send message to side panel:', error);
+    console.error('Failed to send message to side panel:', error);
   }
 }
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('🚀 [Background] Extension installed/updated:', details.reason);
-
   if (details.reason === 'install' || details.reason === 'update') {
     // Set up default settings
     await initializeDefaultSettings();
@@ -49,10 +42,9 @@ async function initializeSidePanel() {
     if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
       // Set side panel to open on action click
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-      console.log('✅ [Background] Side panel behavior set');
     }
   } catch (error) {
-    console.log('ℹ️ [Background] Side panel behavior not supported:', error);
+    // Side panel behavior not supported in older Chrome versions
   }
 }
 
@@ -60,14 +52,11 @@ async function initializeSidePanel() {
 
 // Handle extension icon click - open side panel
 chrome.action.onClicked.addListener(async (tab) => {
-  console.log('🖱️ [Background] Extension icon clicked, tab:', tab.id);
-
   if (tab.id) {
     try {
       // For Chrome 114+, use the new sidePanel API
       if (chrome.sidePanel && (chrome.sidePanel as any).open) {
         await (chrome.sidePanel as any).open({ windowId: tab.windowId });
-        console.log('✅ [Background] Side panel opened using sidePanel.open');
       } else if (chrome.sidePanel && chrome.sidePanel.setOptions) {
         // Fallback: enable side panel for this tab
         await chrome.sidePanel.setOptions({
@@ -75,12 +64,9 @@ chrome.action.onClicked.addListener(async (tab) => {
           enabled: true,
           path: 'panel.html'
         });
-        console.log('✅ [Background] Side panel enabled using setOptions');
-      } else {
-        console.error('❌ [Background] sidePanel API not available');
       }
     } catch (error) {
-      console.error('❌ [Background] Failed to open side panel:', error);
+      console.error('Failed to open side panel:', error);
     }
   }
 });
@@ -193,8 +179,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     // Check if model is configured
     if (!modelConfig || modelConfig.provider === 'none' || !modelConfig.apiKey) {
-      // Send a friendly error message as if it's from the AI assistant
-      console.log('🚨 [Background] No model configured, sending error message');
       sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
@@ -205,7 +189,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     // Validate API key
     if (!modelConfig.apiKey.trim()) {
-      console.log('🚨 [Background] No API key configured, sending error message');
       sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
@@ -213,7 +196,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       });
       return;
     }
-    
+
     const adapter = createModelAdapter(modelConfig);
     
 
@@ -225,14 +208,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
                        msg.content.trim() &&
                        msg.type &&
                        ['user', 'assistant', 'system'].includes(msg.type);
-        if (!isValid) {
-          console.warn('Filtering out invalid message:', {
-            id: msg.id,
-            type: msg.type,
-            hasContent: !!msg.content,
-            contentLength: msg.content?.length || 0
-          });
-        }
         return isValid;
       })
       .map(msg => ({
@@ -250,7 +225,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       model: modelConfig.model,
       messages: apiMessages,
       stream,
-      max_tokens: modelConfig.maxTokens,
       temperature: modelConfig.temperature,
     };
 
@@ -263,21 +237,81 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     if (stream) {
       // Handle streaming response
-      for await (const chunk of adapter.streamResponse(response)) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        const done = chunk.choices[0]?.finish_reason !== undefined;
+      let chunkCount = 0;
+      let hasFinished = false;
 
-        const streamMessage: LLMResponse = {
+      try {
+        const streamIterator = adapter.streamResponse(response);
+
+        // Add timeout for the entire streaming process
+        const streamTimeout = setTimeout(() => {
+          hasFinished = true;
+        }, 60000); // 60 second timeout
+
+        try {
+          for await (const chunk of streamIterator) {
+            chunkCount++;
+
+            const content = chunk.choices[0]?.delta?.content || '';
+            const reasoning = chunk.choices[0]?.delta?.reasoning || '';
+            const done = chunk.choices[0]?.finish_reason !== undefined;
+
+            if (done) {
+              hasFinished = true;
+              clearTimeout(streamTimeout);
+            }
+
+            // 只发送有内容的块，避免发送空块
+            if (content || reasoning || done) {
+              const streamMessage: LLMResponse = {
+                type: 'llm-chunk',
+                requestId: request.requestId,
+                payload: {
+                  content,
+                  reasoning,
+                  done,
+                },
+              };
+
+              await sendMessageToSidePanel(streamMessage);
+            }
+
+            // Break if we've been marked as finished (by timeout or other means)
+            if (hasFinished) {
+              break;
+            }
+          }
+        } finally {
+          clearTimeout(streamTimeout);
+        }
+
+        // Ensure we send a final done message if we haven't already
+        if (!hasFinished) {
+          const finalMessage: LLMResponse = {
+            type: 'llm-chunk',
+            requestId: request.requestId,
+            payload: {
+              content: '',
+              done: true,
+            },
+          };
+          await sendMessageToSidePanel(finalMessage);
+        }
+      } catch (streamError) {
+        console.error('Streaming error:', streamError);
+
+        // Always send a completion message even if streaming failed
+        const errorCompletionMessage: LLMResponse = {
           type: 'llm-chunk',
           requestId: request.requestId,
           payload: {
-            content,
-            done,
+            content: '',
+            done: true,
           },
         };
+        await sendMessageToSidePanel(errorCompletionMessage);
 
-        // Send chunk to side panel
-        await sendMessageToSidePanel(streamMessage);
+        throw streamError;
       }
     } else {
       // Handle non-streaming response
@@ -289,6 +323,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
         requestId: request.requestId,
         payload: {
           content: transformedResponse.choices[0]?.message?.content || '',
+          reasoning: transformedResponse.choices[0]?.message?.reasoning || '',
           done: true,
         },
       };

@@ -49,7 +49,6 @@ export interface ModelConfig {
   model: string;
   apiKey: string;
   baseUrl?: string;
-  maxTokens?: number;
   temperature?: number;
 }
 
@@ -65,7 +64,6 @@ export interface ChatCompletionRequest {
     content: string;
   }>;
   stream?: boolean;
-  max_tokens?: number;
   temperature?: number;
 }
 
@@ -79,6 +77,7 @@ export interface ChatCompletionResponse {
     message: {
       role: string;
       content: string;
+      reasoning?: string; // 思考过程内容
     };
     finish_reason: string;
   }>;
@@ -94,6 +93,7 @@ export interface StreamChunk {
     delta: {
       role?: string;
       content?: string;
+      reasoning?: string; // 思考过程内容
     };
     finish_reason?: string;
   }>;
@@ -119,6 +119,7 @@ export interface LLMResponse extends ExtensionMessage {
   type: 'llm-response' | 'llm-chunk' | 'llm-error';
   payload: {
     content?: string;
+    reasoning?: string; // 思考过程内容
     error?: string;
     done?: boolean;
   };

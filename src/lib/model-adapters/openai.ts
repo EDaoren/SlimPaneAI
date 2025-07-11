@@ -26,7 +26,6 @@ export class OpenAIAdapter extends BaseModelAdapter {
       model: this.config.model,
       messages: request.messages,
       stream: request.stream || false,
-      max_tokens: this.config.maxTokens || request.max_tokens,
       temperature: this.config.temperature || request.temperature || 0.7,
     };
   }
@@ -48,5 +47,10 @@ export class OpenAIAdapter extends BaseModelAdapter {
     } catch (error) {
       return null;
     }
+  }
+
+  async *streamResponse(response: Response): AsyncGenerator<StreamChunk, void, unknown> {
+    // OpenAI uses SSE format
+    yield* this.parseSSEStream(response, 'OpenAI');
   }
 }

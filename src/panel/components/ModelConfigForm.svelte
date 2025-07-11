@@ -18,7 +18,7 @@
   let model = existingConfig?.model || '';
   let apiKey = existingConfig?.apiKey || '';
   let baseUrl = existingConfig?.baseUrl || '';
-  let maxTokens = existingConfig?.maxTokens || '';
+
   let temperature = existingConfig?.temperature || 0.7;
   let customModelName = '';
   
@@ -96,7 +96,7 @@
       model: finalModel,
       apiKey: apiKey.trim(),
       baseUrl: baseUrl.trim() || undefined,
-      maxTokens: maxTokens ? parseInt(maxTokens.toString()) : undefined,
+
       temperature: parseFloat(temperature.toString()),
     };
     
@@ -317,31 +317,7 @@
           </svg>
         </summary>
         <div class="advanced-content">
-          <!-- Max Tokens -->
-          <div class="form-group">
-            <label for="max-tokens" class="form-label">
-              <span class="label-text">{$t('settings.maxTokens')}</span>
-            </label>
-            <div class="input-wrapper">
-              <input
-                id="max-tokens"
-                bind:value={maxTokens}
-                type="number"
-                min="1"
-                max="32000"
-                class="form-input"
-                placeholder={$t('settings.maxTokensPlaceholder')}
-              />
-              <div class="input-icon">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                </svg>
-              </div>
-            </div>
-            <p class="form-help">
-              {$t('settings.maxTokensHelp')}
-            </p>
-          </div>
+
 
           <!-- Temperature -->
           <div class="form-group">

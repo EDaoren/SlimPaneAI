@@ -221,8 +221,7 @@ function createChatStore() {
               model: actualModelId,
               apiKey: provider.apiKey,
               baseUrl: provider.baseUrl,
-              temperature: 0.7,
-              maxTokens: 2000
+              temperature: 0.7
             };
           }
         }
@@ -247,8 +246,7 @@ function createChatStore() {
         model: 'none',
         apiKey: '',
         baseUrl: '',
-        temperature: 0.7,
-        maxTokens: 2000
+        temperature: 0.7
       };
 
       // Send request to background script
@@ -321,19 +319,25 @@ function createChatStore() {
           const lastMessage = messages[messages.length - 1];
 
           if (lastMessage && lastMessage.type === 'assistant') {
-            // Update the assistant message content
+            // Update the assistant message content and reasoning
             const newContent = response.payload.content || '';
+            const newReasoning = response.payload.reasoning || '';
             const updatedMessage = {
               ...lastMessage,
               content: lastMessage.content + newContent,
-              // 当开始接收内容时，清除思考状态
-              isThinking: newContent ? false : lastMessage.isThinking
+              reasoning: (lastMessage.reasoning || '') + newReasoning,
+              // 只在响应完成时清除思考状态，而不是在开始接收内容时
+              isThinking: response.payload.done ? false : lastMessage.isThinking
             };
 
             console.log('🔄 Updating message:', {
               oldContent: lastMessage.content,
               newContent,
+              newReasoning,
               finalContent: updatedMessage.content,
+              finalReasoning: updatedMessage.reasoning,
+              wasThinking: lastMessage.isThinking,
+              isThinking: updatedMessage.isThinking,
               done: response.payload.done
             });
 

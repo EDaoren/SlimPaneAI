@@ -20,7 +20,6 @@ export class ClaudeAdapter extends BaseModelAdapter {
 
     return {
       model: this.config.model,
-      max_tokens: this.config.maxTokens || request.max_tokens || 4096,
       messages: messages.map(msg => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content,
@@ -54,9 +53,10 @@ export class ClaudeAdapter extends BaseModelAdapter {
   parseStreamChunk(chunk: string): StreamChunk | null {
     try {
       const parsed = JSON.parse(chunk);
-      
+      console.log('🔍 [Claude] Parsing chunk:', parsed);
+
       if (parsed.type === 'content_block_delta') {
-        return {
+        const streamChunk = {
           id: parsed.id || 'claude-stream',
           object: 'chat.completion.chunk',
           created: Date.now() / 1000,
@@ -70,10 +70,12 @@ export class ClaudeAdapter extends BaseModelAdapter {
             },
           ],
         };
+        console.log('✅ [Claude] Created content chunk:', streamChunk);
+        return streamChunk;
       }
-      
+
       if (parsed.type === 'message_stop') {
-        return {
+        const finishChunk = {
           id: parsed.id || 'claude-stream',
           object: 'chat.completion.chunk',
           created: Date.now() / 1000,
@@ -86,11 +88,20 @@ export class ClaudeAdapter extends BaseModelAdapter {
             },
           ],
         };
+        console.log('✅ [Claude] Created finish chunk:', finishChunk);
+        return finishChunk;
       }
-      
+
+      console.log('❌ [Claude] No valid content or finish event found');
       return null;
-    } catch {
+    } catch (error) {
+      console.error('❌ [Claude] Failed to parse chunk:', error);
       return null;
     }
+  }
+
+  async *streamResponse(response: Response): AsyncGenerator<StreamChunk, void, unknown> {
+    // Claude uses SSE format
+    yield* this.parseSSEStream(response, 'Claude');
   }
 }

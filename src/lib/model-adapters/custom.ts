@@ -21,7 +21,6 @@ export class CustomAdapter extends BaseModelAdapter {
       model: this.config.model,
       messages: request.messages,
       stream: request.stream || false,
-      max_tokens: this.config.maxTokens || request.max_tokens,
       temperature: this.config.temperature || request.temperature || 0.7,
     };
   }
@@ -44,5 +43,10 @@ export class CustomAdapter extends BaseModelAdapter {
     } catch (error) {
       return null;
     }
+  }
+
+  async *streamResponse(response: Response): AsyncGenerator<StreamChunk, void, unknown> {
+    // Custom adapters default to OpenAI-compatible SSE format
+    yield* this.parseSSEStream(response, 'Custom');
   }
 }

@@ -516,9 +516,7 @@ const chineseTranslations: Translations = {
     baseUrlHelp: '留空将使用默认端点',
     baseUrlHelpCustom: '自定义 API 端点 URL',
     advancedSettings: '高级设置',
-    maxTokens: '最大令牌数',
-    maxTokensPlaceholder: '默认',
-    maxTokensHelp: '生成的最大令牌数量（留空使用默认值）',
+
     temperature: '温度值',
     temperatureFocused: '更专注 (0)',
     temperatureCreative: '更创意 (2)',
@@ -793,9 +791,7 @@ const englishTranslations: Translations = {
     baseUrlHelp: 'Leave empty to use default endpoint',
     baseUrlHelpCustom: 'Custom API endpoint URL',
     advancedSettings: 'Advanced Settings',
-    maxTokens: 'Max Tokens',
-    maxTokensPlaceholder: 'Default',
-    maxTokensHelp: 'Maximum number of tokens to generate (leave empty for default)',
+
     temperature: 'Temperature',
     temperatureFocused: 'More Focused (0)',
     temperatureCreative: 'More Creative (2)',

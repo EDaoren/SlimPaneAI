@@ -88,12 +88,22 @@
     testResult = null;
 
     try {
-      const response = await fetch(`${formData.baseUrl}/models`, {
-        headers: {
-          'Authorization': `Bearer ${formData.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      let url: string;
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      // Handle different provider authentication methods
+      if (formData.id === 'gemini') {
+        // Gemini uses query parameter authentication
+        url = `${formData.baseUrl}/models?key=${formData.apiKey}`;
+      } else {
+        // OpenAI and other providers use Authorization header
+        url = `${formData.baseUrl}/models`;
+        headers['Authorization'] = `Bearer ${formData.apiKey}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (response.ok) {
         testResult = { success: true, message: $t('settings.connectionSuccessful') };
@@ -116,25 +126,49 @@
     isLoading = true;
 
     try {
-      const response = await fetch(`${formData.baseUrl}/models`, {
-        headers: {
-          'Authorization': `Bearer ${formData.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      let url: string;
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      // Handle different provider authentication methods
+      if (formData.id === 'gemini') {
+        // Gemini uses query parameter authentication
+        url = `${formData.baseUrl}/models?key=${formData.apiKey}`;
+      } else {
+        // OpenAI and other providers use Authorization header
+        url = `${formData.baseUrl}/models`;
+        headers['Authorization'] = `Bearer ${formData.apiKey}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (response.ok) {
         const data = await response.json();
-        const models: Model[] = data.data?.map((model: any) => ({
-          id: model.id,
-          name: model.id,
-          enabled: true
-        })) || [];
+        let models: Model[] = [];
+
+        // Handle different response formats
+        if (formData.id === 'gemini') {
+          // Gemini API returns models in 'models' array
+          models = data.models?.map((model: any) => ({
+            id: model.name.replace('models/', ''), // Remove 'models/' prefix
+            name: model.displayName || model.name.replace('models/', ''),
+            enabled: true
+          })) || [];
+        } else {
+          // OpenAI and other providers return models in 'data' array
+          models = data.data?.map((model: any) => ({
+            id: model.id,
+            name: model.id,
+            enabled: true
+          })) || [];
+        }
 
         formData.models = models;
         alert(`成功获取 ${models.length} 个模型`);
       } else {
-        alert(`获取模型失败: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        alert(`获取模型失败: ${response.status} ${response.statusText}\n${errorText}`);
       }
     } catch (error) {
       alert(`获取模型错误: ${error.message}`);

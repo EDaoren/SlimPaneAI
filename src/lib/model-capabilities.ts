@@ -17,6 +17,7 @@ export function supportsReasoning(modelId?: string): boolean {
   const reasoningModels = [
     'o1-preview',
     'o1-mini',
+    'gemini-2.5-pro', // Gemini 2.5 Pro 支持思考过程
     // 未来可能支持的模型可以在这里添加
   ];
   
@@ -37,6 +38,7 @@ export function supportsStreamingReasoning(modelId?: string): boolean {
   const streamingReasoningModels = [
     'o1-preview',
     'o1-mini',
+    'gemini-2.5-pro', // Gemini 2.5 Pro 支持流式思考过程
   ];
   
   return streamingReasoningModels.some(model => modelLower.includes(model));
@@ -58,6 +60,7 @@ export function getModelDisplayName(modelId?: string): string {
     'claude-3-sonnet': 'Claude 3 Sonnet',
     'claude-3-haiku': 'Claude 3 Haiku',
     'gemini-pro': 'Gemini Pro',
+    'gemini-2.5-pro': 'Gemini 2.5 Pro',
   };
   
   return displayNames[modelId] || modelId;

@@ -54,6 +54,8 @@ export function getDefaultModelsForProvider(providerId: string) {
       ];
     case 'gemini':
       return [
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', enabled: true },
+        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', enabled: true },
         { id: 'gemini-pro', name: 'Gemini Pro', enabled: true },
         { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', enabled: true }
       ];
