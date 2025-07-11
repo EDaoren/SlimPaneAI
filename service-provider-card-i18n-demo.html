@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务提供商卡片国际化演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .lang-btn:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-btn.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+        }
+
+        .provider-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .provider-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .provider-card:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .provider-enabled {
+            border-color: #10b981;
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+        }
+
+        .provider-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .provider-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #bae6fd;
+            border-radius: 12px;
+            font-size: 24px;
+        }
+
+        .provider-details {
+            flex: 1;
+        }
+
+        .provider-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            margin: 0 0 8px 0;
+        }
+
+        .provider-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .provider-badge-enabled {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .provider-badge-default {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .provider-badge-builtin {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .model-count {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.2s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .provider-body {
+            border-top: 1px solid #f1f5f9;
+            padding: 16px 24px;
+        }
+
+        .provider-stats {
+            display: flex;
+            gap: 32px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-configured {
+            color: #059669;
+        }
+
+        .status-missing {
+            color: #dc2626;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: #f8fafc;
+            color: #374151;
+            border-color: #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            border-color: #d1d5db;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #374151;
+            border-color: #e5e7eb;
+        }
+
+        .btn-outline:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .btn-danger:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">服务提供商卡片国际化</h1>
+            <p class="demo-subtitle">完整的 <span class="highlight">服务提供商卡片</span> 国际化支持</p>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('zh', this)">
+                🇨🇳 中文演示
+            </button>
+            <button class="lang-btn" onclick="switchLanguage('en', this)">
+                🇺🇸 English Demo
+            </button>
+        </div>
+
+        <div class="provider-cards">
+            <!-- OpenAI Provider Card -->
+            <div class="provider-card provider-enabled">
+                <div class="provider-header">
+                    <div class="provider-info">
+                        <div class="provider-icon">🤖</div>
+                        <div class="provider-details">
+                            <h3 class="provider-name">OpenAI</h3>
+                            <div class="provider-badges">
+                                <span class="provider-badge provider-badge-default" id="default-badge">默认</span>
+                                <span class="model-count">3 <span id="models-count">个模型</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="provider-body">
+                    <div class="provider-stats">
+                        <div class="stat-item">
+                            <span class="stat-label" id="api-status">API状态</span>
+                            <span class="stat-value status-configured" id="configured">已配置</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label" id="endpoint">端点</span>
+                            <span class="stat-value" id="default-endpoint">默认</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span id="settings-btn">设置</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Claude Provider Card -->
+            <div class="provider-card provider-enabled">
+                <div class="provider-header">
+                    <div class="provider-info">
+                        <div class="provider-icon">🧠</div>
+                        <div class="provider-details">
+                            <h3 class="provider-name">Anthropic Claude</h3>
+                            <div class="provider-badges">
+                                <span class="provider-badge provider-badge-builtin" id="builtin-badge">内置</span>
+                                <span class="model-count">2 <span id="models-count2">个模型</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="provider-body">
+                    <div class="provider-stats">
+                        <div class="stat-item">
+                            <span class="stat-label" id="api-status2">API状态</span>
+                            <span class="stat-value status-configured" id="configured2">已配置</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label" id="endpoint2">端点</span>
+                            <span class="stat-value" id="custom-endpoint">自定义</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span id="settings-btn2">设置</span>
+                        </button>
+                        <button class="btn btn-outline">
+                            <span id="set-default-btn">设为默认</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🔧 修复的国际化内容</h3>
+            <ul class="features-list">
+                <li><strong>状态标签</strong> - 默认、内置、自定义、已禁用等状态翻译</li>
+                <li><strong>统计信息</strong> - API状态、端点类型、模型数量等</li>
+                <li><strong>操作按钮</strong> - 设置、设为默认、删除等按钮文本</li>
+                <li><strong>确认对话框</strong> - 删除确认提示支持参数化翻译</li>
+                <li><strong>模态框表单</strong> - 基本信息、API配置等表单标签</li>
+                <li><strong>占位符文本</strong> - 输入框提示文本完全翻译</li>
+            </ul>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🎉 国际化完成</h3>
+            <p style="color: #374151; margin: 0;">
+                现在服务提供商卡片的所有用户可见文本都支持中英文切换，
+                包括状态标签、统计信息、操作按钮、确认对话框等，
+                为用户提供了完整的本地化体验。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                'default-badge': '默认',
+                'builtin-badge': '内置',
+                'models-count': '个模型',
+                'models-count2': '个模型',
+                'api-status': 'API状态',
+                'api-status2': 'API状态',
+                'configured': '已配置',
+                'configured2': '已配置',
+                'endpoint': '端点',
+                'endpoint2': '端点',
+                'default-endpoint': '默认',
+                'custom-endpoint': '自定义',
+                'settings-btn': '设置',
+                'settings-btn2': '设置',
+                'set-default-btn': '设为默认'
+            },
+            en: {
+                'default-badge': 'Default',
+                'builtin-badge': 'Built-in',
+                'models-count': 'models',
+                'models-count2': 'models',
+                'api-status': 'API Status',
+                'api-status2': 'API Status',
+                'configured': 'Configured',
+                'configured2': 'Configured',
+                'endpoint': 'Endpoint',
+                'endpoint2': 'Endpoint',
+                'default-endpoint': 'Default',
+                'custom-endpoint': 'Custom',
+                'settings-btn': 'Settings',
+                'settings-btn2': 'Settings',
+                'set-default-btn': 'Set as Default'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function switchLanguage(lang, button) {
+            currentLang = lang;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新所有文本
+            Object.keys(translations[lang]).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            console.log(`🌍 服务提供商卡片语言切换到: ${lang === 'zh' ? '中文' : 'English'}`);
+        }
+    </script>
+</body>
+</html>

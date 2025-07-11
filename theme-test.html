@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlimPaneAI - 主题测试</title>
+    <style>
+        /* 复制 SlimPaneAI 的 CSS 变量定义 */
+        :root {
+          /* Light theme defaults */
+          --bg-primary: #ffffff;
+          --bg-secondary: #f8fafc;
+          --bg-tertiary: #f1f5f9;
+
+          --text-primary: #111827;
+          --text-secondary: #374151;
+          --text-muted: #6b7280;
+
+          --border-primary: #e5e7eb;
+          --border-secondary: #d1d5db;
+
+          --input-bg: #ffffff;
+          --input-border: #d1d5db;
+          --input-focus-border: #3b82f6;
+          --input-focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+          --font-size-base: 0.875rem;
+          --font-size-small: 0.75rem;
+          --font-size-large: 1rem;
+
+          --message-spacing: 1rem;
+          --message-padding: 0.75rem 1rem;
+        }
+
+        /* Light theme */
+        .light {
+          --bg-primary: #ffffff;
+          --bg-secondary: #f8fafc;
+          --bg-tertiary: #f1f5f9;
+          --bg-disabled: #f9fafb;
+
+          --text-primary: #111827;
+          --text-secondary: #374151;
+          --text-muted: #6b7280;
+
+          --border-primary: #e5e7eb;
+          --border-secondary: #d1d5db;
+
+          --input-bg: #ffffff;
+          --input-border: #d1d5db;
+          --input-focus-border: #3b82f6;
+          --input-focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Dark theme */
+        .dark {
+          --bg-primary: #1f2937;
+          --bg-secondary: #111827;
+          --bg-tertiary: #374151;
+          --bg-disabled: #374151;
+
+          --text-primary: #f9fafb;
+          --text-secondary: #d1d5db;
+          --text-muted: #9ca3af;
+
+          --border-primary: #374151;
+          --border-secondary: #4b5563;
+
+          --input-bg: #374151;
+          --input-border: #4b5563;
+          --input-focus-border: #3b82f6;
+          --input-focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Font size classes */
+        .font-small {
+          --font-size-base: 0.75rem;
+          --font-size-small: 0.6875rem;
+          --font-size-large: 0.875rem;
+        }
+
+        .font-medium {
+          --font-size-base: 0.875rem;
+          --font-size-small: 0.75rem;
+          --font-size-large: 1rem;
+        }
+
+        .font-large {
+          --font-size-base: 1rem;
+          --font-size-small: 0.875rem;
+          --font-size-large: 1.125rem;
+        }
+
+        /* Message density classes */
+        .density-compact {
+          --message-spacing: 0.5rem;
+          --message-padding: 0.5rem 0.75rem;
+        }
+
+        .density-normal {
+          --message-spacing: 1rem;
+          --message-padding: 0.75rem 1rem;
+        }
+
+        .density-relaxed {
+          --message-spacing: 1.5rem;
+          --message-padding: 1rem 1.25rem;
+        }
+
+        /* 基础样式 */
+        * {
+          box-sizing: border-box;
+          transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        body {
+          margin: 0;
+          padding: 40px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          font-size: var(--font-size-base);
+          line-height: 1.6;
+          min-height: 100vh;
+        }
+
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: var(--bg-primary);
+          border-radius: 16px;
+          padding: 40px;
+          border: 1px solid var(--border-primary);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+
+        .title {
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .subtitle {
+          color: var(--text-secondary);
+          font-size: 1.1rem;
+        }
+
+        .controls {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+
+        .control-group {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          border-radius: 12px;
+          padding: 20px;
+        }
+
+        .control-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 16px;
+        }
+
+        .button-group {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          border: 1px solid var(--border-secondary);
+          border-radius: 8px;
+          background: var(--bg-primary);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .btn:hover {
+          background: var(--bg-tertiary);
+          border-color: var(--border-primary);
+        }
+
+        .btn.active {
+          background: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
+        }
+
+        .demo-content {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          border-radius: 12px;
+          padding: 20px;
+        }
+
+        .demo-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 16px;
+        }
+
+        .message {
+          background: var(--bg-primary);
+          border: 1px solid var(--border-primary);
+          border-radius: 8px;
+          padding: var(--message-padding);
+          margin-bottom: var(--message-spacing);
+          color: var(--text-primary);
+          font-size: var(--font-size-base);
+        }
+
+        .input-demo {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid var(--input-border);
+          border-radius: 8px;
+          background: var(--input-bg);
+          color: var(--text-primary);
+          font-size: var(--font-size-base);
+        }
+
+        .input-demo:focus {
+          outline: none;
+          border-color: var(--input-focus-border);
+          box-shadow: var(--input-focus-shadow);
+        }
+
+        .status {
+          margin-top: 20px;
+          padding: 16px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: 8px;
+          font-family: monospace;
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body class="light font-medium density-normal">
+    <div class="container">
+        <div class="header">
+            <h1 class="title">SlimPaneAI 主题测试</h1>
+            <p class="subtitle">测试主题切换、字体大小和消息密度功能</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-title">🎨 主题切换</div>
+                <div class="button-group">
+                    <button class="btn active" onclick="switchTheme('light', this)">浅色</button>
+                    <button class="btn" onclick="switchTheme('dark', this)">深色</button>
+                    <button class="btn" onclick="switchTheme('auto', this)">自动</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">📝 字体大小</div>
+                <div class="button-group">
+                    <button class="btn" onclick="switchFontSize('font-small', this)">小</button>
+                    <button class="btn active" onclick="switchFontSize('font-medium', this)">中</button>
+                    <button class="btn" onclick="switchFontSize('font-large', this)">大</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">📏 消息密度</div>
+                <div class="button-group">
+                    <button class="btn" onclick="switchDensity('density-compact', this)">紧凑</button>
+                    <button class="btn active" onclick="switchDensity('density-normal', this)">正常</button>
+                    <button class="btn" onclick="switchDensity('density-relaxed', this)">宽松</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-content">
+            <div class="demo-title">📱 界面预览</div>
+            
+            <div class="message">
+                <strong>用户消息：</strong>这是一条用户发送的消息，用于测试字体大小和消息密度设置。
+            </div>
+            
+            <div class="message">
+                <strong>AI 回复：</strong>这是 AI 助手的回复消息。您可以通过上方的控制按钮来测试不同的主题、字体大小和消息密度设置。
+            </div>
+            
+            <div class="message">
+                <strong>系统提示：</strong>主题切换功能正常工作！您可以看到背景色、文字颜色和边框颜色都会随着主题改变。
+            </div>
+
+            <input type="text" class="input-demo" placeholder="输入框样式测试..." />
+
+            <div class="status" id="status">
+                当前状态：浅色主题 | 中等字体 | 正常密度
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTheme = 'light';
+        let currentFontSize = 'font-medium';
+        let currentDensity = 'density-normal';
+
+        function switchTheme(theme, button) {
+            // 移除所有主题类
+            document.body.classList.remove('light', 'dark');
+            
+            if (theme === 'auto') {
+                // 检测系统主题
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.body.classList.add(prefersDark ? 'dark' : 'light');
+                currentTheme = prefersDark ? 'dark' : 'light';
+            } else {
+                document.body.classList.add(theme);
+                currentTheme = theme;
+            }
+
+            // 更新按钮状态
+            button.parentElement.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            updateStatus();
+        }
+
+        function switchFontSize(fontSize, button) {
+            // 移除所有字体大小类
+            document.body.classList.remove('font-small', 'font-medium', 'font-large');
+            document.body.classList.add(fontSize);
+            currentFontSize = fontSize;
+
+            // 更新按钮状态
+            button.parentElement.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            updateStatus();
+        }
+
+        function switchDensity(density, button) {
+            // 移除所有密度类
+            document.body.classList.remove('density-compact', 'density-normal', 'density-relaxed');
+            document.body.classList.add(density);
+            currentDensity = density;
+
+            // 更新按钮状态
+            button.parentElement.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const themeNames = {
+                'light': '浅色主题',
+                'dark': '深色主题'
+            };
+            
+            const fontNames = {
+                'font-small': '小字体',
+                'font-medium': '中等字体',
+                'font-large': '大字体'
+            };
+            
+            const densityNames = {
+                'density-compact': '紧凑密度',
+                'density-normal': '正常密度',
+                'density-relaxed': '宽松密度'
+            };
+
+            document.getElementById('status').textContent = 
+                `当前状态：${themeNames[currentTheme]} | ${fontNames[currentFontSize]} | ${densityNames[currentDensity]}`;
+        }
+
+        // 监听系统主题变化
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (document.body.classList.contains('auto')) {
+                document.body.classList.remove('light', 'dark');
+                document.body.classList.add(e.matches ? 'dark' : 'light');
+                currentTheme = e.matches ? 'dark' : 'light';
+                updateStatus();
+            }
+        });
+    </script>
+</body>
+</html>

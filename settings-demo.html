@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlimPaneAI - 设置页面修复演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .fix-section {
+            margin-bottom: 40px;
+        }
+
+        .fix-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-fixed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-issue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .settings-demo {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .settings-demo h4 {
+            margin: 0;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .settings-content {
+            padding: 20px;
+        }
+
+        /* 主题选项演示 */
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .theme-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            text-align: center;
+        }
+
+        .theme-option:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-option.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .theme-preview {
+            width: 60px;
+            height: 40px;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .theme-light {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .theme-dark {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+
+        .theme-auto {
+            background: linear-gradient(135deg, #ffffff 0%, #1f2937 100%);
+        }
+
+        .theme-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* 语言选项演示 */
+        .language-options {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .language-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            min-width: 150px;
+        }
+
+        .language-option:hover {
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .language-option.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .language-flag {
+            font-size: 1.5rem;
+        }
+
+        .language-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .language-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .language-desc {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .code-block {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #475569;
+            overflow-x: auto;
+        }
+
+        .interactive-demo {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .interactive-demo h4 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">SlimPaneAI 设置页面修复</h1>
+            <p class="demo-subtitle">外观设置功能 <span class="highlight">完全修复</span></p>
+        </div>
+
+        <div class="fix-section">
+            <h3>
+                🔧 修复内容
+                <span class="status-badge status-fixed">已修复</span>
+            </h3>
+            
+            <div class="settings-demo">
+                <h4>❌ 修复前的问题</h4>
+                <div class="settings-content">
+                    <ul class="features-list" style="list-style: none;">
+                        <li style="color: #dc2626;">❌ 主题切换按钮点击无反应</li>
+                        <li style="color: #dc2626;">❌ 语言设置功能完全缺失</li>
+                        <li style="color: #dc2626;">❌ 字体大小和消息密度设置不生效</li>
+                        <li style="color: #dc2626;">❌ 设置更改后需要刷新页面才能看到效果</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="settings-demo">
+                <h4>✅ 修复后的功能</h4>
+                <div class="settings-content">
+                    <ul class="features-list">
+                        <li>主题切换立即生效，无需刷新</li>
+                        <li>新增完整的语言设置功能</li>
+                        <li>字体大小和消息密度实时应用</li>
+                        <li>所有设置更改立即保存并应用</li>
+                        <li>美观的图标和交互效果</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-section">
+            <h3>🎨 主题设置演示</h3>
+            <div class="interactive-demo">
+                <h4>点击切换主题（演示）</h4>
+                <div class="theme-options">
+                    <div class="theme-option active" onclick="switchTheme('light', this)">
+                        <div class="theme-preview theme-light"></div>
+                        <span class="theme-name">浅色模式</span>
+                    </div>
+                    <div class="theme-option" onclick="switchTheme('dark', this)">
+                        <div class="theme-preview theme-dark"></div>
+                        <span class="theme-name">深色模式</span>
+                    </div>
+                    <div class="theme-option" onclick="switchTheme('auto', this)">
+                        <div class="theme-preview theme-auto"></div>
+                        <span class="theme-name">跟随系统</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-section">
+            <h3>🌍 语言设置演示</h3>
+            <div class="interactive-demo">
+                <h4>选择界面语言（演示）</h4>
+                <div class="language-options">
+                    <div class="language-option active" onclick="switchLanguage('zh', this)">
+                        <div class="language-flag">🇨🇳</div>
+                        <div class="language-info">
+                            <span class="language-name">中文</span>
+                            <span class="language-desc">简体中文界面</span>
+                        </div>
+                    </div>
+                    <div class="language-option" onclick="switchLanguage('en', this)">
+                        <div class="language-flag">🇺🇸</div>
+                        <div class="language-info">
+                            <span class="language-name">English</span>
+                            <span class="language-desc">English interface</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fix-section">
+            <h3>🔧 技术修复详情</h3>
+            
+            <div class="code-block">
+// 1. 添加缺失的语言切换函数
+async function handleLanguageChange(language: 'en' | 'zh') {
+  const newPreferences = { ...userPreferences, language };
+  await settingsStore.saveUserPreferences(newPreferences);
+}
+
+// 2. 修复主题切换，添加立即应用
+async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
+  const newPreferences = { ...userPreferences, theme };
+  await settingsStore.saveUserPreferences(newPreferences);
+  applyTheme(newPreferences); // 立即应用主题
+}
+
+// 3. 添加完整的语言设置 HTML
+&lt;div class="language-options"&gt;
+  &lt;button on:click={() => handleLanguageChange('zh')}&gt;
+    🇨🇳 中文
+  &lt;/button&gt;
+  &lt;button on:click={() => handleLanguageChange('en')}&gt;
+    🇺🇸 English
+  &lt;/button&gt;
+&lt;/div&gt;
+            </div>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">✨ 修复成果</h3>
+            <p style="color: #374151; margin: 0;">
+                现在设置页面的所有外观功能都能正常工作！用户可以：
+                <strong>实时切换主题</strong>、<strong>选择界面语言</strong>、
+                <strong>调整字体大小</strong>、<strong>设置消息密度</strong>，
+                所有更改都会立即生效，提供流畅的用户体验。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function switchTheme(theme, element) {
+            // 移除所有活动状态
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            // 添加当前活动状态
+            element.classList.add('active');
+            
+            // 模拟主题切换效果
+            console.log(`切换到${theme}主题`);
+        }
+
+        function switchLanguage(lang, element) {
+            // 移除所有活动状态
+            document.querySelectorAll('.language-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            // 添加当前活动状态
+            element.classList.add('active');
+            
+            // 模拟语言切换效果
+            console.log(`切换到${lang === 'zh' ? '中文' : 'English'}语言`);
+        }
+    </script>
+</body>
+</html>

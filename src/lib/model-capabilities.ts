@@ -1,0 +1,64 @@
+/**
+ * 模型能力检测工具
+ * 用于判断不同模型支持的功能
+ */
+
+/**
+ * 检测模型是否支持思考过程（reasoning）
+ * @param modelId 模型ID，如 "gpt-4o-mini", "o1-preview" 等
+ * @returns 是否支持思考过程
+ */
+export function supportsReasoning(modelId?: string): boolean {
+  if (!modelId) return false;
+  
+  const modelLower = modelId.toLowerCase();
+  
+  // 支持思考过程的模型列表
+  const reasoningModels = [
+    'o1-preview',
+    'o1-mini',
+    // 未来可能支持的模型可以在这里添加
+  ];
+  
+  return reasoningModels.some(model => modelLower.includes(model));
+}
+
+/**
+ * 检测模型是否支持流式思考过程
+ * @param modelId 模型ID
+ * @returns 是否支持流式思考过程
+ */
+export function supportsStreamingReasoning(modelId?: string): boolean {
+  if (!modelId) return false;
+  
+  const modelLower = modelId.toLowerCase();
+  
+  // 目前支持流式思考过程的模型
+  const streamingReasoningModels = [
+    'o1-preview',
+    'o1-mini',
+  ];
+  
+  return streamingReasoningModels.some(model => modelLower.includes(model));
+}
+
+/**
+ * 获取模型的显示名称
+ * @param modelId 模型ID
+ * @returns 模型的友好显示名称
+ */
+export function getModelDisplayName(modelId?: string): string {
+  if (!modelId) return 'Unknown Model';
+  
+  const displayNames: Record<string, string> = {
+    'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-4o': 'GPT-4o',
+    'o1-preview': 'o1-preview',
+    'o1-mini': 'o1-mini',
+    'claude-3-sonnet': 'Claude 3 Sonnet',
+    'claude-3-haiku': 'Claude 3 Haiku',
+    'gemini-pro': 'Gemini Pro',
+  };
+  
+  return displayNames[modelId] || modelId;
+}

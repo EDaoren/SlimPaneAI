@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlimPaneAI - 跨页面主题同步修复</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .problem-solution {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .problem-header {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .solution-header {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .section-content {
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .page-mockup {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .page-header {
+            padding: 12px 16px;
+            background: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .page-content {
+            padding: 16px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .theme-light {
+            background: #ffffff;
+            color: #111827;
+        }
+
+        .theme-dark {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+
+        .sync-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 16px 0;
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+
+        .sync-arrow.broken {
+            color: #ef4444;
+        }
+
+        .sync-arrow.working {
+            color: #10b981;
+        }
+
+        .technical-details {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .technical-details h3 {
+            margin-top: 0;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .flow-step {
+            text-align: center;
+            flex: 1;
+        }
+
+        .flow-step-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .step-1 { background: #3b82f6; }
+        .step-2 { background: #10b981; }
+        .step-3 { background: #f59e0b; }
+        .step-4 { background: #8b5cf6; }
+
+        .flow-step-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .flow-step-desc {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: #9ca3af;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">SlimPaneAI 跨页面主题同步</h1>
+            <p class="demo-subtitle">修复设置页面与侧边栏的 <span class="highlight">主题同步问题</span></p>
+        </div>
+
+        <div class="problem-solution">
+            <div class="section">
+                <div class="section-header problem-header">
+                    ❌ 修复前的问题
+                </div>
+                <div class="section-content">
+                    <div class="page-mockup">
+                        <div class="page-header">设置页面</div>
+                        <div class="page-content theme-dark">
+                            切换到深色主题 ✓
+                        </div>
+                    </div>
+                    
+                    <div class="sync-arrow broken">❌ 不同步</div>
+                    
+                    <div class="page-mockup">
+                        <div class="page-header">侧边栏</div>
+                        <div class="page-content theme-light">
+                            仍然是浅色主题 ❌
+                        </div>
+                    </div>
+                    
+                    <p style="color: #dc2626; font-size: 0.875rem; margin: 16px 0 0 0;">
+                        设置页面和侧边栏是独立页面，主题变化无法同步
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header solution-header">
+                    ✅ 修复后的效果
+                </div>
+                <div class="section-content">
+                    <div class="page-mockup">
+                        <div class="page-header">设置页面</div>
+                        <div class="page-content theme-dark">
+                            切换到深色主题 ✓
+                        </div>
+                    </div>
+                    
+                    <div class="sync-arrow working">✅ 实时同步</div>
+                    
+                    <div class="page-mockup">
+                        <div class="page-header">侧边栏</div>
+                        <div class="page-content theme-dark">
+                            立即同步到深色主题 ✓
+                        </div>
+                    </div>
+                    
+                    <p style="color: #059669; font-size: 0.875rem; margin: 16px 0 0 0;">
+                        通过 Chrome Storage API 实现跨页面实时同步
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="technical-details">
+            <h3>🔧 技术实现方案</h3>
+            
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <div class="flow-step-icon step-1">⚙️</div>
+                    <div class="flow-step-title">设置页面</div>
+                    <div class="flow-step-desc">用户切换主题</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-icon step-2">💾</div>
+                    <div class="flow-step-title">Chrome Storage</div>
+                    <div class="flow-step-desc">保存新设置</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-icon step-3">📡</div>
+                    <div class="flow-step-title">Storage Event</div>
+                    <div class="flow-step-desc">触发变化事件</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                    <div class="flow-step-icon step-4">🎨</div>
+                    <div class="flow-step-title">侧边栏</div>
+                    <div class="flow-step-desc">应用新主题</div>
+                </div>
+            </div>
+
+            <div class="code-block">
+// 1. 侧边栏添加存储监听器
+chrome.storage.onChanged.addListener(handleStorageChange);
+
+// 2. 处理存储变化
+function handleStorageChange(changes) {
+  if (changes.userPreferences) {
+    const newPreferences = changes.userPreferences.newValue;
+    // 强制刷新设置并应用主题
+    settingsStore.forceRefresh();
+    applyTheme(newPreferences);
+  }
+}
+
+// 3. 响应式主题应用
+$: if ($settingsStore.userPreferences) {
+  applyTheme($settingsStore.userPreferences);
+}
+            </div>
+        </div>
+
+        <div class="technical-details">
+            <h3>✨ 修复成果</h3>
+            <ul class="features-list">
+                <li><strong>实时同步</strong> - 设置页面的主题变化立即同步到侧边栏</li>
+                <li><strong>双向响应</strong> - 侧边栏设置也能同步到设置页面</li>
+                <li><strong>无需刷新</strong> - 所有变化都是实时的，无需手动刷新</li>
+                <li><strong>一致体验</strong> - 确保所有页面的主题保持一致</li>
+                <li><strong>可靠机制</strong> - 基于 Chrome Storage API 的稳定同步</li>
+                <li><strong>性能优化</strong> - 只在设置真正变化时才触发更新</li>
+            </ul>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🎯 用户体验提升</h3>
+            <p style="color: #374151; margin: 0;">
+                现在用户在任何页面更改主题设置时，所有相关页面都会立即同步更新。
+                无论是在设置页面切换主题，还是在侧边栏调整偏好，
+                整个扩展的界面都会保持一致的视觉风格，提供无缝的用户体验。
+            </p>
+        </div>
+    </div>
+</body>
+</html>

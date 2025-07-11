@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlimPaneAI - 优化工具条演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .comparison-section {
+            margin-bottom: 40px;
+        }
+
+        .comparison-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 20px;
+        }
+
+        .toolbar-demo {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .toolbar-demo h4 {
+            margin: 0;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* 旧版工具条 */
+        .old-toolbar {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .old-model-select {
+            width: 200px;
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        /* 新版工具条 */
+        .new-toolbar {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .model-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .model-icon {
+            width: 16px;
+            height: 16px;
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+
+        .compact-select {
+            width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            gap: 8px;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .compact-select:hover {
+            border-color: #9ca3af;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .select-content {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .select-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .select-arrow {
+            width: 12px;
+            height: 12px;
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✨";
+            font-size: 16px;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .space-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .space-item {
+            text-align: center;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+
+        .space-item.old {
+            border: 2px solid #ef4444;
+        }
+
+        .space-item.new {
+            border: 2px solid #10b981;
+        }
+
+        .space-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .space-value.old {
+            color: #ef4444;
+        }
+
+        .space-value.new {
+            color: #10b981;
+        }
+
+        .space-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">SlimPaneAI 工具条优化</h1>
+            <p class="demo-subtitle">紧凑布局，<span class="highlight">为更多功能预留空间</span></p>
+        </div>
+
+        <div class="comparison-section">
+            <h3>📊 空间利用对比</h3>
+            <div class="space-comparison">
+                <div class="space-item old">
+                    <div class="space-value old">200px</div>
+                    <div class="space-label">旧版模型选择器宽度</div>
+                </div>
+                <div class="space-item new">
+                    <div class="space-value new">120px</div>
+                    <div class="space-label">新版紧凑模式宽度</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison-section">
+            <h3>🔄 界面对比</h3>
+            
+            <div class="toolbar-demo">
+                <h4>❌ 优化前 - 空间利用不足</h4>
+                <div class="old-toolbar">
+                    <svg class="model-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <select class="old-model-select">
+                        <option>OpenAI - GPT-4 Turbo</option>
+                    </select>
+                    <span style="color: #ef4444; font-size: 0.8rem; margin-left: auto;">空间不足，无法添加更多按钮</span>
+                </div>
+            </div>
+
+            <div class="toolbar-demo">
+                <h4>✅ 优化后 - 紧凑高效布局</h4>
+                <div class="new-toolbar">
+                    <div class="model-section">
+                        <svg class="model-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <div class="compact-select">
+                            <div class="select-content">
+                                <span>🤖</span>
+                                <span class="select-text">GPT-4</span>
+                            </div>
+                            <svg class="select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn" title="清空对话">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <button class="action-btn" title="更多选项">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                        </button>
+                        <button class="action-btn" title="导出对话">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                        <button class="action-btn" title="设置">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="comparison-section">
+            <h3>🎯 优化亮点</h3>
+            <ul class="features-list">
+                <li><strong>空间节省 40%</strong> - 模型选择器从 200px 压缩到 120px</li>
+                <li><strong>紧凑显示模式</strong> - 智能提取模型关键名称（如 GPT-4、Opus）</li>
+                <li><strong>图标增强识别</strong> - 每个模型都有专属图标标识</li>
+                <li><strong>预留扩展空间</strong> - 为未来功能按钮预留充足空间</li>
+                <li><strong>响应式布局</strong> - 自适应不同屏幕尺寸</li>
+                <li><strong>一致的视觉风格</strong> - 与整体设计语言保持统一</li>
+                <li><strong>完整功能保留</strong> - 下拉菜单仍显示完整模型名称</li>
+            </ul>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🚀 未来扩展可能</h3>
+            <p style="color: #374151; margin: 0;">
+                通过这次优化，工具条现在有足够的空间来添加更多实用功能，如：
+                <strong>清空对话</strong>、<strong>导出聊天记录</strong>、<strong>快速设置</strong>、
+                <strong>主题切换</strong>、<strong>语音输入</strong> 等，为用户提供更丰富的交互体验。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 添加交互效果
+        document.querySelectorAll('.compact-select').forEach(select => {
+            select.addEventListener('click', function() {
+                const arrow = this.querySelector('.select-arrow');
+                arrow.style.transform = arrow.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+                
+                setTimeout(() => {
+                    arrow.style.transform = 'rotate(0deg)';
+                }, 1000);
+            });
+        });
+
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html>

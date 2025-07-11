@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国际化调试测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .test-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .test-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .test-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .lang-btn:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-btn.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+        }
+
+        .nav-test {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .nav-content {
+            flex: 1;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            color: #374151;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .nav-description {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .debug-info {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .debug-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .translation-test {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-key {
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .test-value {
+            font-weight: 600;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1 class="test-title">国际化调试测试</h1>
+            <p>测试设置页面导航按钮的翻译功能</p>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('zh', this)">
+                🇨🇳 中文
+            </button>
+            <button class="lang-btn" onclick="switchLanguage('en', this)">
+                🇺🇸 English
+            </button>
+        </div>
+
+        <div class="debug-info">
+            <div class="debug-title">当前语言状态</div>
+            <div>当前语言: <span id="current-lang">zh</span></div>
+            <div>初始化状态: <span id="init-status">未初始化</span></div>
+        </div>
+
+        <div class="translation-test">
+            <div class="debug-title">翻译键测试</div>
+            <div class="test-item">
+                <span class="test-key">settings.models</span>
+                <span class="test-value" id="test-models">AI 模型</span>
+            </div>
+            <div class="test-item">
+                <span class="test-key">settings.preferences</span>
+                <span class="test-value" id="test-preferences">偏好设置</span>
+            </div>
+            <div class="test-item">
+                <span class="test-key">settings.appearance</span>
+                <span class="test-value" id="test-appearance">外观</span>
+            </div>
+            <div class="test-item">
+                <span class="test-key">settings.about</span>
+                <span class="test-value" id="test-about">关于</span>
+            </div>
+        </div>
+
+        <div class="nav-test">
+            <div class="debug-title">导航按钮模拟</div>
+            <div class="nav-item">
+                <div class="nav-icon">🤖</div>
+                <div class="nav-content">
+                    <span class="nav-title" id="nav-models">AI 模型</span>
+                    <span class="nav-description" id="nav-models-desc">模型设置</span>
+                </div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-content">
+                    <span class="nav-title" id="nav-preferences">偏好设置</span>
+                    <span class="nav-description" id="nav-preferences-desc">通用</span>
+                </div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🎨</div>
+                <div class="nav-content">
+                    <span class="nav-title" id="nav-appearance">外观</span>
+                    <span class="nav-description" id="nav-appearance-desc">主题</span>
+                </div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">ℹ️</div>
+                <div class="nav-content">
+                    <span class="nav-title" id="nav-about">关于</span>
+                    <span class="nav-description" id="nav-about-desc">关于</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🔍 调试说明</h3>
+            <p style="color: #374151; margin: 0;">
+                这个页面模拟了设置页面的导航按钮翻译功能。
+                如果翻译正常工作，切换语言时所有文本都应该立即更新。
+                如果某些文本没有更新，说明对应的翻译键可能有问题。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                'current-lang': '中文',
+                'init-status': '已初始化',
+                'test-models': 'AI 模型',
+                'test-preferences': '偏好设置',
+                'test-appearance': '外观',
+                'test-about': '关于',
+                'nav-models': 'AI 模型',
+                'nav-models-desc': '模型设置',
+                'nav-preferences': '偏好设置',
+                'nav-preferences-desc': '通用',
+                'nav-appearance': '外观',
+                'nav-appearance-desc': '主题',
+                'nav-about': '关于',
+                'nav-about-desc': '关于'
+            },
+            en: {
+                'current-lang': 'English',
+                'init-status': 'Initialized',
+                'test-models': 'Models',
+                'test-preferences': 'Preferences',
+                'test-appearance': 'Appearance',
+                'test-about': 'About',
+                'nav-models': 'Models',
+                'nav-models-desc': 'Model Settings',
+                'nav-preferences': 'Preferences',
+                'nav-preferences-desc': 'General',
+                'nav-appearance': 'Appearance',
+                'nav-appearance-desc': 'Theme',
+                'nav-about': 'About',
+                'nav-about-desc': 'About'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function switchLanguage(lang, button) {
+            currentLang = lang;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新所有文本
+            Object.keys(translations[lang]).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            console.log(`🌍 语言切换到: ${lang === 'zh' ? '中文' : 'English'}`);
+            console.log('📝 翻译测试:', {
+                'settings.models': translations[lang]['test-models'],
+                'settings.preferences': translations[lang]['test-preferences'],
+                'settings.appearance': translations[lang]['test-appearance'],
+                'settings.about': translations[lang]['test-about']
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 调试页面加载完成');
+            console.log('📋 可用翻译键:', Object.keys(translations.zh));
+        });
+    </script>
+</body>
+</html>

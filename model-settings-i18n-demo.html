@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型设置页面国际化演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .lang-btn:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-btn.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .demo-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            background: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .section-content {
+            padding: 20px;
+            background: white;
+        }
+
+        .form-mockup {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            background: white;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            background: white;
+        }
+
+        .form-help {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .provider-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .provider-icon {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .provider-info {
+            flex: 1;
+        }
+
+        .provider-name {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .provider-status {
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">模型设置页面国际化</h1>
+            <p class="demo-subtitle">完整的 <span class="highlight">模型配置和API设置</span> 国际化支持</p>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('zh', this)">
+                🇨🇳 中文演示
+            </button>
+            <button class="lang-btn" onclick="switchLanguage('en', this)">
+                🇺🇸 English Demo
+            </button>
+        </div>
+
+        <div class="demo-grid">
+            <div class="demo-section">
+                <div class="section-header">🤖 模型配置表单</div>
+                <div class="section-content">
+                    <div class="form-mockup">
+                        <div class="form-group">
+                            <label class="form-label" id="provider-label">服务商</label>
+                            <select class="form-select">
+                                <option>OpenAI</option>
+                                <option>Anthropic Claude</option>
+                                <option>Google Gemini</option>
+                                <option id="custom-option">自定义</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" id="model-label">模型</label>
+                            <select class="form-select">
+                                <option>gpt-4</option>
+                                <option>gpt-3.5-turbo</option>
+                                <option id="custom-model-option">自定义模型...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" id="api-key-label">API 密钥</label>
+                            <input type="password" class="form-input" id="api-key-placeholder" placeholder="输入您的 API 密钥">
+                            <div class="form-help" id="api-key-help">您的 API 密钥将安全地存储在本地，不会被分享。</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Base URL <span id="optional-label">(可选)</span></label>
+                            <input type="url" class="form-input" id="base-url-placeholder" placeholder="输入 API 基础 URL">
+                            <div class="form-help" id="base-url-help">留空将使用默认端点</div>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <button class="btn btn-primary" id="add-model-btn">添加模型</button>
+                            <button class="btn btn-secondary" id="cancel-btn">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <div class="section-header">⚙️ 服务提供商管理</div>
+                <div class="section-content">
+                    <div class="provider-card">
+                        <div class="provider-icon">🤖</div>
+                        <div class="provider-info">
+                            <div class="provider-name">OpenAI</div>
+                            <div class="provider-status" id="enabled-status">已启用</div>
+                        </div>
+                    </div>
+                    <div class="provider-card">
+                        <div class="provider-icon">🧠</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Anthropic Claude</div>
+                            <div class="provider-status" id="enabled-status2">已启用</div>
+                        </div>
+                    </div>
+                    <div class="provider-card">
+                        <div class="provider-icon">💎</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Google Gemini</div>
+                            <div class="provider-status" id="disabled-status">未启用</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <button class="btn btn-primary" id="add-provider-btn">自定义 API 密钥</button>
+                        <button class="btn btn-secondary" id="test-connection-btn">测试连接</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <div class="section-header">🔧 高级设置</div>
+                <div class="section-content">
+                    <div class="form-mockup">
+                        <div class="form-group">
+                            <label class="form-label" id="max-tokens-label">最大令牌数</label>
+                            <input type="number" class="form-input" id="max-tokens-placeholder" placeholder="默认">
+                            <div class="form-help" id="max-tokens-help">生成的最大令牌数量（留空使用默认值）</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" id="temperature-label">温度值: 0.7</label>
+                            <input type="range" min="0" max="2" step="0.1" value="0.7" style="width: 100%;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #6b7280;">
+                                <span id="temperature-focused">更专注 (0)</span>
+                                <span id="temperature-creative">更创意 (2)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-section">
+                <div class="section-header">📋 过滤和管理</div>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label class="form-label" id="filter-label">过滤服务商</label>
+                        <select class="form-select">
+                            <option id="all-providers">全部服务商</option>
+                            <option id="enabled-providers">已启用</option>
+                            <option id="builtin-providers">内置服务商</option>
+                            <option id="custom-providers">自定义服务商</option>
+                        </select>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <button class="btn btn-primary" id="get-started-btn">开始配置</button>
+                        <button class="btn btn-secondary" id="update-models-btn">更新模型列表</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🔧 修复的国际化内容</h3>
+            <ul class="features-list">
+                <li><strong>模型配置表单</strong> - 所有标签、占位符、帮助文本都支持翻译</li>
+                <li><strong>服务提供商管理</strong> - 提供商状态、过滤选项、操作按钮全覆盖</li>
+                <li><strong>高级设置</strong> - 令牌数、温度值、范围标签都有翻译</li>
+                <li><strong>验证消息</strong> - 表单验证错误提示支持多语言</li>
+                <li><strong>操作按钮</strong> - 添加、编辑、删除、测试等按钮文本</li>
+                <li><strong>状态提示</strong> - 连接成功/失败、更新状态等提示</li>
+            </ul>
+        </div>
+
+        <div class="code-block">
+// 新增的翻译键示例
+{
+  "settings": {
+    "provider": "服务商",
+    "model": "模型", 
+    "customModel": "自定义模型",
+    "apiKeyPlaceholder": "输入您的 API 密钥",
+    "apiKeyHelp": "您的 API 密钥将安全地存储在本地，不会被分享。",
+    "baseUrlOptional": "(可选)",
+    "baseUrlHelp": "留空将使用默认端点",
+    "advancedSettings": "高级设置",
+    "maxTokens": "最大令牌数",
+    "temperature": "温度值",
+    "testConnection": "测试连接",
+    "connectionSuccessful": "连接成功！",
+    "allProviders": "全部服务商",
+    "enabled": "已启用",
+    "builtinProviders": "内置服务商",
+    "customProviders": "自定义服务商"
+  }
+}
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🎉 国际化完成</h3>
+            <p style="color: #374151; margin: 0;">
+                现在模型设置页面和API配置页面的所有用户可见文本都支持中英文切换，
+                包括表单标签、占位符、帮助文本、按钮、状态提示等，
+                为全球用户提供了完整的本地化体验。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                'provider-label': '服务商',
+                'model-label': '模型',
+                'custom-option': '自定义',
+                'custom-model-option': '自定义模型...',
+                'api-key-label': 'API 密钥',
+                'api-key-placeholder': '输入您的 API 密钥',
+                'api-key-help': '您的 API 密钥将安全地存储在本地，不会被分享。',
+                'optional-label': '(可选)',
+                'base-url-placeholder': '输入 API 基础 URL',
+                'base-url-help': '留空将使用默认端点',
+                'add-model-btn': '添加模型',
+                'cancel-btn': '取消',
+                'enabled-status': '已启用',
+                'enabled-status2': '已启用',
+                'disabled-status': '未启用',
+                'add-provider-btn': '自定义 API 密钥',
+                'test-connection-btn': '测试连接',
+                'max-tokens-label': '最大令牌数',
+                'max-tokens-placeholder': '默认',
+                'max-tokens-help': '生成的最大令牌数量（留空使用默认值）',
+                'temperature-label': '温度值: 0.7',
+                'temperature-focused': '更专注 (0)',
+                'temperature-creative': '更创意 (2)',
+                'filter-label': '过滤服务商',
+                'all-providers': '全部服务商',
+                'enabled-providers': '已启用',
+                'builtin-providers': '内置服务商',
+                'custom-providers': '自定义服务商',
+                'get-started-btn': '开始配置',
+                'update-models-btn': '更新模型列表'
+            },
+            en: {
+                'provider-label': 'Provider',
+                'model-label': 'Model',
+                'custom-option': 'Custom',
+                'custom-model-option': 'Custom Model...',
+                'api-key-label': 'API Key',
+                'api-key-placeholder': 'Enter your API key',
+                'api-key-help': 'Your API key will be stored securely locally and not shared.',
+                'optional-label': '(Optional)',
+                'base-url-placeholder': 'Enter API base URL',
+                'base-url-help': 'Leave empty to use default endpoint',
+                'add-model-btn': 'Add Model',
+                'cancel-btn': 'Cancel',
+                'enabled-status': 'Enabled',
+                'enabled-status2': 'Enabled',
+                'disabled-status': 'Disabled',
+                'add-provider-btn': 'Custom API Key',
+                'test-connection-btn': 'Test Connection',
+                'max-tokens-label': 'Max Tokens',
+                'max-tokens-placeholder': 'Default',
+                'max-tokens-help': 'Maximum number of tokens to generate (leave empty for default)',
+                'temperature-label': 'Temperature: 0.7',
+                'temperature-focused': 'More Focused (0)',
+                'temperature-creative': 'More Creative (2)',
+                'filter-label': 'Filter Providers',
+                'all-providers': 'All Providers',
+                'enabled-providers': 'Enabled',
+                'builtin-providers': 'Built-in Providers',
+                'custom-providers': 'Custom Providers',
+                'get-started-btn': 'Get Started',
+                'update-models-btn': 'Update Model List'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function switchLanguage(lang, button) {
+            currentLang = lang;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新所有文本
+            Object.keys(translations[lang]).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.tagName === 'INPUT' && element.type !== 'range') {
+                        element.placeholder = translations[lang][key];
+                    } else {
+                        element.textContent = translations[lang][key];
+                    }
+                }
+            });
+            
+            console.log(`🌍 模型设置页面语言切换到: ${lang === 'zh' ? '中文' : 'English'}`);
+        }
+    </script>
+</body>
+</html>

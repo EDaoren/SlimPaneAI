@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置页面国际化修复演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-btn:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-btn.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+        }
+
+        .fix-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .comparison-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+        }
+
+        .before-header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .after-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .section-content {
+            padding: 20px;
+            background: white;
+        }
+
+        .settings-mockup {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .mockup-sidebar {
+            background: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .nav-content {
+            flex: 1;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            color: #374151;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .nav-description {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .fix-details {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .fix-details h3 {
+            margin-top: 0;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .problem-solution {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .problem-title {
+            font-weight: 600;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+
+        .solution-title {
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">设置页面国际化修复</h1>
+            <p class="demo-subtitle">解决左侧导航按钮的 <span class="highlight">国际化问题</span></p>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('zh', this)">
+                🇨🇳 中文演示
+            </button>
+            <button class="lang-btn" onclick="switchLanguage('en', this)">
+                🇺🇸 English Demo
+            </button>
+        </div>
+
+        <div class="fix-comparison">
+            <div class="comparison-section">
+                <div class="section-header before-header">❌ 修复前</div>
+                <div class="section-content">
+                    <div class="settings-mockup">
+                        <div class="mockup-sidebar">
+                            <div class="nav-item">
+                                <div class="nav-icon">🤖</div>
+                                <div class="nav-content">
+                                    <span class="nav-title">AI 模型</span>
+                                    <span class="nav-description">模型设置</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">⚙️</div>
+                                <div class="nav-content">
+                                    <span class="nav-title">偏好设置</span>
+                                    <span class="nav-description">通用</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">🎨</div>
+                                <div class="nav-content">
+                                    <span class="nav-title">外观</span>
+                                    <span class="nav-description">主题</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">ℹ️</div>
+                                <div class="nav-content">
+                                    <span class="nav-title">关于</span>
+                                    <span class="nav-description">关于</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="color: #dc2626; font-size: 0.9rem; margin-top: 12px;">
+                        ⚠️ 即使设置为英文，导航按钮仍显示中文
+                    </p>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-header after-header">✅ 修复后</div>
+                <div class="section-content">
+                    <div class="settings-mockup">
+                        <div class="mockup-sidebar">
+                            <div class="nav-item">
+                                <div class="nav-icon">🤖</div>
+                                <div class="nav-content">
+                                    <span class="nav-title" id="nav-models">AI 模型</span>
+                                    <span class="nav-description" id="nav-models-desc">模型设置</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">⚙️</div>
+                                <div class="nav-content">
+                                    <span class="nav-title" id="nav-preferences">偏好设置</span>
+                                    <span class="nav-description" id="nav-preferences-desc">通用</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">🎨</div>
+                                <div class="nav-content">
+                                    <span class="nav-title" id="nav-appearance">外观</span>
+                                    <span class="nav-description" id="nav-appearance-desc">主题</span>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">ℹ️</div>
+                                <div class="nav-content">
+                                    <span class="nav-title" id="nav-about">关于</span>
+                                    <span class="nav-description" id="nav-about-desc">关于</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="color: #059669; font-size: 0.9rem; margin-top: 12px;">
+                        ✅ 导航按钮正确显示对应语言文本
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="problem-solution">
+            <div class="problem-title">🔍 问题分析</div>
+            <p>设置页面的左侧导航按钮国际化不生效，主要原因是：</p>
+            <ul>
+                <li>设置页面没有初始化国际化系统</li>
+                <li>用户偏好设置加载后，没有调用语言初始化函数</li>
+                <li>语言切换时没有立即更新界面</li>
+            </ul>
+        </div>
+
+        <div class="problem-solution">
+            <div class="solution-title">🔧 解决方案</div>
+            <p>通过以下修改解决问题：</p>
+            <ul>
+                <li>导入 <code>initializeLanguage</code> 和 <code>setLanguage</code> 函数</li>
+                <li>在 <code>onMount</code> 中初始化语言设置</li>
+                <li>在语言切换时立即更新界面</li>
+            </ul>
+        </div>
+
+        <div class="fix-details">
+            <h3>🔧 具体修复内容</h3>
+            
+            <div class="code-block">
+// 1. 导入国际化函数
+import { t, initializeLanguage, setLanguage } from '@/lib/i18n';
+
+// 2. 在 onMount 中初始化语言
+onMount(async () => {
+  await settingsStore.loadSettings();
+  
+  const currentSettings = settingsStore.getCurrentState();
+  if (currentSettings.userPreferences) {
+    applyTheme(currentSettings.userPreferences);
+    // ✅ 初始化国际化系统
+    initializeLanguage(currentSettings.userPreferences);
+  }
+});
+
+// 3. 语言切换时立即更新界面
+async function handleLanguageChange(language: 'en' | 'zh') {
+  const newPreferences = { ...userPreferences, language };
+  await settingsStore.saveUserPreferences(newPreferences);
+  // ✅ 立即切换界面语言
+  setLanguage(language);
+}
+            </div>
+        </div>
+
+        <div class="fix-details">
+            <h3>✨ 修复成果</h3>
+            <ul class="features-list">
+                <li><strong>正确初始化</strong> - 设置页面加载时根据用户偏好设置语言</li>
+                <li><strong>实时切换</strong> - 语言变化立即反映在导航按钮上</li>
+                <li><strong>完整同步</strong> - 设置页面和侧边栏语言保持一致</li>
+                <li><strong>持久化存储</strong> - 语言偏好正确保存和加载</li>
+                <li><strong>用户体验</strong> - 无需刷新页面即可看到语言变化</li>
+            </ul>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🎉 修复完成</h3>
+            <p style="color: #374151; margin: 0;">
+                现在设置页面的左侧导航按钮能够正确响应语言设置，
+                用户选择英文时会立即显示英文文本，选择中文时显示中文文本。
+                这确保了完整的国际化体验，让全球用户都能享受本地化的界面。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                'nav-models': 'AI 模型',
+                'nav-models-desc': '模型设置',
+                'nav-preferences': '偏好设置',
+                'nav-preferences-desc': '通用',
+                'nav-appearance': '外观',
+                'nav-appearance-desc': '主题',
+                'nav-about': '关于',
+                'nav-about-desc': '关于'
+            },
+            en: {
+                'nav-models': 'Models',
+                'nav-models-desc': 'Model Settings',
+                'nav-preferences': 'Preferences',
+                'nav-preferences-desc': 'General',
+                'nav-appearance': 'Appearance',
+                'nav-appearance-desc': 'Theme',
+                'nav-about': 'About',
+                'nav-about-desc': 'About'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function switchLanguage(lang, button) {
+            currentLang = lang;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新所有文本
+            Object.keys(translations[lang]).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            console.log(`设置页面导航按钮语言切换到: ${lang === 'zh' ? '中文' : 'English'}`);
+        }
+    </script>
+</body>
+</html>

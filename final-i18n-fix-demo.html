@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlimPaneAI - 导航按钮国际化修复</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .demo-subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-btn:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-btn.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+        }
+
+        .fix-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .comparison-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .before-header {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .after-header {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .section-content {
+            padding: 20px;
+            background: white;
+        }
+
+        .nav-mockup {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 280px;
+            margin: 0 auto;
+        }
+
+        .nav-header {
+            background: #f3f4f6;
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .nav-title {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .nav-version {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .nav-items {
+            padding: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #f3f4f6;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #3b82f6;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .nav-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-item-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 2px;
+            font-size: 0.9rem;
+        }
+
+        .nav-item-desc {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .technical-details {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .technical-details h3 {
+            margin-top: 0;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        .features-list li::before {
+            content: "✅";
+            font-size: 16px;
+        }
+
+        .problem-solution {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .problem-title {
+            font-weight: 600;
+            color: #dc2626;
+            margin-bottom: 8px;
+        }
+
+        .solution-title {
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">SlimPaneAI 导航按钮修复</h1>
+            <p class="demo-subtitle">解决设置页面导航按钮的 <span class="highlight">国际化问题</span></p>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('zh', this)">
+                🇨🇳 中文演示
+            </button>
+            <button class="lang-btn" onclick="switchLanguage('en', this)">
+                🇺🇸 English Demo
+            </button>
+        </div>
+
+        <div class="fix-comparison">
+            <div class="comparison-section">
+                <div class="section-header before-header">❌ 修复前 - 硬编码中文</div>
+                <div class="section-content">
+                    <div class="nav-mockup">
+                        <div class="nav-header">
+                            <div class="nav-title">SlimPaneAI</div>
+                            <div class="nav-version">v0.0.1</div>
+                        </div>
+                        <div class="nav-items">
+                            <div class="nav-item">
+                                <div class="nav-icon">🤖</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title">模型</div>
+                                    <div class="nav-item-desc">模型设置</div>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">⚙️</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title">偏好设置</div>
+                                    <div class="nav-item-desc">通用</div>
+                                </div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon">🎨</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title">外观</div>
+                                    <div class="nav-item-desc">主题</div>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">ℹ️</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title">关于</div>
+                                    <div class="nav-item-desc">关于</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-section">
+                <div class="section-header after-header">✅ 修复后 - 完整国际化</div>
+                <div class="section-content">
+                    <div class="nav-mockup">
+                        <div class="nav-header">
+                            <div class="nav-title">SlimPaneAI</div>
+                            <div class="nav-version">v0.0.1</div>
+                        </div>
+                        <div class="nav-items">
+                            <div class="nav-item">
+                                <div class="nav-icon">🤖</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title" id="nav-models">AI 模型</div>
+                                    <div class="nav-item-desc" id="nav-models-desc">模型设置</div>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">⚙️</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title" id="nav-preferences">偏好设置</div>
+                                    <div class="nav-item-desc" id="nav-preferences-desc">通用</div>
+                                </div>
+                            </div>
+                            <div class="nav-item active">
+                                <div class="nav-icon">🎨</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title" id="nav-appearance">外观</div>
+                                    <div class="nav-item-desc" id="nav-appearance-desc">主题</div>
+                                </div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">ℹ️</div>
+                                <div class="nav-content">
+                                    <div class="nav-item-title" id="nav-about">关于</div>
+                                    <div class="nav-item-desc" id="nav-about-desc">关于</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="technical-details">
+            <h3>🔧 根本问题与解决方案</h3>
+            
+            <div class="problem-solution">
+                <div class="problem-title">🚨 发现的问题</div>
+                <p>UserPreferences 接口中缺少 language 字段，导致语言设置无法正确保存和应用。</p>
+            </div>
+
+            <div class="code-block">
+// ❌ 修复前 - 缺少 language 字段
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  defaultModel: string;
+  lastSelectedModel: string;
+  fontSize: 'small' | 'medium' | 'large';
+  messageDensity: 'compact' | 'normal' | 'relaxed';
+  // ❌ 缺少 language 字段
+}
+
+// ✅ 修复后 - 添加 language 字段
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  language: 'zh' | 'en';  // ✅ 新增语言字段
+  defaultModel: string;
+  lastSelectedModel: string;
+  fontSize: 'small' | 'medium' | 'large';
+  messageDensity: 'compact' | 'normal' | 'relaxed';
+}
+
+// ✅ 更新默认值
+userPreferences: {
+  theme: 'auto',
+  language: 'zh',  // ✅ 设置默认语言
+  defaultModel: '',
+  lastSelectedModel: '',
+  fontSize: 'medium',
+  messageDensity: 'normal',
+}
+            </div>
+        </div>
+
+        <div class="technical-details">
+            <h3>✨ 完整修复内容</h3>
+            <ul class="features-list">
+                <li><strong>类型定义修复</strong> - 在 UserPreferences 接口中添加 language 字段</li>
+                <li><strong>默认值设置</strong> - 在 settings store 中设置默认语言为中文</li>
+                <li><strong>导航按钮翻译</strong> - 所有导航按钮使用响应式翻译</li>
+                <li><strong>跨页面同步</strong> - 设置页面和侧边栏语言保持一致</li>
+                <li><strong>持久化存储</strong> - 语言偏好正确保存到 Chrome Storage</li>
+                <li><strong>实时切换</strong> - 语言变化立即反映在界面上</li>
+                <li><strong>完整覆盖</strong> - 所有用户可见文本都支持国际化</li>
+            </ul>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; margin-top: 32px;">
+            <h3 style="margin-top: 0; color: #1f2937;">🎯 修复成果</h3>
+            <p style="color: #374151; margin: 0;">
+                现在 SlimPaneAI 的设置页面导航按钮完全支持中英文切换！
+                通过修复类型定义和默认值设置，解决了语言设置不生效的根本问题。
+                用户现在可以在任何页面切换语言，所有界面文本都会立即更新，
+                提供了真正的国际化用户体验。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                'nav-models': 'AI 模型',
+                'nav-models-desc': '模型设置',
+                'nav-preferences': '偏好设置',
+                'nav-preferences-desc': '通用',
+                'nav-appearance': '外观',
+                'nav-appearance-desc': '主题',
+                'nav-about': '关于',
+                'nav-about-desc': '关于'
+            },
+            en: {
+                'nav-models': 'AI Models',
+                'nav-models-desc': 'Model Settings',
+                'nav-preferences': 'Preferences',
+                'nav-preferences-desc': 'General',
+                'nav-appearance': 'Appearance',
+                'nav-appearance-desc': 'Theme',
+                'nav-about': 'About',
+                'nav-about-desc': 'About'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function switchLanguage(lang, button) {
+            currentLang = lang;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // 更新所有文本
+            Object.keys(translations[lang]).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            console.log(`导航按钮语言切换到: ${lang === 'zh' ? '中文' : 'English'}`);
+        }
+    </script>
+</body>
+</html>
