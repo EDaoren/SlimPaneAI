@@ -6,7 +6,7 @@
   import ServiceProviderManager from '../panel/components/ServiceProviderManager.svelte';
   import CustomSelect from '../panel/components/CustomSelect.svelte';
   import { getModelDisplayOptions } from '../lib/service-providers';
-  import { t, initializeLanguage, setLanguage } from '@/lib/i18n';
+  import { t, initializeLanguage, setLanguage, currentLanguage } from '@/lib/i18n';
   import type { ModelConfig, ServiceProviderSettings } from '../types';
 
   // 导航状态
@@ -18,11 +18,15 @@
   let editingConfig: ModelConfig | null = null;
   let showInlineForm = false;
 
+  // 语言初始化状态
+  let languageInitialized = false;
+
   // 导航菜单项
   let navigationItems = [];
 
-  // 在国际化系统初始化后更新导航项
-  $: if (userPreferences) {
+  // 导航菜单项 - 只有在语言真正初始化后才更新，避免使用初始状态
+  $: if (languageInitialized) {
+    console.log('🔄 [Options] Language changed to:', $currentLanguage, 'updating navigationItems');
     navigationItems = [
       {
         id: 'ai-models',
@@ -49,6 +53,7 @@
         description: $t('settings.about')
       }
     ];
+    console.log('🔄 [Options] NavigationItems updated for language', $currentLanguage, ':', navigationItems.map(item => ({ id: item.id, title: item.title })));
   }
 
   $: modelEntries = Object.entries($settingsStore.modelSettings);
@@ -58,12 +63,18 @@
   $: hasModels = modelOptions.length > 0;
 
   // 应用主题变化和语言初始化
-  $: if (userPreferences) {
-    console.log('🌍 [Options] Applying preferences:', userPreferences);
+  $: if (userPreferences && !$settingsStore.isLoading && !languageInitialized) {
+    console.log('🌍 [Options] Applying preferences (settings loaded):', userPreferences);
     applyTheme(userPreferences);
-    // 初始化国际化系统
-    console.log('🌍 [Options] Initializing language:', userPreferences.language);
+    // 只有在设置完全加载后且未初始化时才初始化国际化系统
+    console.log('🌍 [Options] Initializing language (first time):', userPreferences.language);
     initializeLanguage(userPreferences);
+    languageInitialized = true;
+  }
+
+  // 单独处理主题变化（不影响语言初始化）
+  $: if (userPreferences && !$settingsStore.isLoading && languageInitialized) {
+    applyTheme(userPreferences);
   }
 
   onMount(async () => {
@@ -76,10 +87,12 @@
       await settingsStore.saveServiceProviders(defaultProviders);
     }
 
-    // 应用初始主题（语言初始化通过响应式语句处理）
+    // 应用初始主题（语言初始化由响应式语句处理）
     const currentSettings = settingsStore.getCurrentState();
     if (currentSettings.userPreferences) {
+      console.log('🌍 [Options] onMount - Applying loaded preferences:', currentSettings.userPreferences);
       applyTheme(currentSettings.userPreferences);
+      // 语言初始化由响应式语句处理，这里不重复初始化
     }
 
     // 监听系统主题变化

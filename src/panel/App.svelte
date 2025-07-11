@@ -12,8 +12,10 @@
 
   // 响应式应用主题变化和语言初始化
   $: if ($settingsStore.userPreferences) {
+    console.log('🎨 [Panel] Applying preferences:', $settingsStore.userPreferences);
     applyTheme($settingsStore.userPreferences);
     // 初始化国际化系统
+    console.log('🌍 [Panel] Initializing language:', $settingsStore.userPreferences.language);
     initializeLanguage($settingsStore.userPreferences);
   }
 

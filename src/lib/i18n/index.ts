@@ -293,6 +293,9 @@ export interface Translations {
 // 当前语言 store
 export const currentLanguage = writable<Language>('zh');
 
+// 语言初始化状态
+let isLanguageInitialized = false;
+
 // 翻译函数 store
 export const t = derived(
   currentLanguage,
@@ -339,8 +342,20 @@ export function setLanguage(language: Language) {
 export function initializeLanguage(preferences: UserPreferences) {
   console.log('🌍 [i18n] Initializing language from preferences:', preferences);
   if (preferences.language) {
-    console.log('🌍 [i18n] Found language preference:', preferences.language);
-    setLanguage(preferences.language as Language);
+    const targetLanguage = preferences.language as Language;
+    console.log('🌍 [i18n] Found language preference:', targetLanguage);
+
+    // 检查是否需要更新语言
+    let currentLang: Language;
+    currentLanguage.subscribe(lang => currentLang = lang)();
+
+    if (currentLang !== targetLanguage) {
+      console.log('🌍 [i18n] Language changed from', currentLang, 'to', targetLanguage);
+      setLanguage(targetLanguage);
+      isLanguageInitialized = true;
+    } else {
+      console.log('🌍 [i18n] Language already set to', targetLanguage, 'skipping update');
+    }
   } else {
     console.warn('🌍 [i18n] No language preference found, using default');
   }

@@ -19,7 +19,7 @@ const initialState: SettingsState = {
     fontSize: 'medium',
     messageDensity: 'normal',
   },
-  isLoading: false,
+  isLoading: true, // 初始状态应该是加载中
 };
 
 function createSettingsStore() {

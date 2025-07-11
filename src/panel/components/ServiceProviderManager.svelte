@@ -15,15 +15,6 @@
 
   let showModal = false;
   let editingProvider: ServiceProvider | null = null;
-  let filterValue = 'all';
-
-  // 过滤选项
-  const filterOptions = [
-    { id: 'all', name: $t('settings.allProviders'), icon: '📋' },
-    { id: 'enabled', name: $t('settings.enabled'), icon: '✅' },
-    { id: 'builtin', name: $t('settings.builtinProviders'), icon: '🏠' },
-    { id: 'custom', name: $t('settings.customProviders'), icon: '⚙️' }
-  ];
 
   // Convert object to array for easier iteration
   $: providerList = Object.values(serviceProviders);
@@ -32,11 +23,6 @@
   function handleAddCustomProvider() {
     editingProvider = null;
     showModal = true;
-  }
-
-  function handleFilterChange(event: CustomEvent) {
-    filterValue = event.detail.value;
-    // TODO: 实现过滤逻辑
   }
 
   function handleEditProvider(event: CustomEvent<{ provider: ServiceProvider }>) {
@@ -136,16 +122,6 @@
           </p>
         </div>
         <div class="header-actions">
-          <div style="width: 160px;">
-            <CustomSelect
-              options={filterOptions}
-              bind:value={filterValue}
-              placeholder={$t('settings.filterProviders')}
-              size="sm"
-              variant="secondary"
-              on:change={handleFilterChange}
-            />
-          </div>
           <button class="btn btn-primary" on:click={handleAddCustomProvider}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -301,20 +277,7 @@
     gap: 1rem;
   }
 
-  .provider-filter {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    background: white;
-    color: #374151;
-  }
 
-  .provider-filter:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
 
   .btn {
     display: inline-flex;
