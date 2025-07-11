@@ -2,25 +2,28 @@
 
 A lightweight AI-powered browser extension with side panel chat and text enhancement features.
 
-## Features
+## ✨ Features
 
-- **Side Panel Chat**: AI-powered chat interface accessible from any webpage
-- **Text Enhancement**: Select text on any webpage to summarize, translate, or explain with AI
-- **Multi-Model Support**: Compatible with OpenAI, Anthropic Claude, Google Gemini, and custom models
-- **Local Storage**: All data stored locally for privacy
-- **Lightweight**: Built with Svelte for minimal bundle size
+- **🤖 Side Panel Chat**: AI-powered chat interface accessible from any webpage
+- **📝 Text Enhancement**: Select text on any webpage to summarize, translate, or explain with AI
+- **🔄 Multi-Model Support**: Compatible with OpenAI, Anthropic Claude, Google Gemini, and custom models
+- **🔒 Privacy First**: All data stored locally for privacy
+- **⚡ Lightweight**: Built with Svelte for minimal bundle size and optimal performance
+- **🌍 Internationalization**: Support for multiple languages (Chinese/English)
+- **🎨 Modern UI**: Clean, responsive design with dark/light theme support
+- **📊 Math Rendering**: Support for LaTeX math formulas using KaTeX
 
-## Supported AI Models
+## 🤖 Supported AI Models
 
 ### OpenAI
-- GPT-4
-- GPT-4 Turbo
+- GPT-4o, GPT-4o mini
+- GPT-4, GPT-4 Turbo
 - GPT-3.5 Turbo
+- o1-preview, o1-mini (with reasoning support)
 
 ### Anthropic Claude
-- Claude 3 Opus
-- Claude 3 Sonnet
-- Claude 3 Haiku
+- Claude 3.5 Sonnet
+- Claude 3 Opus, Sonnet, Haiku
 
 ### Google Gemini
 - Gemini Pro
@@ -29,6 +32,7 @@ A lightweight AI-powered browser extension with side panel chat and text enhance
 ### Custom Models
 - Any OpenAI-compatible API
 - Custom base URLs and API keys
+- Support for local models (Ollama, etc.)
 
 ## Development
 

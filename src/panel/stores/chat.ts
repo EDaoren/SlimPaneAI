@@ -12,6 +12,8 @@ import { DEFAULT_PROMPTS } from '@/types';
 import { settingsStore } from './settings';
 import { getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
 import { supportsReasoning } from '@/lib/model-capabilities';
+import { formatErrorMessage } from '@/lib/utils/error-formatter';
+import { generateId, generateSessionId, generateMessageId } from '@/lib/utils/id-generator';
 
 interface ChatState {
   currentSession: ChatSession | null;
@@ -60,7 +62,7 @@ function createChatStore() {
 
     async createNewSession() {
       const newSession: ChatSession = {
-        id: generateId(),
+        id: generateSessionId(),
         title: 'New Chat',
         messages: [],
         createdAt: Date.now(),
@@ -151,7 +153,7 @@ function createChatStore() {
 
       // Create user message
       const userMessage: Message = {
-        id: generateId(),
+        id: generateMessageId(),
         type: 'user',
         content: content.trim(),
         timestamp: Date.now(),
@@ -159,7 +161,7 @@ function createChatStore() {
 
       // Create assistant message placeholder
       const assistantMessage: Message = {
-        id: generateId(),
+        id: generateMessageId(),
         type: 'assistant',
         content: '',
         timestamp: Date.now(),
@@ -381,7 +383,7 @@ function createChatStore() {
     handleError(error: string) {
       update(state => {
         // 格式化错误消息，让它看起来像AI助手的回复
-        const formattedError = this.formatErrorMessage(error);
+        const formattedError = formatErrorMessage(error);
 
         if (state.currentSession && state.streamingMessageId) {
           // 如果有正在流式传输的消息，更新它的内容为错误消息
@@ -395,7 +397,7 @@ function createChatStore() {
         } else if (state.currentSession) {
           // 如果没有流式传输的消息，创建新的错误消息
           const errorMessage: Message = {
-            id: generateId(),
+            id: generateMessageId(),
             type: 'assistant',
             content: formattedError,
             timestamp: Date.now(),
@@ -411,44 +413,7 @@ function createChatStore() {
       });
     },
 
-    formatErrorMessage(error: string): string {
-      // 移除"Error: "前缀
-      const cleanError = error.replace(/^Error:\s*/, '');
 
-      // 检查是否是模型配置相关的错误
-      if (cleanError.includes('No model configured') || cleanError.includes('API key not configured')) {
-        return `<div style="color: #dc2626; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%;">
-${cleanError}
-
-**💡 配置步骤：**
-• 点击右侧工具栏 ⚙️ 进入设置页面
-• 选择一个AI服务提供商（OpenAI、Claude、Gemini等）
-• 输入对应的API密钥
-• 保存设置后即可开始聊天
-
-**🔗 获取API密钥：**
-• OpenAI: https://platform.openai.com/api-keys
-• Claude: https://console.anthropic.com/
-• Gemini: https://aistudio.google.com/app/apikey
-</div>`;
-      }
-
-      // 其他错误的通用处理
-      return `<div style="color: #dc2626; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%;">
-${cleanError}
-
-**💡 解决建议：**
-• 等待几分钟后重新发送消息
-• 点击右侧工具栏 ⚙️ 检查API配置
-• 尝试切换到其他可用的AI模型
-• 如果问题持续，请联系技术支持
-</div>`;
-    },
-
-    extractRequestId(error: string): string {
-      const match = error.match(/request id:\s*([^)]+)/);
-      return match ? match[1] : '';
-    },
 
     async saveSessions() {
       let sessions: ChatSession[] = [];
@@ -471,8 +436,6 @@ ${cleanError}
   };
 }
 
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+
 
 export const chatStore = createChatStore();

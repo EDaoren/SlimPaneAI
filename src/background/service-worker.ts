@@ -65,8 +65,8 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (tab.id) {
     try {
       // For Chrome 114+, use the new sidePanel API
-      if (chrome.sidePanel && chrome.sidePanel.open) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
+      if (chrome.sidePanel && (chrome.sidePanel as any).open) {
+        await (chrome.sidePanel as any).open({ windowId: tab.windowId });
         console.log('✅ [Background] Side panel opened using sidePanel.open');
       } else if (chrome.sidePanel && chrome.sidePanel.setOptions) {
         // Fallback: enable side panel for this tab
@@ -109,8 +109,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     
     // Open side panel and send the selected text
     try {
-      if (chrome.sidePanel && chrome.sidePanel.open) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
+      if (chrome.sidePanel && (chrome.sidePanel as any).open) {
+        await (chrome.sidePanel as any).open({ windowId: tab.windowId });
       } else if (chrome.sidePanel && chrome.sidePanel.setOptions) {
         await chrome.sidePanel.setOptions({
           tabId: tab.id,
@@ -254,28 +254,18 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       temperature: modelConfig.temperature,
     };
 
-    console.log('API request:', apiRequest);
-
     const response = await adapter.sendRequest(apiRequest);
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`API request failed: ${response.status} ${errorText}`);
     }
-    
-    if (stream) {
-      console.log('🚀 Starting stream processing...');
-      let chunkCount = 0;
 
+    if (stream) {
       // Handle streaming response
       for await (const chunk of adapter.streamResponse(response)) {
-        chunkCount++;
-        console.log(`📦 Processing chunk ${chunkCount}:`, chunk);
-
         const content = chunk.choices[0]?.delta?.content || '';
         const done = chunk.choices[0]?.finish_reason !== undefined;
-
-        console.log(`📝 Content: "${content}", Done: ${done}`);
 
         const streamMessage: LLMResponse = {
           type: 'llm-chunk',
@@ -286,12 +276,9 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
           },
         };
 
-        console.log('📤 Sending to side panel:', streamMessage);
         // Send chunk to side panel
         await sendMessageToSidePanel(streamMessage);
       }
-
-      console.log(`✅ Stream completed with ${chunkCount} chunks`);
     } else {
       // Handle non-streaming response
       const data = await response.json();
