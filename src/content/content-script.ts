@@ -11,8 +11,6 @@ function init() {
   
   // Listen for messages from background script
   chrome.runtime.onMessage.addListener(handleMessage);
-  
-  console.log('SlimPaneAI content script loaded');
 }
 
 function handleTextSelection() {

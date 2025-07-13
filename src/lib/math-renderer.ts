@@ -16,6 +16,8 @@ class MathRenderer {
   private readonly MAX_CACHE_SIZE = 500; // 最大缓存条目数
 
   constructor() {
+    // 清空缓存，确保没有旧的错误缓存
+    this.cache.clear();
     // 定期清理过期缓存
     setInterval(() => this.cleanExpiredCache(), 60000); // 每分钟清理一次
   }
@@ -52,6 +54,21 @@ class MathRenderer {
     return div.innerHTML;
   }
 
+  private cleanSvgPaths(html: string): string {
+    // 修复SVG路径中可能包含的HTML标签
+    return html.replace(/(<path[^>]*d=")([^"]*)(">)/g, (match, start, pathData, end) => {
+      // 清理路径数据中的HTML标签和转义字符
+      const cleanPathData = pathData
+        .replace(/\\u003C[^\\]*\\u003E/g, '') // 移除转义的HTML标签
+        .replace(/<[^>]*>/g, '') // 移除普通HTML标签
+        .replace(/&lt;[^&]*&gt;/g, '') // 移除HTML实体编码的标签
+        .replace(/\s+/g, ' ') // 规范化空格
+        .trim();
+
+      return start + cleanPathData + end;
+    });
+  }
+
   renderMath(math: string, options: MathRenderOptions): string {
     const cacheKey = this.getCacheKey(math, options);
     const cached = this.cache.get(cacheKey);
@@ -63,20 +80,35 @@ class MathRenderer {
     }
 
     try {
-      const rendered = katex.renderToString(math.trim(), {
+      // 清理输入的数学公式，移除可能的HTML标签
+      const cleanMath = math.trim().replace(/<[^>]*>/g, '');
+
+      const rendered = katex.renderToString(cleanMath, {
         displayMode: options.displayMode,
-        throwOnError: options.throwOnError
+        throwOnError: false,
+        trust: false,
+        strict: false,
+        fleqn: false,
+        leqno: false,
+        colorIsTextColor: false,
+        maxSize: Infinity,
+        maxExpand: 1000,
+        globalGroup: false,
+        output: 'html'
       });
 
+      // 清理渲染结果，确保SVG路径数据不包含HTML标签
+      const cleanRendered = this.cleanSvgPaths(rendered);
+
       this.cache.set(cacheKey, {
-        html: rendered,
+        html: cleanRendered,
         timestamp: Date.now()
       });
 
-      return rendered;
+      return cleanRendered;
     } catch (e) {
       const errorHtml = `<span class="math-error">${options.displayMode ? '$$' : '$'}${this.escapeHtml(math)}${options.displayMode ? '$$' : '$'}</span>`;
-      
+
       // 也缓存错误结果，避免重复计算
       this.cache.set(cacheKey, {
         html: errorHtml,

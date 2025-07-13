@@ -225,7 +225,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       model: modelConfig.model,
       messages: apiMessages,
       stream,
-      temperature: modelConfig.temperature,
     };
 
     const response = await adapter.sendRequest(apiRequest);
@@ -254,15 +253,26 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
             const content = chunk.choices[0]?.delta?.content || '';
             const reasoning = chunk.choices[0]?.delta?.reasoning || '';
-            const done = chunk.choices[0]?.finish_reason !== undefined;
+            const done = chunk.choices[0]?.finish_reason !== null && chunk.choices[0]?.finish_reason !== undefined;
 
             if (done) {
               hasFinished = true;
               clearTimeout(streamTimeout);
             }
 
-            // 只发送有内容的块，避免发送空块
-            if (content || reasoning || done) {
+            // 发送所有块，包括空内容的块（如角色块）和结束块
+            // 只要有delta对象或者已完成，就发送
+            const hasDelta = chunk.choices[0]?.delta !== undefined;
+
+            console.log(`🔍 [Service Worker] Chunk ${chunkCount}:`, {
+              content,
+              reasoning,
+              done,
+              hasDelta,
+              willSend: hasDelta || done
+            });
+
+            if (hasDelta || done) {
               const streamMessage: LLMResponse = {
                 type: 'llm-chunk',
                 requestId: request.requestId,
@@ -273,7 +283,11 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
                 },
               };
 
+              console.log(`📤 [Service Worker] Sending message:`, streamMessage);
               await sendMessageToSidePanel(streamMessage);
+              console.log(`✅ [Service Worker] Message sent successfully`);
+            } else {
+              console.log(`❌ [Service Worker] Skipping chunk ${chunkCount} - no delta and not done`);
             }
 
             // Break if we've been marked as finished (by timeout or other means)

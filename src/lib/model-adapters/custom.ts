@@ -21,7 +21,6 @@ export class CustomAdapter extends BaseModelAdapter {
       model: this.config.model,
       messages: request.messages,
       stream: request.stream || false,
-      temperature: this.config.temperature || request.temperature || 0.7,
     };
   }
 

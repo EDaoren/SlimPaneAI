@@ -38,6 +38,7 @@ export abstract class BaseModelAdapter {
       throw new Error('No response body');
     }
 
+    console.log(`🌊 [${adapterName}] Starting SSE stream parsing`);
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -49,44 +50,59 @@ export abstract class BaseModelAdapter {
         // Add timeout check - if no chunk received in 30 seconds, break
         const now = Date.now();
         if (now - lastChunkTime > 30000) {
-          console.warn(`Stream timeout - no data received for 30 seconds`);
+          console.warn(`[${adapterName}] Stream timeout - no data received for 30 seconds`);
           break;
         }
 
+        console.log(`🔍 [${adapterName}] Reading from stream...`);
         const { done, value } = await reader.read();
+
         if (done) {
+          console.log(`🔍 [${adapterName}] Stream ended, total chunks processed: ${chunkCount}`);
           break;
         }
 
         lastChunkTime = now;
         buffer += decoder.decode(value, { stream: true });
+        console.log(`🔍 [${adapterName}] Raw buffer:`, buffer);
+
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
         for (const line of lines) {
           const trimmed = line.trim();
+          console.log(`🔍 [${adapterName}] Processing line:`, trimmed);
+
           if (trimmed === '' || trimmed === 'data: [DONE]') {
+            console.log(`🔍 [${adapterName}] Skipping empty or DONE line`);
             continue;
           }
 
           if (trimmed.startsWith('data: ')) {
             const data = trimmed.slice(6);
+            console.log(`🔍 [${adapterName}] Extracted data:`, data);
             try {
               const chunk = this.parseStreamChunk(data);
               if (chunk) {
                 chunkCount++;
+                console.log(`✅ [${adapterName}] Yielding chunk ${chunkCount}:`, chunk);
                 yield chunk;
+              } else {
+                console.log(`❌ [${adapterName}] parseStreamChunk returned null for:`, data);
               }
             } catch (error) {
-              console.warn(`Failed to parse stream chunk:`, error);
+              console.warn(`❌ [${adapterName}] Failed to parse stream chunk:`, error, 'Data:', data);
             }
+          } else {
+            console.log(`🔍 [${adapterName}] Line doesn't start with 'data: ':`, trimmed);
           }
         }
       }
     } catch (error) {
-      console.error(`Stream error:`, error);
+      console.error(`❌ [${adapterName}] Stream error:`, error);
       throw error;
     } finally {
+      console.log(`🔍 [${adapterName}] Releasing reader lock`);
       reader.releaseLock();
     }
   }

@@ -45,9 +45,7 @@ export class GeminiAdapter extends BaseModelAdapter {
 
     const body: any = {
       contents,
-      generationConfig: {
-        temperature: this.config.temperature || request.temperature || 0.7,
-      },
+      generationConfig: {},
     };
 
     // For Gemini 2.5 Pro, try different approaches to enable thinking

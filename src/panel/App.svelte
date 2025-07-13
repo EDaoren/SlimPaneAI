@@ -20,25 +20,19 @@
   }
 
   onMount(async () => {
-    console.log('🚀 SlimPaneAI Panel mounting...');
-
     // Load settings and chat history
     await settingsStore.loadSettings();
     await chatStore.loadChatHistory();
 
     // 国际化初始化通过响应式语句处理
 
-    console.log('📡 Setting up message listener...');
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener(handleMessage);
-    console.log('✅ Message listener set up successfully');
 
     // Listen for storage changes (settings updates from options page)
     chrome.storage.onChanged.addListener(handleStorageChange);
-    console.log('✅ Storage change listener set up');
 
     isLoading = false;
-    console.log('✅ Panel mounted and ready');
   });
 
   function handleMessage(message: ExtensionMessage) {

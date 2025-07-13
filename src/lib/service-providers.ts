@@ -42,6 +42,8 @@ export function getDefaultModelsForProvider(providerId: string) {
   switch (providerId) {
     case 'openai':
       return [
+        { id: 'o1-preview', name: 'o1-preview', enabled: true },
+        { id: 'o1-mini', name: 'o1-mini', enabled: true },
         { id: 'gpt-4', name: 'GPT-4', enabled: true },
         { id: 'gpt-4-turbo-preview', name: 'GPT-4 Turbo', enabled: true },
         { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', enabled: true }

@@ -888,7 +888,7 @@ code {
   --font-size-small: 0.75rem;
   --font-size-large: 1rem;
 
-  --message-spacing: 1rem;
+  --message-spacing: 0.75rem;
   --message-padding: 0.75rem 1rem;
 }
 
@@ -945,8 +945,40 @@ code {
 }
 
 /* Smooth transitions for theme changes */
-* {
+body, .panel-container, .message-bubble, .input-container, button, select, input, textarea {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* KaTeX math rendering - force correct fonts */
+.katex, .katex * {
+  font-family: KaTeX_Main, "Times New Roman", serif !important;
+  transition: none !important;
+}
+
+.katex .sqrt-sign {
+  font-family: KaTeX_Size1, KaTeX_Size2, KaTeX_Size3, KaTeX_Size4, KaTeX_Main, "Times New Roman", serif !important;
+}
+
+.katex .mord, .katex .mop, .katex .mbin, .katex .mrel, .katex .mopen, .katex .mclose, .katex .mpunct {
+  font-family: KaTeX_Main, "Times New Roman", serif !important;
+}
+
+.katex .sizing, .katex .fontsize-ensurer {
+  font-family: KaTeX_Size1, KaTeX_Size2, KaTeX_Size3, KaTeX_Size4, KaTeX_Main, serif !important;
+}
+
+/* Final override - ensure KaTeX styles are not overridden by UnoCSS or other frameworks */
+.katex, .katex span, .katex .base, .katex .strut, .katex .vlist, .katex .vlist-t, .katex .vlist-r {
+  font-family: KaTeX_Main, "Times New Roman", serif !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  transition: none !important;
+}
+
+.katex .sqrt-sign, .katex .sqrt > .vlist-t > .vlist-r > .vlist > span > .sqrt-sign {
+  font-family: KaTeX_Size1, KaTeX_Size2, KaTeX_Size3, KaTeX_Size4, KaTeX_Main, "Times New Roman", serif !important;
+  font-style: normal !important;
+  font-weight: normal !important;
 }
 
 /* Font size classes */
@@ -975,12 +1007,12 @@ code {
 }
 
 .density-normal {
-  --message-spacing: 1rem;
+  --message-spacing: 0.75rem;
   --message-padding: 0.75rem 1rem;
 }
 
 .density-relaxed {
-  --message-spacing: 1.5rem;
+  --message-spacing: 1rem;
   --message-padding: 1rem 1.25rem;
 }
 

@@ -26,7 +26,6 @@ export class ClaudeAdapter extends BaseModelAdapter {
       })),
       system: systemMessage?.content,
       stream: request.stream || false,
-      temperature: this.config.temperature || request.temperature || 0.7,
     };
   }
 
