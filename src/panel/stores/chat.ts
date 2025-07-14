@@ -326,11 +326,15 @@ function createChatStore() {
               ...lastMessage,
               content: lastMessage.content + newContent,
               reasoning: (lastMessage.reasoning || '') + newReasoning,
-              // 只在响应完成时清除思考状态，而不是在开始接收内容时
-              isThinking: response.payload.done ? false : lastMessage.isThinking
+              // 清除思考状态的条件：
+              // 1. 响应完成时 (done = true)
+              // 2. 或者已经开始接收到实际内容时（表示思考阶段结束）
+              isThinking: response.payload.done ? false :
+                         (newContent || lastMessage.content) ? false : lastMessage.isThinking
             };
 
-            console.log('🔄 Updating message:', {
+            console.log('🔄 [Chat Store] Updating message:', {
+              messageId: lastMessage.id,
               oldContent: lastMessage.content,
               newContent,
               newReasoning,
@@ -338,7 +342,9 @@ function createChatStore() {
               finalReasoning: updatedMessage.reasoning,
               wasThinking: lastMessage.isThinking,
               isThinking: updatedMessage.isThinking,
-              done: response.payload.done
+              done: response.payload.done,
+              hasNewContent: !!newContent,
+              hasExistingContent: !!lastMessage.content
             });
 
             // Create new messages array

@@ -265,11 +265,20 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
             const hasDelta = chunk.choices[0]?.delta !== undefined;
 
             console.log(`🔍 [Service Worker] Chunk ${chunkCount}:`, {
-              content,
-              reasoning,
+              content: content ? content.substring(0, 100) + '...' : '',
+              contentLength: content.length,
+              reasoning: reasoning ? reasoning.substring(0, 100) + '...' : '',
+              reasoningLength: reasoning.length,
               done,
               hasDelta,
-              willSend: hasDelta || done
+              willSend: hasDelta || done,
+              finishReason: chunk.choices[0]?.finish_reason,
+              chunkStructure: {
+                hasChoices: !!chunk.choices,
+                choicesLength: chunk.choices?.length || 0,
+                hasDelta: !!chunk.choices?.[0]?.delta,
+                deltaKeys: chunk.choices?.[0]?.delta ? Object.keys(chunk.choices[0].delta) : []
+              }
             });
 
             if (hasDelta || done) {
@@ -283,7 +292,13 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
                 },
               };
 
-              console.log(`📤 [Service Worker] Sending message:`, streamMessage);
+              console.log(`📤 [Service Worker] Sending message:`, {
+                type: streamMessage.type,
+                requestId: streamMessage.requestId,
+                hasContent: !!content,
+                hasReasoning: !!reasoning,
+                done: streamMessage.payload.done
+              });
               await sendMessageToSidePanel(streamMessage);
               console.log(`✅ [Service Worker] Message sent successfully`);
             } else {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import ChatPanel from './components/ChatPanel.svelte';
+  import DebugPanel from './components/DebugPanel.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
   import { applyTheme } from '@/lib/theme-manager';
@@ -98,6 +99,9 @@
       <ChatPanel />
     {/if}
   </main>
+
+  <!-- 调试面板 -->
+  <DebugPanel />
 </div>
 
 <style>

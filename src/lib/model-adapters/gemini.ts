@@ -1,8 +1,10 @@
 import { BaseModelAdapter } from './base';
 import type { ChatCompletionRequest, ChatCompletionResponse, StreamChunk } from '@/types';
+import { geminiDebugger } from '../debug/gemini-debugger';
 
 export class GeminiAdapter extends BaseModelAdapter {
   private lastRequest?: ChatCompletionRequest;
+  private static chunkCounter = 0;
 
   constructor(config: any) {
     super(config);
@@ -126,13 +128,20 @@ export class GeminiAdapter extends BaseModelAdapter {
   }
 
   parseStreamChunk(chunk: string): StreamChunk | null {
+    GeminiAdapter.chunkCounter++;
+
     try {
       // Handle empty or whitespace-only chunks
       if (!chunk || !chunk.trim()) {
+        console.log('🔍 [Gemini] Skipping empty chunk');
         return null;
       }
 
+      console.log('🔍 [Gemini] Parsing chunk:', chunk.substring(0, 200) + '...');
       const parsed = JSON.parse(chunk);
+
+      // 记录到调试器
+      geminiDebugger.logChunk(GeminiAdapter.chunkCounter, chunk, parsed);
 
       // Log the full response to understand the structure
       if (parsed.usageMetadata?.thoughtsTokenCount > 0) {
@@ -141,11 +150,12 @@ export class GeminiAdapter extends BaseModelAdapter {
 
       // Check for API errors first
       if (parsed.error) {
-        console.error('Gemini API error:', parsed.error);
+        console.error('❌ [Gemini] API error:', parsed.error);
         throw new Error(`Gemini API error: ${parsed.error.message || 'Unknown error'}`);
       }
 
       const candidate = parsed.candidates?.[0];
+      console.log('🔍 [Gemini] Candidate:', candidate);
 
       // Check for content - look for both regular content and thinking content
       if (candidate?.content?.parts) {
@@ -208,7 +218,9 @@ export class GeminiAdapter extends BaseModelAdapter {
           });
         }
 
-        if (regularContent || thinkingContent) {
+        // Always create a chunk if we have any content or if this is a valid response
+        // This ensures we don't miss any content
+        if (regularContent || thinkingContent || candidate.content.parts.length > 0) {
           const streamChunk = {
             id: 'gemini-stream-' + Date.now(),
             object: 'chat.completion.chunk',
@@ -225,11 +237,18 @@ export class GeminiAdapter extends BaseModelAdapter {
             ],
           };
 
-          if (thinkingContent) {
-            console.log('🧠 [Gemini] Found thinking content:', thinkingContent.substring(0, 200) + '...');
-          }
+          console.log('✅ [Gemini] Creating stream chunk:', {
+            hasContent: !!regularContent,
+            hasReasoning: !!thinkingContent,
+            contentLength: regularContent.length,
+            reasoningLength: thinkingContent.length,
+            contentPreview: regularContent ? regularContent.substring(0, 100) + '...' : null,
+            reasoningPreview: thinkingContent ? thinkingContent.substring(0, 100) + '...' : null
+          });
 
           return streamChunk;
+        } else {
+          console.log('⚠️ [Gemini] No content found in parts:', candidate.content.parts);
         }
       }
 
@@ -274,7 +293,13 @@ export class GeminiAdapter extends BaseModelAdapter {
 
       return null;
     } catch (error) {
-      console.error('Failed to parse Gemini chunk:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ [Gemini] Failed to parse chunk:', error);
+      console.error('❌ [Gemini] Chunk content:', chunk.substring(0, 500));
+
+      // 记录错误到调试器
+      geminiDebugger.logChunk(GeminiAdapter.chunkCounter, chunk, null, [errorMessage]);
+
       return null;
     }
   }
