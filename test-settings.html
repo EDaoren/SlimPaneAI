@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置页面测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #111827;
+            margin-bottom: 24px;
+        }
+        .section {
+            margin-bottom: 32px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .section h2 {
+            color: #374151;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .status {
+            margin-left: auto;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status.completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status.improved {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .status.removed {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .status.new {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 设置页面优化完成</h1>
+        
+        <div class="section">
+            <h2>📋 偏好设置 (功能性设置)</h2>
+            <ul class="feature-list">
+                <li>
+                    默认模型选择
+                    <span class="status completed">✅ 保留</span>
+                </li>
+                <li>
+                    自动打开侧边栏
+                    <span class="status completed">✅ 已实现</span>
+                </li>
+                <li>
+                    快捷键显示
+                    <span class="status new">🆕 新增</span>
+                </li>
+                <li>
+                    界面语言设置
+                    <span class="status removed">🗑️ 已移除</span>
+                </li>
+                <li>
+                    主题模式设置
+                    <span class="status improved">🔄 已移除重复</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎨 外观设置 (视觉定制)</h2>
+            <ul class="feature-list">
+                <li>
+                    可视化主题选择器
+                    <span class="status improved">🔄 增强交互</span>
+                </li>
+                <li>
+                    字体大小调节
+                    <span class="status new">🆕 新增</span>
+                </li>
+                <li>
+                    消息密度设置
+                    <span class="status new">🆕 新增</span>
+                </li>
+                <li>
+                    动画效果开关
+                    <span class="status new">🆕 新增</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔧 技术改进</h2>
+            <ul class="feature-list">
+                <li>
+                    消除功能重复
+                    <span class="status completed">✅ 完成</span>
+                </li>
+                <li>
+                    扩展用户偏好类型定义
+                    <span class="status completed">✅ 完成</span>
+                </li>
+                <li>
+                    增强UI交互体验
+                    <span class="status completed">✅ 完成</span>
+                </li>
+                <li>
+                    响应式设计优化
+                    <span class="status completed">✅ 完成</span>
+                </li>
+                <li>
+                    主题系统实现
+                    <span class="status completed">✅ 完成</span>
+                </li>
+                <li>
+                    CSS变量动态应用
+                    <span class="status completed">✅ 完成</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎨 主题功能实现</h2>
+            <ul class="feature-list">
+                <li>
+                    浅色/深色主题切换
+                    <span class="status completed">✅ 实现</span>
+                </li>
+                <li>
+                    跟随系统主题
+                    <span class="status completed">✅ 实现</span>
+                </li>
+                <li>
+                    字体大小调节
+                    <span class="status completed">✅ 实现</span>
+                </li>
+                <li>
+                    消息密度控制
+                    <span class="status completed">✅ 实现</span>
+                </li>
+                <li>
+                    动画效果开关
+                    <span class="status completed">✅ 实现</span>
+                </li>
+                <li>
+                    实时主题应用
+                    <span class="status completed">✅ 实现</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎯 主要改进点</h2>
+            <p><strong>问题解决：</strong> 消除了"偏好设置"和"外观设置"中主题选择的重复功能</p>
+            <p><strong>功能分工：</strong> 偏好设置专注功能性配置，外观设置专注视觉定制</p>
+            <p><strong>用户体验：</strong> 增加了更多实用的设置选项，提升了界面交互性</p>
+            <p><strong>代码质量：</strong> 更新了类型定义，确保类型安全</p>
+            <p><strong>主题系统：</strong> 实现了完整的主题管理系统，设置变更立即生效</p>
+            <p><strong>CSS变量：</strong> 使用CSS变量实现动态主题切换，性能优异</p>
+            <p><strong>功能精简：</strong> 移除了无用的界面语言设置，保持界面简洁</p>
+        </div>
+
+        <div class="section">
+            <h2>🚀 如何测试功能</h2>
+            <ol style="text-align: left; padding-left: 20px;">
+                <li>加载扩展到Chrome浏览器</li>
+                <li><strong>测试主题功能：</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>打开设置页面 → 外观设置</li>
+                        <li>点击不同的主题选项（浅色/深色/跟随系统）</li>
+                        <li>调整字体大小（小/中/大）</li>
+                        <li>更改消息密度（紧凑/标准/宽松）</li>
+                        <li>切换动画效果开关</li>
+                        <li>返回聊天界面查看变化</li>
+                    </ul>
+                </li>
+                <li><strong>测试自动打开侧边栏：</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>打开设置页面 → 偏好设置</li>
+                        <li>启用"自动打开侧边栏"开关</li>
+                        <li>打开新标签页或切换到其他标签页</li>
+                        <li>观察侧边栏是否自动打开</li>
+                    </ul>
+                </li>
+            </ol>
+            <p style="margin-top: 16px; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
+                <strong>💡 提示：</strong> 所有设置变更都会立即应用到聊天界面和设置页面，无需刷新页面！
+            </p>
+            <p style="margin-top: 12px; padding: 12px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px;">
+                <strong>✨ 新功能：</strong> 自动打开侧边栏功能已实现！每个窗口只会自动打开一次，避免重复打开。
+            </p>
+        </div>
+
+        <a href="dist/options.html" class="button">🚀 打开设置页面测试</a>
+    </div>
+</body>
+</html>
