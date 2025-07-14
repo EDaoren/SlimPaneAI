@@ -42,6 +42,8 @@ export function getDefaultModelsForProvider(providerId: string) {
   switch (providerId) {
     case 'openai':
       return [
+        { id: 'o1-preview', name: 'o1-preview', enabled: true },
+        { id: 'o1-mini', name: 'o1-mini', enabled: true },
         { id: 'gpt-4', name: 'GPT-4', enabled: true },
         { id: 'gpt-4-turbo-preview', name: 'GPT-4 Turbo', enabled: true },
         { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', enabled: true }
@@ -54,6 +56,8 @@ export function getDefaultModelsForProvider(providerId: string) {
       ];
     case 'gemini':
       return [
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', enabled: true },
+        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', enabled: true },
         { id: 'gemini-pro', name: 'Gemini Pro', enabled: true },
         { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', enabled: true }
       ];
@@ -115,11 +119,23 @@ export function getAvailableModels(serviceProviders: ServiceProviderSettings) {
   return models;
 }
 
+// 获取提供商图标
+function getProviderIcon(providerId: string): string {
+  const icons: Record<string, string> = {
+    'openai': '🤖',
+    'claude': '🧠',
+    'gemini': '💎',
+    'custom': '⚙️'
+  };
+  return icons[providerId] || '🔧';
+}
+
 export function getModelDisplayOptions(serviceProviders: ServiceProviderSettings) {
   const models = getAvailableModels(serviceProviders);
   return models.map(model => ({
     id: `${model.providerId}:${model.modelId}`,
     name: `${model.providerName} - ${model.modelName}`,
+    icon: getProviderIcon(model.providerId),
     providerId: model.providerId,
     modelId: model.modelId
   }));

@@ -3,16 +3,14 @@ import type { ChatCompletionRequest, ChatCompletionResponse, StreamChunk } from 
 
 export class OpenAIAdapter extends BaseModelAdapter {
   getApiUrl(): string {
-    if (this.config.baseUrl) {
-      // If custom baseUrl is provided, check if it already includes the endpoint
-      if (this.config.baseUrl.includes('/chat/completions')) {
-        return this.config.baseUrl;
-      } else {
-        // If it's just a base URL, append the chat completions endpoint
-        return `${this.config.baseUrl.replace(/\/$/, '')}/chat/completions`;
-      }
-    }
-    return 'https://api.openai.com/v1/chat/completions';
+    const url = this.config.baseUrl
+      ? (this.config.baseUrl.includes('/chat/completions')
+          ? this.config.baseUrl
+          : `${this.config.baseUrl.replace(/\/$/, '')}/chat/completions`)
+      : 'https://api.openai.com/v1/chat/completions';
+
+    console.log('🔗 [OpenAI] API URL:', url);
+    return url;
   }
 
   getHeaders(): Record<string, string> {
@@ -22,13 +20,14 @@ export class OpenAIAdapter extends BaseModelAdapter {
   }
 
   transformRequest(request: ChatCompletionRequest): any {
-    return {
+    const body = {
       model: this.config.model,
       messages: request.messages,
       stream: request.stream || false,
-      max_tokens: this.config.maxTokens || request.max_tokens,
-      temperature: this.config.temperature || request.temperature || 0.7,
     };
+
+    console.log('📤 [OpenAI] Request body:', JSON.stringify(body, null, 2));
+    return body;
   }
 
   transformResponse(response: any): ChatCompletionResponse {
@@ -37,16 +36,57 @@ export class OpenAIAdapter extends BaseModelAdapter {
 
   parseStreamChunk(chunk: string): StreamChunk | null {
     try {
+      console.log('🔍 [OpenAI] Raw chunk:', chunk);
       const parsed = JSON.parse(chunk);
+      console.log('🔍 [OpenAI] Parsed chunk:', parsed);
 
-      // Ensure the chunk has the expected OpenAI format
+      // OpenAI streaming format validation
+      // Must have choices array with at least one choice
       if (parsed.choices && parsed.choices.length > 0) {
+        console.log('✅ [OpenAI] Valid chunk, returning:', parsed);
         return parsed;
       }
 
+      console.log('❌ [OpenAI] Invalid chunk - no choices');
       return null;
     } catch (error) {
+      console.error('❌ [OpenAI] Parse error:', error, 'Chunk:', chunk);
       return null;
     }
+  }
+
+  async sendRequest(request: ChatCompletionRequest): Promise<Response> {
+    const url = this.getApiUrl();
+    const headers = this.getHeaders();
+    const body = this.transformRequest(request);
+
+    console.log('📤 [OpenAI] Sending request to:', url);
+    console.log('📤 [OpenAI] Headers:', headers);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log('📥 [OpenAI] Response status:', response.status);
+    console.log('📥 [OpenAI] Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [OpenAI] Error response:', errorText);
+      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+    }
+
+    return response;
+  }
+
+  async *streamResponse(response: Response): AsyncGenerator<StreamChunk, void, unknown> {
+    console.log('🌊 [OpenAI] Starting stream response');
+    // OpenAI uses SSE format
+    yield* this.parseSSEStream(response, 'OpenAI');
   }
 }

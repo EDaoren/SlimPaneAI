@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { t } from '@/lib/i18n';
   import type { ServiceProvider } from '@/types';
 
   export let provider: ServiceProvider;
@@ -24,7 +25,7 @@
   }
 
   function handleDelete() {
-    if (confirm(`确定要删除服务提供商 "${provider.name}" 吗？`)) {
+    if (confirm($t('settings.deleteConfirm', { name: provider.name }))) {
       dispatch('delete', { providerId: provider.id });
     }
   }
@@ -73,17 +74,17 @@
         <div class="provider-badges">
           <span class="provider-badge {getProviderBadgeClass(provider)}">
             {#if !provider.enabled}
-              已禁用
+              {$t('settings.disabled')}
             {:else if provider.isDefault}
-              默认
+              {$t('settings.default')}
             {:else if provider.isBuiltIn}
-              内置
+              {$t('settings.builtin')}
             {:else}
-              自定义
+              {$t('settings.custom')}
             {/if}
           </span>
           {#if provider.enabled}
-            <span class="model-count">{provider.models.filter(m => m.enabled).length} 个模型</span>
+            <span class="model-count">{provider.models.filter(m => m.enabled).length} {$t('settings.modelsCount')}</span>
           {/if}
         </div>
       </div>
@@ -105,14 +106,14 @@
     <div class="provider-body">
       <div class="provider-stats">
         <div class="stat-item">
-          <span class="stat-label">API状态</span>
+          <span class="stat-label">{$t('settings.apiStatus')}</span>
           <span class="stat-value {provider.apiKey ? 'status-configured' : 'status-missing'}">
-            {provider.apiKey ? '已配置' : '未配置'}
+            {provider.apiKey ? $t('settings.configured') : $t('settings.notConfigured')}
           </span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">端点</span>
-          <span class="stat-value">{provider.baseUrl ? '自定义' : '默认'}</span>
+          <span class="stat-label">{$t('settings.endpoint')}</span>
+          <span class="stat-value">{provider.baseUrl ? $t('settings.customEndpoint') : $t('settings.defaultEndpoint')}</span>
         </div>
       </div>
 
@@ -122,12 +123,12 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            设置
+            {$t('settings.settings')}
           </button>
           
           {#if !provider.isDefault && provider.enabled}
             <button class="btn btn-outline btn-sm" on:click={handleSetDefault}>
-              设为默认
+              {$t('settings.setAsDefault')}
             </button>
           {/if}
           
@@ -136,7 +137,7 @@
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              删除
+              {$t('settings.delete')}
             </button>
           {/if}
         </div>

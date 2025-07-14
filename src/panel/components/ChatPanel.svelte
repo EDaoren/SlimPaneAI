@@ -8,6 +8,7 @@
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
   import Toolbar from './Toolbar.svelte';
+  import { t } from '@/lib/i18n';
 
   let showSessions = false;
   let messagesContainer: HTMLElement;
@@ -60,7 +61,7 @@
   }
 
   function handleClearChat() {
-    if (currentSession && confirm('Clear current chat?')) {
+    if (currentSession && confirm($t('prompts.clearChatConfirm'))) {
       chatStore.clearCurrentSession();
     }
   }
@@ -71,6 +72,15 @@
 
   function handleToggleChatHistory() {
     showSessions = !showSessions;
+  }
+
+  function handleShowOptions() {
+    // 打开设置页面
+    if (window.chrome?.runtime?.openOptionsPage) {
+      window.chrome.runtime.openOptionsPage();
+    } else {
+      console.warn('Chrome runtime API not available');
+    }
   }
 
   // Check if any models are configured
@@ -104,8 +114,8 @@
           <div class="text-center max-w-sm">
             <!-- Greeting -->
             <div class="mb-8">
-              <h2 class="text-2xl font-semibold text-gray-900 mb-2">你好，</h2>
-              <p class="text-lg text-gray-600">我今天能帮你什么？</p>
+              <h2 class="text-2xl font-semibold text-gray-900 mb-2">{$t('chat.greeting')}</h2>
+              <p class="text-lg text-gray-600">{$t('chat.greetingDesc')}</p>
             </div>
 
             <!-- Quick Actions -->
@@ -118,8 +128,8 @@
                     </svg>
                   </div>
                   <div class="text-left">
-                    <div class="font-medium text-gray-900">开始对话</div>
-                    <div class="text-sm text-gray-500">在下方输入框输入问题</div>
+                    <div class="font-medium text-gray-900">{$t('chat.startChat')}</div>
+                    <div class="text-sm text-gray-500">{$t('chat.startChatDesc')}</div>
                   </div>
                 </div>
               </div>
@@ -132,8 +142,8 @@
                     </svg>
                   </div>
                   <div class="text-left">
-                    <div class="font-medium text-gray-900">选择文本处理</div>
-                    <div class="text-sm text-gray-500">在网页上选择文本，右键使用 AI</div>
+                    <div class="font-medium text-gray-900">{$t('chat.textProcessing')}</div>
+                    <div class="text-sm text-gray-500">{$t('chat.textProcessingDesc')}</div>
                   </div>
                 </div>
               </div>
@@ -152,7 +162,8 @@
       <ChatInput
         disabled={isStreaming}
         on:send={handleSendMessage}
-        on:clear={handleClearChat}
+        on:clear-chat={handleClearChat}
+        on:show-options={handleShowOptions}
       />
     </div>
   </div>

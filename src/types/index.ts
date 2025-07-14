@@ -5,6 +5,8 @@ export interface Message {
   content: string;
   timestamp: number;
   model?: string;
+  reasoning?: string; // 思考过程，某些模型会提供
+  isThinking?: boolean; // 是否正在思考（仅对支持思考过程的模型有效）
 }
 
 export interface ChatSession {
@@ -47,7 +49,6 @@ export interface ModelConfig {
   model: string;
   apiKey: string;
   baseUrl?: string;
-  maxTokens?: number;
   temperature?: number;
 }
 
@@ -63,7 +64,6 @@ export interface ChatCompletionRequest {
     content: string;
   }>;
   stream?: boolean;
-  max_tokens?: number;
   temperature?: number;
 }
 
@@ -77,6 +77,7 @@ export interface ChatCompletionResponse {
     message: {
       role: string;
       content: string;
+      reasoning?: string; // 思考过程内容
     };
     finish_reason: string;
   }>;
@@ -92,6 +93,7 @@ export interface StreamChunk {
     delta: {
       role?: string;
       content?: string;
+      reasoning?: string; // 思考过程内容
     };
     finish_reason?: string;
   }>;
@@ -117,6 +119,7 @@ export interface LLMResponse extends ExtensionMessage {
   type: 'llm-response' | 'llm-chunk' | 'llm-error';
   payload: {
     content?: string;
+    reasoning?: string; // 思考过程内容
     error?: string;
     done?: boolean;
   };
@@ -144,6 +147,7 @@ export interface StorageData {
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'auto';
+  language: 'zh' | 'en';
   defaultModel: string;
   lastSelectedModel: string;
   fontSize: 'small' | 'medium' | 'large';

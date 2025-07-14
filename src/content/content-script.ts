@@ -11,8 +11,6 @@ function init() {
   
   // Listen for messages from background script
   chrome.runtime.onMessage.addListener(handleMessage);
-  
-  console.log('SlimPaneAI content script loaded');
 }
 
 function handleTextSelection() {
@@ -49,8 +47,7 @@ function highlightText(text: string) {
   const walker = document.createTreeWalker(
     document.body,
     NodeFilter.SHOW_TEXT,
-    null,
-    false
+    null
   );
   
   const textNodes: Text[] = [];

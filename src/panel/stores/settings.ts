@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { ModelSettings, UserPreferences, StorageData, ServiceProviderSettings } from '@/types';
 
 interface SettingsState {
@@ -13,26 +13,31 @@ const initialState: SettingsState = {
   serviceProviders: {},
   userPreferences: {
     theme: 'auto',
+    language: 'zh',
     defaultModel: '',
     lastSelectedModel: '',
     fontSize: 'medium',
     messageDensity: 'normal',
   },
-  isLoading: false,
+  isLoading: true, // 初始状态应该是加载中
 };
 
 function createSettingsStore() {
   const { subscribe, set, update } = writable<SettingsState>(initialState);
 
+  // Storage change listener
+  let storageChangeListener: ((changes: any, areaName: string) => void) | null = null;
+
   // Listen for storage changes to sync across different contexts
   if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
+    storageChangeListener = (changes, areaName) => {
       if (areaName === 'local') {
         console.log('🔄 [Settings] Storage changed, reloading settings...');
         // Reload settings when storage changes
         loadSettingsInternal();
       }
-    });
+    };
+    chrome.storage.onChanged.addListener(storageChangeListener);
   }
 
   async function loadSettingsInternal() {
@@ -182,12 +187,8 @@ function createSettingsStore() {
     },
 
     getDefaultModel() {
-      let defaultModel = '';
-      update(state => {
-        defaultModel = state.userPreferences.defaultModel;
-        return state;
-      });
-      return defaultModel;
+      const state = get({ subscribe });
+      return state.userPreferences.defaultModel;
     },
 
     async saveLastSelectedModel(modelSelection: string) {
@@ -217,21 +218,13 @@ function createSettingsStore() {
     },
 
     getLastSelectedModel() {
-      let lastSelectedModel = '';
-      update(state => {
-        lastSelectedModel = state.userPreferences.lastSelectedModel;
-        return state;
-      });
-      return lastSelectedModel;
+      const state = get({ subscribe });
+      return state.userPreferences.lastSelectedModel;
     },
 
     getModelConfig(modelId: string) {
-      let config = null;
-      update(state => {
-        config = state.modelSettings[modelId] || null;
-        return state;
-      });
-      return config;
+      const state = get({ subscribe });
+      return state.modelSettings[modelId] || null;
     },
 
     // Force refresh settings from storage
@@ -242,12 +235,15 @@ function createSettingsStore() {
 
     // Get current state snapshot
     getCurrentState() {
-      let currentState: SettingsState;
-      update(state => {
-        currentState = { ...state };
-        return state;
-      });
-      return currentState!;
+      return get({ subscribe });
+    },
+
+    // Cleanup function for removing event listeners
+    destroy() {
+      if (storageChangeListener && typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.onChanged.removeListener(storageChangeListener);
+        storageChangeListener = null;
+      }
     },
   };
 }

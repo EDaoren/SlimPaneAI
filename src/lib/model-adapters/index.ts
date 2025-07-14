@@ -25,6 +25,8 @@ export { BaseModelAdapter, OpenAIAdapter, ClaudeAdapter, GeminiAdapter, CustomAd
 // Default model configurations
 export const DEFAULT_MODELS = {
   openai: [
+    { name: 'o1-preview', model: 'o1-preview' },
+    { name: 'o1-mini', model: 'o1-mini' },
     { name: 'GPT-4', model: 'gpt-4' },
     { name: 'GPT-4 Turbo', model: 'gpt-4-turbo-preview' },
     { name: 'GPT-3.5 Turbo', model: 'gpt-3.5-turbo' },
@@ -35,6 +37,9 @@ export const DEFAULT_MODELS = {
     { name: 'Claude 3 Haiku', model: 'claude-3-haiku-20240307' },
   ],
   gemini: [
+    { name: 'Gemini 2.5 Pro', model: 'gemini-2.5-pro' },
+    { name: 'Gemini 1.5 Pro', model: 'gemini-1.5-pro' },
+    { name: 'Gemini 1.5 Flash', model: 'gemini-1.5-flash' },
     { name: 'Gemini Pro', model: 'gemini-pro' },
     { name: 'Gemini Pro Vision', model: 'gemini-pro-vision' },
   ],

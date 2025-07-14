@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Message } from '@/types';
+  import { t } from '@/lib/i18n';
 
   export let message: Message;
 
