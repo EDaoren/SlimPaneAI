@@ -32,7 +32,6 @@ function createSettingsStore() {
   if (typeof chrome !== 'undefined' && chrome.storage) {
     storageChangeListener = (changes, areaName) => {
       if (areaName === 'local') {
-        console.log('🔄 [Settings] Storage changed, reloading settings...');
         // Reload settings when storage changes
         loadSettingsInternal();
       }
@@ -54,9 +53,7 @@ function createSettingsStore() {
         userPreferences: data.userPreferences || initialState.userPreferences,
         isLoading: false,
       }));
-      console.log('✅ [Settings] Settings loaded successfully');
     } catch (error) {
-      console.error('Failed to load settings:', error);
       update(state => ({ ...state, isLoading: false }));
     }
   }
@@ -77,7 +74,6 @@ function createSettingsStore() {
         
         update(state => ({ ...state, modelSettings }));
       } catch (error) {
-        console.error('Failed to save model settings:', error);
         throw error;
       }
     },
@@ -91,7 +87,6 @@ function createSettingsStore() {
 
         update(state => ({ ...state, userPreferences }));
       } catch (error) {
-        console.error('Failed to save user preferences:', error);
         throw error;
       }
     },
@@ -105,7 +100,6 @@ function createSettingsStore() {
 
         update(state => ({ ...state, serviceProviders }));
       } catch (error) {
-        console.error('Failed to save service providers:', error);
         throw error;
       }
     },
@@ -129,9 +123,7 @@ function createSettingsStore() {
           payload: { modelSettings: newModelSettings },
         });
 
-        console.log('✅ [Settings] Model config added successfully:', id);
       } catch (error) {
-        console.error('Failed to add model config:', error);
         throw error;
       }
     },
@@ -153,9 +145,7 @@ function createSettingsStore() {
           payload: { modelSettings: newModelSettings },
         });
 
-        console.log('✅ [Settings] Model config removed successfully:', id);
       } catch (error) {
-        console.error('Failed to remove model config:', error);
         throw error;
       }
     },
@@ -179,9 +169,7 @@ function createSettingsStore() {
           payload: { userPreferences: newUserPreferences },
         });
 
-        console.log('✅ [Settings] User preferences updated successfully');
       } catch (error) {
-        console.error('Failed to update user preferences:', error);
         throw error;
       }
     },
@@ -210,9 +198,7 @@ function createSettingsStore() {
           payload: { userPreferences: newUserPreferences },
         });
 
-        console.log('✅ [Settings] Last selected model saved:', modelSelection);
       } catch (error) {
-        console.error('Failed to save last selected model:', error);
         throw error;
       }
     },
@@ -229,7 +215,6 @@ function createSettingsStore() {
 
     // Force refresh settings from storage
     async forceRefresh() {
-      console.log('🔄 [Settings] Force refreshing settings...');
       return loadSettingsInternal();
     },
 

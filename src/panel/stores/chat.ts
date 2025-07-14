@@ -55,7 +55,6 @@ function createChatStore() {
           isLoading: false,
         }));
       } catch (error) {
-        console.error('Failed to load chat history:', error);
         update(state => ({ ...state, isLoading: false }));
       }
     },
@@ -268,7 +267,6 @@ function createChatStore() {
       try {
         chrome.runtime.sendMessage(request);
       } catch (error) {
-        console.error('Failed to send message to background script:', error);
         this.handleError('Failed to send message. Please try again.');
       }
     },
@@ -333,19 +331,7 @@ function createChatStore() {
                          (newContent || lastMessage.content) ? false : lastMessage.isThinking
             };
 
-            console.log('🔄 [Chat Store] Updating message:', {
-              messageId: lastMessage.id,
-              oldContent: lastMessage.content,
-              newContent,
-              newReasoning,
-              finalContent: updatedMessage.content,
-              finalReasoning: updatedMessage.reasoning,
-              wasThinking: lastMessage.isThinking,
-              isThinking: updatedMessage.isThinking,
-              done: response.payload.done,
-              hasNewContent: !!newContent,
-              hasExistingContent: !!lastMessage.content
-            });
+
 
             // Create new messages array
             const newMessages = [...messages.slice(0, -1), updatedMessage];

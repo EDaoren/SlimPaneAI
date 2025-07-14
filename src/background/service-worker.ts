@@ -18,7 +18,7 @@ function sendMessageToSidePanel(message: any) {
       }
     });
   } catch (error) {
-    console.error('Failed to send message to side panel:', error);
+    // Silently handle errors
   }
 }
 
@@ -66,7 +66,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         });
       }
     } catch (error) {
-      console.error('Failed to open side panel:', error);
+      // Silently handle side panel errors
     }
   }
 });
@@ -105,7 +105,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         });
       }
     } catch (error) {
-      console.error('❌ [Background] Failed to open side panel for text selection:', error);
+      // Silently handle side panel errors
     }
     
     // Wait a bit for side panel to load, then send message
@@ -157,7 +157,7 @@ async function handleMessage(
             // Ignore if no listeners
           });
         } catch (error) {
-          console.log('Failed to notify about storage update:', error);
+          // Silently handle notification errors
         }
 
         sendResponse({ success: true });
@@ -167,7 +167,6 @@ async function handleMessage(
         sendResponse({ error: 'Unknown message type' });
     }
   } catch (error) {
-    console.error('Error handling message:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     sendResponse({ error: errorMessage });
   }
@@ -264,22 +263,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
             // 只要有delta对象或者已完成，就发送
             const hasDelta = chunk.choices[0]?.delta !== undefined;
 
-            console.log(`🔍 [Service Worker] Chunk ${chunkCount}:`, {
-              content: content ? content.substring(0, 100) + '...' : '',
-              contentLength: content.length,
-              reasoning: reasoning ? reasoning.substring(0, 100) + '...' : '',
-              reasoningLength: reasoning.length,
-              done,
-              hasDelta,
-              willSend: hasDelta || done,
-              finishReason: chunk.choices[0]?.finish_reason,
-              chunkStructure: {
-                hasChoices: !!chunk.choices,
-                choicesLength: chunk.choices?.length || 0,
-                hasDelta: !!chunk.choices?.[0]?.delta,
-                deltaKeys: chunk.choices?.[0]?.delta ? Object.keys(chunk.choices[0].delta) : []
-              }
-            });
+
 
             if (hasDelta || done) {
               const streamMessage: LLMResponse = {
@@ -292,17 +276,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
                 },
               };
 
-              console.log(`📤 [Service Worker] Sending message:`, {
-                type: streamMessage.type,
-                requestId: streamMessage.requestId,
-                hasContent: !!content,
-                hasReasoning: !!reasoning,
-                done: streamMessage.payload.done
-              });
               await sendMessageToSidePanel(streamMessage);
-              console.log(`✅ [Service Worker] Message sent successfully`);
-            } else {
-              console.log(`❌ [Service Worker] Skipping chunk ${chunkCount} - no delta and not done`);
             }
 
             // Break if we've been marked as finished (by timeout or other means)
@@ -313,6 +287,8 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
         } finally {
           clearTimeout(streamTimeout);
         }
+
+
 
         // Ensure we send a final done message if we haven't already
         if (!hasFinished) {
@@ -327,7 +303,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
           await sendMessageToSidePanel(finalMessage);
         }
       } catch (streamError) {
-        console.error('Streaming error:', streamError);
+        // Handle streaming errors silently
 
         // Always send a completion message even if streaming failed
         const errorCompletionMessage: LLMResponse = {
@@ -362,7 +338,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
     
     sendResponse({ success: true });
   } catch (error) {
-    console.error('LLM request error:', error);
+    // Handle LLM request errors
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 

@@ -124,6 +124,7 @@
               compact={true}
               on:change={handleModelSelect}
             />
+
           </div>
         {:else}
           <span class="no-models-text">

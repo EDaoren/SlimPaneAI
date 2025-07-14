@@ -310,13 +310,11 @@ export const t = derived(
         if (value && typeof value === 'object' && k in value) {
           value = value[k];
         } else {
-          console.warn(`Translation key not found: ${key}`);
           return key;
         }
       }
       
       if (typeof value !== 'string') {
-        console.warn(`Translation value is not a string: ${key}`);
         return key;
       }
       
@@ -334,30 +332,23 @@ export const t = derived(
 
 // 设置语言
 export function setLanguage(language: Language) {
-  console.log('🌍 [i18n] Setting language to:', language);
   currentLanguage.set(language);
 }
 
 // 从用户偏好初始化语言
 export function initializeLanguage(preferences: UserPreferences) {
-  console.log('🌍 [i18n] Initializing language from preferences:', preferences);
   if (preferences.language) {
     const targetLanguage = preferences.language as Language;
-    console.log('🌍 [i18n] Found language preference:', targetLanguage);
 
     // 检查是否需要更新语言
-    let currentLang: Language;
-    currentLanguage.subscribe(lang => currentLang = lang)();
+    let currentLang: Language = 'zh'; // 默认值
+    const unsubscribe = currentLanguage.subscribe(lang => currentLang = lang);
+    unsubscribe(); // 立即取消订阅，只获取当前值
 
     if (currentLang !== targetLanguage) {
-      console.log('🌍 [i18n] Language changed from', currentLang, 'to', targetLanguage);
       setLanguage(targetLanguage);
       isLanguageInitialized = true;
-    } else {
-      console.log('🌍 [i18n] Language already set to', targetLanguage, 'skipping update');
     }
-  } else {
-    console.warn('🌍 [i18n] No language preference found, using default');
   }
 }
 
@@ -516,6 +507,9 @@ const chineseTranslations: Translations = {
     baseUrlHelp: '留空将使用默认端点',
     baseUrlHelpCustom: '自定义 API 端点 URL',
     advancedSettings: '高级设置',
+    maxTokens: '最大令牌数',
+    maxTokensPlaceholder: '输入最大令牌数 (例如: 4096)',
+    maxTokensHelp: '控制模型生成回复的最大长度',
 
     temperature: '温度值',
     temperatureFocused: '更专注 (0)',
@@ -791,6 +785,9 @@ const englishTranslations: Translations = {
     baseUrlHelp: 'Leave empty to use default endpoint',
     baseUrlHelpCustom: 'Custom API endpoint URL',
     advancedSettings: 'Advanced Settings',
+    maxTokens: 'Max Tokens',
+    maxTokensPlaceholder: 'Enter max tokens (e.g., 4096)',
+    maxTokensHelp: 'Control the maximum length of model responses',
 
     temperature: 'Temperature',
     temperatureFocused: 'More Focused (0)',

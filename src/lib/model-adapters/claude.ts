@@ -52,7 +52,6 @@ export class ClaudeAdapter extends BaseModelAdapter {
   parseStreamChunk(chunk: string): StreamChunk | null {
     try {
       const parsed = JSON.parse(chunk);
-      console.log('🔍 [Claude] Parsing chunk:', parsed);
 
       if (parsed.type === 'content_block_delta') {
         const streamChunk = {
@@ -69,7 +68,6 @@ export class ClaudeAdapter extends BaseModelAdapter {
             },
           ],
         };
-        console.log('✅ [Claude] Created content chunk:', streamChunk);
         return streamChunk;
       }
 
@@ -87,14 +85,11 @@ export class ClaudeAdapter extends BaseModelAdapter {
             },
           ],
         };
-        console.log('✅ [Claude] Created finish chunk:', finishChunk);
         return finishChunk;
       }
 
-      console.log('❌ [Claude] No valid content or finish event found');
       return null;
     } catch (error) {
-      console.error('❌ [Claude] Failed to parse chunk:', error);
       return null;
     }
   }

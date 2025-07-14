@@ -1,6 +1,5 @@
 import { BaseModelAdapter } from './base';
 import type { ChatCompletionRequest, ChatCompletionResponse, StreamChunk } from '@/types';
-import { geminiDebugger } from '../debug/gemini-debugger';
 
 export class GeminiAdapter extends BaseModelAdapter {
   private lastRequest?: ChatCompletionRequest;
@@ -8,12 +7,6 @@ export class GeminiAdapter extends BaseModelAdapter {
 
   constructor(config: any) {
     super(config);
-    console.log('🎯 [Gemini] Adapter created with config:', {
-      provider: config.provider,
-      model: config.model,
-      hasApiKey: !!config.apiKey,
-      baseUrl: config.baseUrl
-    });
   }
 
   getApiUrl(): string {
@@ -58,8 +51,7 @@ export class GeminiAdapter extends BaseModelAdapter {
       // Approach 2: Try specific response schema
       // body.generationConfig.responseMimeType = 'text/plain';
 
-      // For now, let's see if thinking is enabled by default
-      console.log('🧠 [Gemini] Using Gemini 2.5 Pro - thinking should be available by default');
+
     }
 
     if (systemInstruction) {
@@ -75,7 +67,6 @@ export class GeminiAdapter extends BaseModelAdapter {
   }
 
   transformResponse(response: any): ChatCompletionResponse {
-    console.log('🔍 [Gemini] Raw response:', response);
 
     const candidate = response.candidates?.[0];
     const content = candidate?.content?.parts?.[0]?.text || '';
@@ -123,7 +114,6 @@ export class GeminiAdapter extends BaseModelAdapter {
       ],
     };
 
-    console.log('✅ [Gemini] Transformed response:', transformedResponse);
     return transformedResponse;
   }
 
@@ -133,29 +123,17 @@ export class GeminiAdapter extends BaseModelAdapter {
     try {
       // Handle empty or whitespace-only chunks
       if (!chunk || !chunk.trim()) {
-        console.log('🔍 [Gemini] Skipping empty chunk');
         return null;
       }
 
-      console.log('🔍 [Gemini] Parsing chunk:', chunk.substring(0, 200) + '...');
       const parsed = JSON.parse(chunk);
-
-      // 记录到调试器
-      geminiDebugger.logChunk(GeminiAdapter.chunkCounter, chunk, parsed);
-
-      // Log the full response to understand the structure
-      if (parsed.usageMetadata?.thoughtsTokenCount > 0) {
-        console.log('🧠 [Gemini] Response with thinking detected:', JSON.stringify(parsed, null, 2));
-      }
 
       // Check for API errors first
       if (parsed.error) {
-        console.error('❌ [Gemini] API error:', parsed.error);
         throw new Error(`Gemini API error: ${parsed.error.message || 'Unknown error'}`);
       }
 
       const candidate = parsed.candidates?.[0];
-      console.log('🔍 [Gemini] Candidate:', candidate);
 
       // Check for content - look for both regular content and thinking content
       if (candidate?.content?.parts) {
@@ -194,29 +172,7 @@ export class GeminiAdapter extends BaseModelAdapter {
           thinkingContent += parsed.thinking;
         }
 
-        // Check for thinking in other possible locations
-        if (parsed.usageMetadata?.thoughtsTokenCount > 0) {
-          // Log detailed structure to help debug where thinking content might be
-          console.log('🔍 [Gemini] Response with thinking - detailed structure:', {
-            thoughtsTokenCount: parsed.usageMetadata.thoughtsTokenCount,
-            candidateKeys: candidate ? Object.keys(candidate) : [],
-            parsedKeys: Object.keys(parsed),
-            contentParts: candidate?.content?.parts?.map((part: any, index: number) => ({
-              index,
-              keys: Object.keys(part),
-              type: part.type,
-              role: part.role,
-              hasText: !!part.text,
-              hasThought: !!part.thought,
-              textLength: part.text ? part.text.length : 0,
-              thoughtLength: part.thought ? part.thought.length : 0,
-              textPreview: part.text ? part.text.substring(0, 100) + '...' : null,
-              thoughtPreview: part.thought ? part.thought.substring(0, 100) + '...' : null
-            })) || [],
-            foundThinking: !!thinkingContent,
-            thinkingLength: thinkingContent.length
-          });
-        }
+
 
         // Always create a chunk if we have any content or if this is a valid response
         // This ensures we don't miss any content
@@ -237,18 +193,7 @@ export class GeminiAdapter extends BaseModelAdapter {
             ],
           };
 
-          console.log('✅ [Gemini] Creating stream chunk:', {
-            hasContent: !!regularContent,
-            hasReasoning: !!thinkingContent,
-            contentLength: regularContent.length,
-            reasoningLength: thinkingContent.length,
-            contentPreview: regularContent ? regularContent.substring(0, 100) + '...' : null,
-            reasoningPreview: thinkingContent ? thinkingContent.substring(0, 100) + '...' : null
-          });
-
           return streamChunk;
-        } else {
-          console.log('⚠️ [Gemini] No content found in parts:', candidate.content.parts);
         }
       }
 
@@ -272,7 +217,6 @@ export class GeminiAdapter extends BaseModelAdapter {
 
       // Check for safety ratings or other blocking reasons
       if (candidate?.safetyRatings || parsed.promptFeedback) {
-        console.warn('Content blocked by Gemini safety filters');
 
         // Create a finish chunk to end the stream
         const safetyFinishChunk = {
@@ -293,13 +237,6 @@ export class GeminiAdapter extends BaseModelAdapter {
 
       return null;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ [Gemini] Failed to parse chunk:', error);
-      console.error('❌ [Gemini] Chunk content:', chunk.substring(0, 500));
-
-      // 记录错误到调试器
-      geminiDebugger.logChunk(GeminiAdapter.chunkCounter, chunk, null, [errorMessage]);
-
       return null;
     }
   }

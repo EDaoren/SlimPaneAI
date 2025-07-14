@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import ChatPanel from './components/ChatPanel.svelte';
-  import DebugPanel from './components/DebugPanel.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
   import { applyTheme } from '@/lib/theme-manager';
@@ -13,10 +12,7 @@
 
   // 响应式应用主题变化和语言初始化
   $: if ($settingsStore.userPreferences) {
-    console.log('🎨 [Panel] Applying preferences:', $settingsStore.userPreferences);
     applyTheme($settingsStore.userPreferences);
-    // 初始化国际化系统
-    console.log('🌍 [Panel] Initializing language:', $settingsStore.userPreferences.language);
     initializeLanguage($settingsStore.userPreferences);
   }
 
@@ -65,13 +61,10 @@
   }
 
   function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {
-    console.log('🔄 [Panel] Storage changed:', changes);
-
     // Check if userPreferences changed
     if (changes.userPreferences) {
       const newPreferences = changes.userPreferences.newValue;
       if (newPreferences) {
-        console.log('🎨 [Panel] Applying new theme preferences:', newPreferences);
         // Force refresh settings store to get latest data
         settingsStore.forceRefresh();
       }
@@ -100,8 +93,7 @@
     {/if}
   </main>
 
-  <!-- 调试面板 -->
-  <DebugPanel />
+
 </div>
 
 <style>

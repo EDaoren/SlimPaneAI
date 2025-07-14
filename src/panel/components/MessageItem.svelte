@@ -16,11 +16,48 @@
   let isVisible = false;
   let codeBlockCounter = 0;
 
+  // 思考过程展开状态管理
+  let expandedReasoningIds = new Set<string>();
+
+  // 初始化时，如果消息有思考过程，默认展开
+  $: if (message.reasoning && message.reasoning.trim() && !expandedReasoningIds.has(message.id)) {
+    expandedReasoningIds.add(message.id);
+    expandedReasoningIds = new Set(expandedReasoningIds);
+  }
+
   function formatTime(timestamp: number): string {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  // 思考过程展开/折叠管理
+  function toggleReasoning(messageId: string) {
+    if (expandedReasoningIds.has(messageId)) {
+      expandedReasoningIds.delete(messageId);
+    } else {
+      expandedReasoningIds.add(messageId);
+    }
+    expandedReasoningIds = new Set(expandedReasoningIds); // 触发响应式更新
+  }
+
+  function isReasoningExpanded(messageId: string): boolean {
+    return expandedReasoningIds.has(messageId);
+  }
+
+  // 格式化思考过程内容
+  function formatReasoning(reasoning: string): string {
+    if (!reasoning) return '';
+
+    // 简单的格式化：保留换行，转义HTML
+    return reasoning
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // 粗体
+      .replace(/\*(.*?)\*/g, '<em>$1</em>'); // 斜体
   }
 
   // 复制代码到剪贴板
@@ -544,6 +581,7 @@
           <span style="font-weight: 500; font-size: 0.875rem; color: #111827;">
             {getModelDisplayName(message.model)}
           </span>
+
           <span style="font-size: 0.75rem; color: #6b7280;">
             {formatTime(message.timestamp)}
           </span>
@@ -551,9 +589,23 @@
         <!-- Message content -->
         <!-- 思考过程（如果存在） -->
         {#if message.reasoning && message.reasoning.trim()}
-          <div class="reasoning-section" style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f8fafc; border-left: 3px solid #e2e8f0; border-radius: 0.375rem;">
-            <div style="font-size: 0.875rem; font-weight: 500; color: #64748b; margin-bottom: 0.5rem;">{$t('chat.reasoning')}</div>
-            <div style="font-size: 0.875rem; color: #475569; line-height: 1.5; white-space: pre-wrap;">{message.reasoning}</div>
+          <div class="reasoning-section">
+            <div class="reasoning-header">
+              <span class="reasoning-icon">🧠</span>
+              <span class="reasoning-title">{$t('chat.reasoning')}</span>
+              <button
+                class="reasoning-toggle"
+                on:click={() => toggleReasoning(message.id)}
+                aria-label="Toggle reasoning visibility"
+              >
+                {isReasoningExpanded(message.id) ? '▼' : '▶'}
+              </button>
+            </div>
+            {#if isReasoningExpanded(message.id)}
+              <div class="reasoning-content">
+                {@html formatReasoning(message.reasoning)}
+              </div>
+            {/if}
           </div>
         {/if}
 
@@ -625,7 +677,7 @@
 
   .message-content {
     font-size: var(--font-size-base);
-    line-height: 1.6;
+    line-height: 1.4;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -672,7 +724,7 @@
 
   /* Math formula styles */
   .message-content :global(.math-display) {
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     text-align: center;
     overflow-x: auto;
   }
@@ -693,7 +745,7 @@
   }
 
   .message-content :global(.katex-display) {
-    margin: 0.5em 0;
+    margin: 0.25em 0;
     text-align: center;
   }
 
@@ -745,6 +797,86 @@
     margin: 0.125rem 0;
   }
 
+  /* 思考过程样式 */
+  .reasoning-section {
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .reasoning-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-bottom: 1px solid #d1d5db;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+  }
+
+  .reasoning-header:hover {
+    background: linear-gradient(135deg, #d1d5db 0%, #b8c5d1 100%);
+  }
+
+  .reasoning-icon {
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  }
+
+  .reasoning-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+    letter-spacing: 0.025em;
+  }
+
+  .reasoning-toggle {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+    font-weight: bold;
+  }
+
+  .reasoning-toggle:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #374151;
+    transform: scale(1.1);
+  }
+
+  .reasoning-content {
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: #475569;
+    line-height: 1.6;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  }
+
+  .reasoning-content :global(strong) {
+    color: #1f2937;
+    font-weight: 600;
+  }
+
+  .reasoning-content :global(em) {
+    color: #6366f1;
+    font-style: italic;
+  }
+
 
 
   /* Enhanced Markdown styles */
@@ -754,7 +886,7 @@
   .message-content :global(h4),
   .message-content :global(h5),
   .message-content :global(h6) {
-    margin: 1rem 0 0.5rem 0;
+    margin: 0.375rem 0 0.125rem 0;
     font-weight: 600;
     line-height: 1.25;
   }
@@ -766,28 +898,60 @@
   .message-content :global(h5) { font-size: 1rem; }
   .message-content :global(h6) { font-size: 0.875rem; }
 
+  /* 段落间距优化 */
+  .message-content :global(p) {
+    margin: 0.125rem 0;
+    line-height: 1.4;
+  }
+
   .message-content :global(ul),
   .message-content :global(ol) {
-    margin: 0.5rem 0;
-    padding-left: 1.5rem;
+    margin: 0.125rem 0;
+    padding-left: 1.125rem;
   }
 
   .message-content :global(li) {
-    margin: 0.25rem 0;
-    line-height: 1.5;
+    margin: 0.0625rem 0;
+    line-height: 1.35;
+  }
+
+  /* 嵌套列表优化 */
+  .message-content :global(li ul),
+  .message-content :global(li ol) {
+    margin: 0.0625rem 0;
+    padding-left: 1rem;
+  }
+
+  /* 列表项内的段落优化 */
+  .message-content :global(li p) {
+    margin: 0.0625rem 0;
+  }
+
+  /* 紧凑的数学内容优化 */
+  .message-content :global(strong) {
+    font-weight: 600;
+  }
+
+  /* 内联代码优化 */
+  .message-content :global(code:not(pre code)) {
+    padding: 0.125rem 0.25rem;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0.25rem;
+    font-size: 0.875em;
   }
 
   .message-content :global(blockquote) {
-    margin: 0.5rem 0;
-    padding: 0.5rem 1rem;
-    border-left: 4px solid #e5e7eb;
+    margin: 0.25rem 0;
+    padding: 0.375rem 0.75rem;
+    border-left: 3px solid #e5e7eb;
     background: rgba(0, 0, 0, 0.05);
     font-style: italic;
-    border-radius: 0 0.375rem 0.375rem 0;
+    border-radius: 0 0.25rem 0.25rem 0;
   }
 
   .message-content :global(hr) {
-    margin: 1rem 0;
+    margin: 0.5rem 0;
     border: none;
     border-top: 1px solid #e5e7eb;
   }
@@ -825,11 +989,53 @@
     .message-content :global(a:hover) {
       color: #93c5fd;
     }
+
+    /* 深色主题下的思考过程样式 */
+    .reasoning-section {
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+      border-color: #6b7280;
+    }
+
+    .reasoning-header {
+      background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
+      border-color: #9ca3af;
+    }
+
+    .reasoning-header:hover {
+      background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+    }
+
+    .reasoning-title {
+      color: #f3f4f6;
+    }
+
+    .reasoning-toggle {
+      color: #d1d5db;
+    }
+
+    .reasoning-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f3f4f6;
+    }
+
+    .reasoning-content {
+      background: #1f2937;
+      color: #d1d5db;
+      border-color: #4b5563;
+    }
+
+    .reasoning-content :global(strong) {
+      color: #f9fafb;
+    }
+
+    .reasoning-content :global(em) {
+      color: #a78bfa;
+    }
   }
 
   /* Enhanced Code block styles */
   .message-content :global(.code-block-container) {
-    margin: 0.75rem 0 !important;
+    margin: 0.5rem 0 !important;
     border-radius: 0.5rem !important;
     overflow: hidden !important;
     background: #f8fafc !important;
@@ -904,9 +1110,9 @@
   .message-content :global(pre:not(.code-block-container pre)) {
     background: #1e293b;
     color: #e2e8f0;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    margin: 0.25rem 0;
     font-size: 0.875rem;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     overflow-x: auto;
