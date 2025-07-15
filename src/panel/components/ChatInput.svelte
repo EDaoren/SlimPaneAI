@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { settingsStore } from '../stores/settings';
+  import { pageChatStore, generateWebQAPrompt } from '../stores/page-chat';
   import { getModelDisplayOptions, getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
   import CustomSelect from './CustomSelect.svelte';
   import { t } from '@/lib/i18n';
@@ -39,11 +40,24 @@
     if (!message.trim() || disabled) return;
 
     const parsedModel = parseModelSelection(selectedModel);
+    const userMessage = message.trim();
+
+    // 检查是否启用了网页聊天模式
+    const pageChatState = $pageChatStore;
+    let finalMessage = userMessage;
+
+    if (pageChatState.enabled && pageChatState.currentPageContent) {
+      // 使用专业的Prompt生成器
+      finalMessage = generateWebQAPrompt(userMessage, pageChatState);
+      console.log('SlimPaneAI: 使用专业Prompt，长度:', finalMessage.length);
+    }
 
     dispatch('send', {
-      message: message.trim(),
+      message: userMessage, // 用户看到的原始消息
+      systemContext: finalMessage !== userMessage ? finalMessage : '', // 完整的AI输入
       modelId: parsedModel?.modelId || selectedModel,
-      providerId: parsedModel?.providerId
+      providerId: parsedModel?.providerId,
+      isPageChat: pageChatState.enabled && !!pageChatState.currentPageContent
     });
 
     message = '';
@@ -80,12 +94,38 @@
     dispatch('show-options');
   }
 
+  // Handle page chat toggle
+  async function handlePageChatToggle() {
+    await pageChatStore.toggle();
+  }
+
 
 
   // Setup event listeners
   onMount(() => {
     adjustTextAreaHeight();
+
+    // Listen for page content selection
+    window.addEventListener('page-content-selected', handlePageContentSelected);
   });
+
+  onDestroy(() => {
+    window.removeEventListener('page-content-selected', handlePageContentSelected);
+  });
+
+  function handlePageContentSelected(event: CustomEvent) {
+    const content = event.detail.content;
+    if (content) {
+      // Insert content into message input
+      message = (message ? message + '\n\n' : '') + `基于以下页面内容回答：\n\n${content}`;
+      adjustTextAreaHeight();
+
+      // Focus on textarea
+      if (textArea) {
+        textArea.focus();
+      }
+    }
+  }
   
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -131,6 +171,32 @@
             {$t('chat.noModels')}
           </span>
         {/if}
+      </div>
+
+      <!-- Page Chat Toggle -->
+      <div class="page-chat-section">
+        <button
+          class="page-chat-toggle"
+          class:active={$pageChatStore.enabled}
+          title={$pageChatStore.enabled ? $t('pageChat.disable') : $t('pageChat.enable')}
+          type="button"
+          on:click={handlePageChatToggle}
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+
+          <!-- Status indicator -->
+          <div class="status-indicator">
+            {#if $pageChatStore.isExtracting}
+              <div class="loading-dot"></div>
+            {:else if $pageChatStore.error}
+              <div class="error-dot"></div>
+            {:else if $pageChatStore.enabled && $pageChatStore.currentPageContent}
+              <div class="success-dot"></div>
+            {/if}
+          </div>
+        </button>
       </div>
 
       <!-- Action Buttons Area -->
@@ -270,9 +336,89 @@
       flex-shrink: 0;
     }
 
-    .action-buttons {
+    .page-chat-section {
       display: flex;
       align-items: center;
+      align-items: center;
+      margin-right: 0.5rem;
+    }
+
+    .page-chat-toggle {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border: 1px solid var(--border-primary);
+      background: var(--bg-primary);
+      color: var(--text-muted);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-chat-toggle:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-secondary);
+      color: var(--text-secondary);
+    }
+
+    .page-chat-toggle.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    .page-chat-toggle.active:hover {
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .status-indicator {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .loading-dot {
+      width: 6px;
+      height: 6px;
+      background: #3b82f6;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .success-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+    }
+
+    .error-dot {
+      width: 6px;
+      height: 6px;
+      background: #ef4444;
+      border-radius: 50%;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+
+    .action-buttons {
+      display: flex;
       gap: 0.25rem;
       flex-shrink: 0;
     }

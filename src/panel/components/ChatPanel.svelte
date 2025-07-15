@@ -8,9 +8,11 @@
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
   import Toolbar from './Toolbar.svelte';
+  import PageContentPanel from './PageContentPanel.svelte';
   import { t } from '@/lib/i18n';
 
   let showSessions = false;
+  let showPageContent = false;
   let messagesContainer: HTMLElement;
 
   $: currentSession = $chatStore.currentSession;
@@ -45,9 +47,28 @@
     }
   });
 
-  function handleSendMessage(event: CustomEvent<{ message: string; modelId?: string; providerId?: string }>) {
-    const { message, modelId, providerId } = event.detail;
-    chatStore.sendMessage(message, modelId, providerId);
+  function handleSendMessage(event: CustomEvent<{
+    message: string;
+    systemContext?: string;
+    modelId?: string;
+    providerId?: string;
+    isPageChat?: boolean;
+  }>) {
+    const { message, systemContext, modelId, providerId, isPageChat } = event.detail;
+
+    // 构建发送给AI的完整消息
+    const fullMessage = systemContext || message;
+
+    console.log('SlimPaneAI: 发送消息');
+    console.log('SlimPaneAI: 用户消息:', message);
+    console.log('SlimPaneAI: 是否网页聊天:', isPageChat);
+    console.log('SlimPaneAI: 完整消息长度:', fullMessage.length);
+
+    // 发送消息，但在聊天记录中只显示用户的原始消息
+    chatStore.sendMessage(fullMessage, modelId, providerId, {
+      displayMessage: message, // 在聊天记录中显示的消息
+      isPageChat // 标记这是网页聊天消息
+    });
   }
 
   function handleNewChat() {
@@ -72,6 +93,21 @@
 
   function handleToggleChatHistory() {
     showSessions = !showSessions;
+  }
+
+  function handleTogglePageContent() {
+    showPageContent = !showPageContent;
+  }
+
+  function handlePageContentSelect(content: string) {
+    // 将页面内容插入到聊天输入框
+    const event = new CustomEvent('page-content-selected', {
+      detail: { content }
+    });
+    window.dispatchEvent(event);
+
+    // 关闭页面内容面板
+    showPageContent = false;
   }
 
   function handleShowOptions() {
@@ -171,7 +207,18 @@
   <!-- Right Toolbar -->
   <Toolbar
     onToggleChatHistory={handleToggleChatHistory}
+    onTogglePageContent={handleTogglePageContent}
   />
+
+  <!-- Page Content Panel -->
+  {#if showPageContent}
+    <div class="page-content-overlay">
+      <PageContentPanel
+        visible={showPageContent}
+        onContentSelect={handlePageContentSelect}
+      />
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -218,5 +265,17 @@
     padding: 1rem;
     border-top: 1px solid var(--border-primary);
     background: var(--bg-primary);
+  }
+
+  .page-content-overlay {
+    position: absolute;
+    top: 0;
+    right: 56px; /* Toolbar width */
+    bottom: 0;
+    width: 400px;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-primary);
+    z-index: 20;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
   }
 </style>

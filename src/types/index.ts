@@ -7,6 +7,7 @@ export interface Message {
   model?: string;
   reasoning?: string; // 思考过程，某些模型会提供
   isThinking?: boolean; // 是否正在思考（仅对支持思考过程的模型有效）
+  isPageChat?: boolean; // 是否为网页聊天消息
 }
 
 export interface ChatSession {
@@ -143,6 +144,9 @@ export interface StorageData {
   chatSessions?: ChatSession[];
   currentSessionId?: string;
   userPreferences?: UserPreferences;
+  // Page content related storage
+  domainSettings?: { [domain: string]: DomainSettings };
+  pageContentCache?: { [url: string]: PageContent };
 }
 
 export interface UserPreferences {
@@ -152,6 +156,10 @@ export interface UserPreferences {
   lastSelectedModel: string;
   fontSize: 'small' | 'medium' | 'large';
   messageDensity: 'compact' | 'normal' | 'relaxed';
+  // Page content extraction preferences
+  pageContentEnabled: boolean;
+  autoExtractContent: boolean;
+  showContentPanel: boolean;
 }
 
 // Prompt templates
@@ -161,6 +169,59 @@ export interface PromptTemplate {
   description: string;
   systemPrompt: string;
   userPromptTemplate: string;
+}
+
+// Page content extraction types
+export interface PageContent {
+  url: string;
+  title: string;
+  domain: string;
+  content: string;
+  extractedAt: number;
+  contentType: 'webpage' | 'pdf' | 'iframe';
+  tokenCount?: number;
+  metadata?: {
+    author?: string;
+    publishDate?: string;
+    description?: string;
+    keywords?: string[];
+  };
+}
+
+export interface ContentExtractionSettings {
+  enabled: boolean;
+  autoExtract: boolean;
+  includeImages: boolean;
+  includeLinks: boolean;
+  maxTokens: number;
+  excludeSelectors: string[];
+  includeSelectors: string[];
+}
+
+export interface DomainSettings {
+  domain: string;
+  enabled: boolean;
+  extractionSettings: ContentExtractionSettings;
+  lastUpdated: number;
+}
+
+export interface PDFProcessingStatus {
+  url: string;
+  status: 'loading' | 'processing' | 'completed' | 'error';
+  progress: number;
+  totalPages?: number;
+  currentPage?: number;
+  error?: string;
+}
+
+// Extended message types for page content
+export interface PageContentMessage extends ExtensionMessage {
+  type: 'page-content-extracted' | 'page-content-request' | 'pdf-processing-status';
+  payload: {
+    content?: PageContent;
+    settings?: DomainSettings;
+    status?: PDFProcessingStatus;
+  };
 }
 
 export const DEFAULT_PROMPTS: PromptTemplate[] = [

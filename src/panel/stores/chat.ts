@@ -136,7 +136,15 @@ function createChatStore() {
       await this.saveSessions();
     },
 
-    async sendMessage(content: string, modelId?: string, providerId?: string) {
+    async sendMessage(
+      content: string,
+      modelId?: string,
+      providerId?: string,
+      options?: {
+        displayMessage?: string;
+        isPageChat?: boolean;
+      }
+    ) {
       if (!content.trim()) return;
 
       // Get current session or create new one
@@ -150,12 +158,14 @@ function createChatStore() {
         session = await this.createNewSession();
       }
 
-      // Create user message
+      // Create user message (显示用户的原始消息，不包含网页内容)
+      const displayContent = options?.displayMessage || content.trim();
       const userMessage: Message = {
         id: generateMessageId(),
         type: 'user',
-        content: content.trim(),
+        content: displayContent,
         timestamp: Date.now(),
+        isPageChat: options?.isPageChat || false, // 标记是否为网页聊天消息
       };
 
       // Create assistant message placeholder

@@ -18,6 +18,9 @@ const initialState: SettingsState = {
     lastSelectedModel: '',
     fontSize: 'medium',
     messageDensity: 'normal',
+    pageContentEnabled: true,
+    autoExtractContent: false,
+    showContentPanel: false,
   },
   isLoading: true, // 初始状态应该是加载中
 };

@@ -1,10 +1,11 @@
-import type { 
-  ExtensionMessage, 
-  LLMRequest, 
-  LLMResponse, 
+import type {
+  ExtensionMessage,
+  LLMRequest,
+  LLMResponse,
   ModelConfig,
   TextSelectionMessage,
-  StorageData 
+  PageContentMessage,
+  StorageData
 } from '@/types';
 import { createModelAdapter } from '@/lib/model-adapters';
 
@@ -115,6 +116,89 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
+/**
+ * Handle page content extraction request from side panel
+ */
+async function handleExtractPageContent(sendResponse: (response?: any) => void) {
+  try {
+    console.log('SlimPaneAI: Background handling extract-page-content');
+
+    // Get current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url) {
+      throw new Error('Cannot get current page info');
+    }
+
+    console.log('SlimPaneAI: Active tab found:', tab.url);
+
+    // Check if it's a special page
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('edge://') ||
+        tab.url.startsWith('about:')) {
+      throw new Error('Cannot extract content from browser internal pages');
+    }
+
+    try {
+      console.log('SlimPaneAI: Injecting content script to tab:', tab.id);
+      // Try to inject content script
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      });
+
+      console.log('SlimPaneAI: Content script injection successful');
+      // Wait for script initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (injectionError) {
+      console.warn('SlimPaneAI: Content script injection failed or already exists:', injectionError);
+      // Continue, script might already exist
+    }
+
+    // Send extraction request to content script with retry
+    let response;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`SlimPaneAI: Sending message to content script (attempt ${retryCount + 1})`);
+        response = await chrome.tabs.sendMessage(tab.id, {
+          type: 'extract-simple-content'
+        });
+        console.log('SlimPaneAI: Content script response:', response);
+        break;
+      } catch (messageError) {
+        console.warn(`SlimPaneAI: Message failed (attempt ${retryCount + 1}):`, messageError);
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          throw new Error('Cannot establish connection with page, please refresh and try again');
+        }
+        await new Promise(resolve => setTimeout(resolve, 200 * retryCount));
+      }
+    }
+
+    if (response?.success && response.content) {
+      sendResponse({
+        success: true,
+        content: response.content,
+        title: response.title || tab.title || 'Unknown Page',
+        url: tab.url,
+        metadata: response.metadata,
+        blocks: response.blocks
+      });
+    } else {
+      throw new Error(response?.error || 'Content extraction failed');
+    }
+  } catch (error) {
+    console.error('SlimPaneAI: Background content extraction failed:', error);
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : 'Content extraction failed'
+    });
+  }
+}
+
 async function handleMessage(
   message: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
@@ -162,7 +246,18 @@ async function handleMessage(
 
         sendResponse({ success: true });
         break;
-        
+
+      case 'extract-page-content':
+        await handleExtractPageContent(sendResponse);
+        break;
+
+      case 'page-content-extracted':
+      case 'pdf-processing-status':
+        // Forward page content messages to side panel
+        sendMessageToSidePanel(message);
+        sendResponse({ success: true });
+        break;
+
       default:
         sendResponse({ error: 'Unknown message type' });
     }
@@ -367,6 +462,9 @@ async function initializeDefaultSettings() {
       lastSelectedModel: '',
       fontSize: 'medium',
       messageDensity: 'normal',
+      pageContentEnabled: true,
+      autoExtractContent: false,
+      showContentPanel: false,
       ...existingData.userPreferences,
     },
   };
