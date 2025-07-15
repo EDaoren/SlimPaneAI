@@ -143,7 +143,9 @@ function createChatStore() {
       options?: {
         displayMessage?: string;
         isPageChat?: boolean;
-        systemContext?: string; // 包含网页内容的完整prompt
+        systemPrompt?: string; // 自定义系统prompt
+        pageContent?: string; // 网页内容
+        showPageChatWarning?: boolean; // 是否显示页面聊天警告
       }
     ) {
       if (!content.trim()) return;
@@ -182,7 +184,20 @@ function createChatStore() {
       // Add messages to session
       update(state => {
         if (state.currentSession) {
-          state.currentSession.messages.push(userMessage, assistantMessage);
+          state.currentSession.messages.push(userMessage);
+
+          // 如果需要显示页面聊天警告，添加警告消息
+          if (options?.showPageChatWarning) {
+            const warningMessage: Message = {
+              id: generateMessageId(),
+              type: 'system',
+              content: '⚠️ 页面内容提取失败，将以普通聊天模式回答您的问题。您可以尝试刷新页面后重新提取内容。',
+              timestamp: Date.now(),
+            };
+            state.currentSession.messages.push(warningMessage);
+          }
+
+          state.currentSession.messages.push(assistantMessage);
           state.currentSession.updatedAt = Date.now();
 
           // Update title if this is the first message
@@ -267,16 +282,24 @@ function createChatStore() {
         ['user', 'assistant', 'system'].includes(msg.type)
       ); // Don't include the empty assistant message
 
-      // If we have systemContext (网页内容), replace the last user message content
-      if (options?.systemContext) {
-        const lastUserMessageIndex = messagesToSend.length - 1;
-        if (lastUserMessageIndex >= 0 && messagesToSend[lastUserMessageIndex].type === 'user') {
-          messagesToSend = [...messagesToSend];
-          messagesToSend[lastUserMessageIndex] = {
-            ...messagesToSend[lastUserMessageIndex],
-            content: options.systemContext // 使用包含网页内容的完整prompt
-          };
-        }
+      // If we have page chat mode, construct system and user messages separately
+      if (options?.isPageChat && options?.systemPrompt && options?.pageContent) {
+        // Add system message with custom prompt and page content
+        const systemMessage: Message = {
+          id: generateMessageId(),
+          type: 'system',
+          content: `${options.systemPrompt}\n\n${options.pageContent}`,
+          timestamp: Date.now(),
+        };
+
+        // Add system message at the beginning
+        messagesToSend = [systemMessage, ...messagesToSend];
+
+        // Add user message with just the question
+        messagesToSend.push(userMessage);
+      } else {
+        // Normal chat mode - just add user message
+        messagesToSend.push(userMessage);
       }
 
       // Send request to background script

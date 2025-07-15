@@ -1,6 +1,7 @@
 /**
  * 专业的网页内容处理器
- * 基于 Mozilla Readability 和自定义算法进行内容提取和预处理
+ * 基于 Readability 思想的自定义算法进行内容提取和预处理
+ * 针对不同类型网站（论坛、博客、新闻等）进行了优化
  */
 
 export interface ContentBlock {
@@ -68,37 +69,37 @@ export class ContentProcessor {
    * 提取和清理主要内容
    */
   private static extractAndCleanContent(): string {
-    // 尝试使用 Readability 算法
-    const readabilityContent = this.tryReadability();
+    // 尝试使用智能内容提取算法
+    const readabilityContent = this.trySmartExtraction();
     if (readabilityContent) {
       return readabilityContent;
     }
 
-    // 回退到自定义提取算法
+    // 回退到基础提取算法
     return this.customContentExtraction();
   }
 
   /**
-   * 尝试使用 Readability 算法
+   * 尝试使用智能内容提取算法
    */
-  private static tryReadability(): string | null {
+  private static trySmartExtraction(): string | null {
     try {
       // 创建文档副本以避免修改原始DOM
       const documentClone = document.cloneNode(true) as Document;
-      
-      // 简化版的 Readability 算法
-      const article = this.simpleReadability(documentClone);
+
+      // 基于 Readability 思想的智能提取算法
+      const article = this.smartContentExtraction(documentClone);
       return article ? this.htmlToText(article.innerHTML) : null;
     } catch (error) {
-      console.warn('Readability extraction failed:', error);
+      console.warn('Smart content extraction failed:', error);
       return null;
     }
   }
 
   /**
-   * 简化版 Readability 算法
+   * 基于 Readability 思想的智能内容提取算法
    */
-  private static simpleReadability(doc: Document): Element | null {
+  private static smartContentExtraction(doc: Document): Element | null {
     // 移除噪声元素
     const noisySelectors = [
       'script', 'style', 'nav', 'header', 'footer', 'aside',

@@ -288,6 +288,82 @@ export interface Translations {
     exportSuccess: string;
     importSuccess: string;
   };
+
+  // 页面内容
+  pageContent: {
+    title: string;
+    disabled: string;
+    enable: string;
+    noContent: string;
+    extract: string;
+    extracting: string;
+    extracted: string;
+    failed: string;
+    retry: string;
+    settings: string;
+    autoExtract: string;
+    includeImages: string;
+    includeLinks: string;
+    maxTokens: string;
+    excludeSelectors: string;
+    includeSelectors: string;
+    domainSettings: string;
+    enableForDomain: string;
+    disableForDomain: string;
+    resetDomain: string;
+    contentPreview: string;
+    tokenCount: string;
+    wordCount: string;
+    lastExtracted: string;
+    refreshContent: string;
+    selectContent: string;
+    copyContent: string;
+    downloadContent: string;
+    contentTooLarge: string;
+    contentEmpty: string;
+    extractionError: string;
+    unsupportedPage: string;
+    processingPdf: string;
+    pdfProgress: string;
+    pdfComplete: string;
+    pdfError: string;
+    useContent: string;
+    refresh: string;
+    tokenWarning: string;
+    tokenError: string;
+    extractionFailed: string;
+    pdfProcessingFailed: string;
+    smartSettings: string;
+    applySmartSettings: string;
+    exportSettings: string;
+    importSettings: string;
+  };
+
+  // 页面聊天
+  pageChat: {
+    title: string;
+    enable: string;
+    disable: string;
+    enabled: string;
+    disabled: string;
+    toggle: string;
+    description: string;
+    noPageContent: string;
+    extractFirst: string;
+    usePageContent: string;
+    pageContentUsed: string;
+    clearPageContent: string;
+    refreshPageContent: string;
+    autoMode: string;
+    manualMode: string;
+    smartMode: string;
+    settings: string;
+    help: string;
+    examples: string;
+    tips: string;
+    limitations: string;
+    troubleshooting: string;
+  };
 }
 
 // 当前语言 store
@@ -645,20 +721,43 @@ const chineseTranslations: Translations = {
     enable: '启用内容提取',
     noContent: '暂无页面内容',
     extract: '提取内容',
-    useContent: '使用此内容',
-    refresh: '刷新内容',
-    processingPDF: '正在处理PDF文档...',
-    tokenWarning: '内容较长，可能需要分块处理',
-    tokenError: '内容过长，建议缩减或分块',
-    extractionFailed: '内容提取失败',
-    pdfProcessingFailed: 'PDF处理失败',
-    domainSettings: '域名设置',
+    extracting: '正在提取...',
+    extracted: '提取完成',
+    failed: '提取失败',
+    retry: '重试',
+    settings: '设置',
     autoExtract: '自动提取',
     includeImages: '包含图片',
     includeLinks: '包含链接',
     maxTokens: '最大Token数',
     excludeSelectors: '排除选择器',
     includeSelectors: '包含选择器',
+    domainSettings: '域名设置',
+    enableForDomain: '为此域名启用',
+    disableForDomain: '为此域名禁用',
+    resetDomain: '重置域名设置',
+    contentPreview: '内容预览',
+    tokenCount: 'Token数量',
+    wordCount: '字数',
+    lastExtracted: '最后提取时间',
+    refreshContent: '刷新内容',
+    selectContent: '选择内容',
+    copyContent: '复制内容',
+    downloadContent: '下载内容',
+    contentTooLarge: '内容过大',
+    contentEmpty: '内容为空',
+    extractionError: '提取错误',
+    unsupportedPage: '不支持的页面',
+    processingPdf: '正在处理PDF文档...',
+    pdfProgress: 'PDF处理进度',
+    pdfComplete: 'PDF处理完成',
+    pdfError: 'PDF处理错误',
+    useContent: '使用此内容',
+    refresh: '刷新内容',
+    tokenWarning: '内容较长，可能需要分块处理',
+    tokenError: '内容过长，建议缩减或分块',
+    extractionFailed: '内容提取失败',
+    pdfProcessingFailed: 'PDF处理失败',
     smartSettings: '智能设置',
     applySmartSettings: '应用智能设置',
     exportSettings: '导出设置',
@@ -669,13 +768,25 @@ const chineseTranslations: Translations = {
     title: '网页聊天',
     enable: '启用网页聊天模式',
     disable: '关闭网页聊天模式',
-    extracting: '正在提取页面内容...',
-    noContent: '暂无页面内容',
-    extract: '提取内容',
-    refresh: '刷新内容',
-    characters: '字符',
     enabled: '基于网页内容',
     disabled: '网页聊天模式已关闭',
+    toggle: '切换网页聊天模式',
+    description: '基于当前页面内容进行对话',
+    noPageContent: '暂无页面内容',
+    extractFirst: '请先提取页面内容',
+    usePageContent: '使用页面内容',
+    pageContentUsed: '正在使用页面内容',
+    clearPageContent: '清除页面内容',
+    refreshPageContent: '刷新内容',
+    autoMode: '自动模式',
+    manualMode: '手动模式',
+    smartMode: '智能模式',
+    settings: '设置',
+    help: '帮助',
+    examples: '示例',
+    tips: '提示',
+    limitations: '限制',
+    troubleshooting: '故障排除',
   },
 };
 
@@ -962,20 +1073,43 @@ const englishTranslations: Translations = {
     enable: 'Enable Content Extraction',
     noContent: 'No page content available',
     extract: 'Extract Content',
-    useContent: 'Use This Content',
-    refresh: 'Refresh Content',
-    processingPDF: 'Processing PDF document...',
-    tokenWarning: 'Content is long, may need chunking',
-    tokenError: 'Content too long, consider reducing or chunking',
-    extractionFailed: 'Content extraction failed',
-    pdfProcessingFailed: 'PDF processing failed',
-    domainSettings: 'Domain Settings',
+    extracting: 'Extracting...',
+    extracted: 'Extraction Complete',
+    failed: 'Extraction Failed',
+    retry: 'Retry',
+    settings: 'Settings',
     autoExtract: 'Auto Extract',
     includeImages: 'Include Images',
     includeLinks: 'Include Links',
     maxTokens: 'Max Tokens',
     excludeSelectors: 'Exclude Selectors',
     includeSelectors: 'Include Selectors',
+    domainSettings: 'Domain Settings',
+    enableForDomain: 'Enable for this domain',
+    disableForDomain: 'Disable for this domain',
+    resetDomain: 'Reset domain settings',
+    contentPreview: 'Content Preview',
+    tokenCount: 'Token Count',
+    wordCount: 'Word Count',
+    lastExtracted: 'Last Extracted',
+    refreshContent: 'Refresh Content',
+    selectContent: 'Select Content',
+    copyContent: 'Copy Content',
+    downloadContent: 'Download Content',
+    contentTooLarge: 'Content Too Large',
+    contentEmpty: 'Content Empty',
+    extractionError: 'Extraction Error',
+    unsupportedPage: 'Unsupported Page',
+    processingPdf: 'Processing PDF document...',
+    pdfProgress: 'PDF Processing Progress',
+    pdfComplete: 'PDF Processing Complete',
+    pdfError: 'PDF Processing Error',
+    useContent: 'Use This Content',
+    refresh: 'Refresh Content',
+    tokenWarning: 'Content is long, may need chunking',
+    tokenError: 'Content too long, consider reducing or chunking',
+    extractionFailed: 'Content extraction failed',
+    pdfProcessingFailed: 'PDF processing failed',
     smartSettings: 'Smart Settings',
     applySmartSettings: 'Apply Smart Settings',
     exportSettings: 'Export Settings',
@@ -986,12 +1120,24 @@ const englishTranslations: Translations = {
     title: 'Page Chat',
     enable: 'Enable page chat mode',
     disable: 'Disable page chat mode',
-    extracting: 'Extracting page content...',
-    noContent: 'No page content available',
-    extract: 'Extract Content',
-    refresh: 'Refresh Content',
-    characters: 'characters',
     enabled: 'Based on page content',
     disabled: 'Page chat mode disabled',
+    toggle: 'Toggle page chat mode',
+    description: 'Chat based on current page content',
+    noPageContent: 'No page content available',
+    extractFirst: 'Please extract page content first',
+    usePageContent: 'Use page content',
+    pageContentUsed: 'Using page content',
+    clearPageContent: 'Clear page content',
+    refreshPageContent: 'Refresh Content',
+    autoMode: 'Auto Mode',
+    manualMode: 'Manual Mode',
+    smartMode: 'Smart Mode',
+    settings: 'Settings',
+    help: 'Help',
+    examples: 'Examples',
+    tips: 'Tips',
+    limitations: 'Limitations',
+    troubleshooting: 'Troubleshooting',
   },
 };

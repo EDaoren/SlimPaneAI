@@ -10,8 +10,15 @@ interface PageChatState {
   currentPageUrl: string | null;
   currentPageMetadata: any | null;
   currentPageBlocks: any[] | null;
-  isExtracting: boolean;
+
+  // 提取状态
+  status: 'idle' | 'extracting' | 'success' | 'failed';
+  isExtracting: boolean; // 保留向后兼容
   error: string | null;
+
+  // 重试相关
+  lastAttempt: number | null;
+  attemptCount: number;
 }
 
 const initialState: PageChatState = {
@@ -21,8 +28,13 @@ const initialState: PageChatState = {
   currentPageUrl: null,
   currentPageMetadata: null,
   currentPageBlocks: null,
+
+  status: 'idle',
   isExtracting: false,
-  error: null
+  error: null,
+
+  lastAttempt: null,
+  attemptCount: 0
 };
 
 function createPageChatStore() {
@@ -33,10 +45,20 @@ function createPageChatStore() {
    */
   async function extractCurrentPageContent() {
     console.log('SlimPaneAI: extractCurrentPageContent called');
+
+    const now = Date.now();
+
     try {
-      // 设置提取状态
-      update(state => ({ ...state, isExtracting: true, error: null }));
-      console.log('SlimPaneAI: Extraction state set to true');
+      // 更新状态：开始提取
+      update(state => ({
+        ...state,
+        status: 'extracting',
+        isExtracting: true,
+        error: null,
+        lastAttempt: now,
+        attemptCount: state.attemptCount + 1
+      }));
+      console.log('SlimPaneAI: Extraction state set to extracting');
 
       // 通过background script获取当前活动标签页
       console.log('SlimPaneAI: Requesting tab info from background...');
@@ -45,44 +67,88 @@ function createPageChatStore() {
       });
       console.log('SlimPaneAI: Background response:', response);
 
-      if (response?.success && response.content) {
-        update(state => ({
-          ...state,
-          currentPageContent: response.content,
-          currentPageTitle: response.title || 'Unknown Page',
-          currentPageUrl: response.url || '',
-          currentPageMetadata: response.metadata,
-          currentPageBlocks: response.blocks,
-          isExtracting: false,
-          error: null
-        }));
+      if (response?.success) {
+        if (response.content) {
+          // 提取成功
+          update(state => ({
+            ...state,
+            currentPageContent: response.content,
+            currentPageTitle: response.title || 'Unknown Page',
+            currentPageUrl: response.url || '',
+            currentPageMetadata: response.metadata,
+            currentPageBlocks: response.blocks,
+            status: 'success',
+            isExtracting: false,
+            error: null
+          }));
+          console.log('SlimPaneAI: Content extraction successful');
+        } else {
+          // 特殊页面或无内容
+          update(state => ({
+            ...state,
+            currentPageContent: null,
+            currentPageTitle: response.title || 'Unknown Page',
+            currentPageUrl: response.url || '',
+            status: 'failed',
+            isExtracting: false,
+            error: '当前页面不支持内容提取'
+          }));
+          console.log('SlimPaneAI: Special page or no content');
+        }
       } else {
-        throw new Error(response?.error || 'Content extraction failed');
+        throw new Error(response?.error || '页面内容提取失败');
       }
     } catch (error) {
       console.error('SlimPaneAI: Content extraction failed:', error);
 
-      // 提供更友好的错误信息
-      let errorMessage = 'Content extraction failed';
+      // 提供用户友好的错误信息
+      let errorMessage = '页面内容提取失败，请尝试刷新页面后重试';
 
       if (error instanceof Error) {
         if (error.message.includes('Could not establish connection')) {
-          errorMessage = 'Cannot connect to page, please refresh and try again';
+          errorMessage = '无法连接到页面，请刷新页面后重试';
         } else if (error.message.includes('chrome://') || error.message.includes('browser internal pages')) {
-          errorMessage = 'Cannot extract content from browser internal pages';
+          errorMessage = '无法提取浏览器内部页面的内容';
         } else if (error.message.includes('Extension context invalidated')) {
-          errorMessage = 'Extension updated, please refresh page and try again';
-        } else {
-          errorMessage = error.message;
+          errorMessage = '扩展已更新，请刷新页面后重试';
         }
       }
 
+      // 提取失败
       update(state => ({
         ...state,
+        status: 'failed',
         isExtracting: false,
         error: errorMessage
       }));
     }
+  }
+
+  /**
+   * 重试提取内容
+   */
+  async function retryExtraction() {
+    // 检查是否可以重试（防止频繁重试）
+    let canRetry = false;
+    const now = Date.now();
+
+    update(state => {
+      // 如果最后一次尝试在3秒内，不允许重试
+      if (state.lastAttempt && now - state.lastAttempt < 3000) {
+        console.log('SlimPaneAI: Retry too frequent, ignoring');
+        canRetry = false;
+      } else {
+        canRetry = true;
+      }
+      return state;
+    });
+
+    if (!canRetry) {
+      return;
+    }
+
+    // 执行提取
+    await extractCurrentPageContent();
   }
 
   return {
@@ -153,7 +219,7 @@ function createPageChatStore() {
         currentPageTitle: title,
         currentPageUrl: url,
         currentPageMetadata: metadata,
-        currentPageBlocks: blocks,
+        currentPageBlocks: blocks || null,
         isExtracting: false,
         error: null
       }));
@@ -204,7 +270,12 @@ function createPageChatStore() {
       if (shouldExtract) {
         await extractCurrentPageContent();
       }
-    }
+    },
+
+    /**
+     * 重试提取内容
+     */
+    retryExtraction
   };
 }
 

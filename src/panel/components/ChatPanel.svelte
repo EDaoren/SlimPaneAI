@@ -2,6 +2,7 @@
   import { onMount, afterUpdate } from 'svelte';
   import { chatStore } from '../stores/chat';
   import { settingsStore } from '../stores/settings';
+  import { pageChatStore } from '../stores/page-chat';
   import { applyTheme, watchSystemTheme } from '@/lib/theme-manager';
   import MessageList from './MessageList.svelte';
   import VirtualMessageList from './VirtualMessageList.svelte';
@@ -49,26 +50,37 @@
 
   function handleSendMessage(event: CustomEvent<{
     message: string;
-    systemContext?: string;
+    systemPrompt?: string;
+    pageContent?: string;
     modelId?: string;
     providerId?: string;
     isPageChat?: boolean;
   }>) {
-    const { message, systemContext, modelId, providerId, isPageChat } = event.detail;
-
-    // 构建发送给AI的完整消息
-    const fullMessage = systemContext || message;
+    const { message, systemPrompt, pageContent, modelId, providerId, isPageChat } = event.detail;
 
     console.log('SlimPaneAI: 发送消息');
     console.log('SlimPaneAI: 用户消息:', message);
     console.log('SlimPaneAI: 是否网页聊天:', isPageChat);
-    console.log('SlimPaneAI: 完整消息长度:', fullMessage.length);
+    console.log('SlimPaneAI: 系统prompt长度:', systemPrompt?.length || 0);
+    console.log('SlimPaneAI: 页面内容长度:', pageContent?.length || 0);
 
-    // 发送消息，但在聊天记录中只显示用户的原始消息
+    // 检查页面聊天状态
+    const pageChatState = $pageChatStore;
+    let showPageChatWarning = false;
+
+    if (pageChatState.enabled && !pageContent) {
+      // 页面聊天开启但没有内容，显示警告
+      showPageChatWarning = true;
+      console.log('SlimPaneAI: 页面聊天开启但内容提取失败，将以普通模式回答');
+    }
+
+    // 发送消息，传递系统prompt和页面内容
     chatStore.sendMessage(message, modelId, providerId, {
       displayMessage: message, // 在聊天记录中显示的消息
       isPageChat, // 标记这是网页聊天消息
-      systemContext: systemContext // 传递包含网页内容的完整prompt
+      systemPrompt: systemPrompt, // 自定义系统prompt
+      pageContent: pageContent, // 网页内容
+      showPageChatWarning // 是否显示页面聊天警告
     });
   }
 

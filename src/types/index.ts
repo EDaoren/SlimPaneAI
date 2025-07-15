@@ -160,6 +160,8 @@ export interface UserPreferences {
   pageContentEnabled: boolean;
   autoExtractContent: boolean;
   showContentPanel: boolean;
+  // Page chat custom system prompt
+  pageChatSystemPrompt: string;
 }
 
 // Prompt templates
@@ -247,3 +249,10 @@ export const DEFAULT_PROMPTS: PromptTemplate[] = [
     userPromptTemplate: 'Please explain the following text in detail:\n\n{text}'
   }
 ];
+
+// Global type declarations for content script
+declare global {
+  interface Window {
+    slimPaneAIContentScriptLoaded?: boolean;
+  }
+}

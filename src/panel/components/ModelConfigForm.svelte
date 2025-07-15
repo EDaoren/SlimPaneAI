@@ -25,7 +25,7 @@
   // Generate a unique ID for new models
   let generatedId = modelId || `${provider}-${Date.now()}`;
   
-  $: availableModels = DEFAULT_MODELS[provider] || [];
+  $: availableModels = (DEFAULT_MODELS as any)[provider] || [];
   $: isCustomProvider = provider === 'custom';
   $: isCustomModel = model === 'custom';
 
@@ -39,7 +39,7 @@
 
   // 模型选项（动态生成）
   $: modelOptions = [
-    ...availableModels.map(modelOption => ({
+    ...availableModels.map((modelOption: any) => ({
       id: modelOption.model,
       name: modelOption.name,
       icon: getProviderIcon(provider)

@@ -111,7 +111,8 @@
         testResult = { success: false, message: `${$t('errors.connectionFailed')}: ${response.status} ${response.statusText}` };
       }
     } catch (error) {
-      testResult = { success: false, message: `${$t('errors.connectionFailed')}: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      testResult = { success: false, message: `${$t('errors.connectionFailed')}: ${errorMessage}` };
     } finally {
       isLoading = false;
     }
@@ -171,7 +172,8 @@
         alert(`获取模型失败: ${response.status} ${response.statusText}\n${errorText}`);
       }
     } catch (error) {
-      alert(`获取模型错误: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`获取模型错误: ${errorMessage}`);
     } finally {
       isLoading = false;
     }
@@ -181,7 +183,7 @@
     const modelName = prompt('请输入模型名称:');
     if (modelName?.trim()) {
       formData.models = [
-        ...formData.models,
+        ...(formData.models || []),
         {
           id: modelName.trim(),
           name: modelName.trim(),
@@ -192,12 +194,16 @@
   }
 
   function removeModel(index: number) {
-    formData.models = formData.models.filter((_, i) => i !== index);
+    if (formData.models) {
+      formData.models = formData.models.filter((_, i) => i !== index);
+    }
   }
 
   function toggleModel(index: number) {
-    formData.models[index].enabled = !formData.models[index].enabled;
-    formData.models = [...formData.models];
+    if (formData.models && formData.models[index]) {
+      formData.models[index].enabled = !formData.models[index].enabled;
+      formData.models = [...formData.models];
+    }
   }
 
   function getDefaultBaseUrl(providerId: string): string {
@@ -375,7 +381,7 @@
               </div>
             </div>
 
-            {#if formData.models?.length > 0}
+            {#if formData.models && formData.models.length > 0}
               <div class="model-list">
                 {#each formData.models as model, index (model.id)}
                   <div class="model-item">

@@ -121,6 +121,16 @@
     };
     await settingsStore.saveUserPreferences(newPreferences);
   }
+
+  async function handlePageChatPromptChange() {
+    try {
+      await settingsStore.updateUserPreferences({
+        pageChatSystemPrompt: userPreferences.pageChatSystemPrompt
+      });
+    } catch (error) {
+      console.error('Failed to save page chat prompt:', error);
+    }
+  }
 </script>
 
 <div class="settings-panel h-full overflow-y-auto bg-white">
@@ -178,7 +188,6 @@
                       {/if}
                     </p>
                     <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                      <span>最大令牌: {config.maxTokens || '默认'}</span>
                       <span>温度: {config.temperature || 0.7}</span>
                     </div>
                   </div>
@@ -263,7 +272,31 @@
           </div>
         </div>
       </section>
-      
+
+      <!-- Page Chat Settings -->
+      <section>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">网页聊天设置</h2>
+        <div class="space-y-4">
+          <!-- Custom System Prompt -->
+          <div>
+            <label for="page-chat-prompt" class="block text-sm font-medium text-gray-700 mb-2">
+              自定义系统提示词
+            </label>
+            <textarea
+              id="page-chat-prompt"
+              bind:value={userPreferences.pageChatSystemPrompt}
+              on:input={handlePageChatPromptChange}
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+              rows="4"
+              placeholder="输入自定义的系统提示词，用于指导AI如何处理网页内容和回答问题..."
+            ></textarea>
+            <p class="mt-1 text-xs text-gray-500">
+              这个提示词将作为系统消息发送给AI，用于指导AI如何基于网页内容回答用户问题。
+            </p>
+          </div>
+        </div>
+      </section>
+
       <!-- About -->
       <section>
         <h2 class="text-lg font-semibold text-gray-900 mb-4">关于</h2>

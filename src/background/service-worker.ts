@@ -2,10 +2,8 @@ import type {
   ExtensionMessage,
   LLMRequest,
   LLMResponse,
-  ModelConfig,
+  StorageData,
   TextSelectionMessage,
-  PageContentMessage,
-  StorageData
 } from '@/types';
 import { createModelAdapter } from '@/lib/model-adapters';
 
@@ -49,8 +47,6 @@ async function initializeSidePanel() {
   }
 }
 
-
-
 // Handle extension icon click - open side panel
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.id) {
@@ -63,7 +59,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         await chrome.sidePanel.setOptions({
           tabId: tab.id,
           enabled: true,
-          path: 'panel.html'
+          path: 'panel.html',
         });
       }
     } catch (error) {
@@ -71,8 +67,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
   }
 });
-
-
 
 // Handle messages from content script and side panel
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
@@ -93,7 +87,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         title: tab.title || '',
       },
     };
-    
+
     // Open side panel and send the selected text
     try {
       if (chrome.sidePanel && (chrome.sidePanel as any).open) {
@@ -102,13 +96,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         await chrome.sidePanel.setOptions({
           tabId: tab.id,
           enabled: true,
-          path: 'panel.html'
+          path: 'panel.html',
         });
       }
     } catch (error) {
       // Silently handle side panel errors
     }
-    
+
     // Wait a bit for side panel to load, then send message
     setTimeout(() => {
       chrome.runtime.sendMessage(message);
@@ -117,26 +111,109 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 /**
+ * 检测是否是特殊页面URL（不支持内容提取）
+ */
+function isSpecialPageUrl(url: string): boolean {
+  if (!url) return true;
+
+  // 浏览器内部页面
+  const browserProtocols = [
+    'chrome://',
+    'chrome-extension://',
+    'edge://',
+    'edge-extension://',
+    'moz://',
+    'moz-extension://',
+    'about:',
+    'view-source:',
+    'file://',
+    'devtools://',
+    'data:',
+  ];
+
+  if (browserProtocols.some((protocol) => url.startsWith(protocol))) {
+    return true;
+  }
+
+  // 特殊页面
+  const specialPages = [
+    'newtab',
+    'extensions',
+    'settings',
+    'history',
+    'downloads',
+    'bookmarks',
+    'flags',
+    'version',
+    'blank',
+    'home',
+    'config',
+  ];
+
+  // 检查URL是否包含特殊页面关键词
+  const urlLower = url.toLowerCase();
+  if (
+    specialPages.some(
+      (page) =>
+        urlLower.includes(`/${page}`) ||
+        urlLower.includes(`/${page}.html`) ||
+        urlLower.includes(`about:${page}`)
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Handle page content extraction request from side panel
  */
 async function handleExtractPageContent(sendResponse: (response?: any) => void) {
   try {
     console.log('SlimPaneAI: Background handling extract-page-content');
 
-    // Get current active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !tab.url) {
-      throw new Error('Cannot get current page info');
+    // Get current active tab with detailed error handling
+    let tabs;
+    try {
+      tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    } catch (error) {
+      console.error('SlimPaneAI: Failed to query tabs:', error);
+      throw new Error('无法访问浏览器标签页，请检查扩展权限');
+    }
+
+    const [tab] = tabs;
+
+    if (!tab) {
+      console.warn('SlimPaneAI: No active tab found');
+      throw new Error('未找到活动标签页');
+    }
+
+    if (!tab.id) {
+      console.warn('SlimPaneAI: Tab has no ID:', tab);
+      throw new Error('标签页ID无效');
+    }
+
+    if (!tab.url) {
+      console.warn('SlimPaneAI: Tab has no URL:', tab);
+      throw new Error('标签页URL无效，可能是新标签页或特殊页面');
     }
 
     console.log('SlimPaneAI: Active tab found:', tab.url);
+    console.log('SlimPaneAI: Tab ID:', tab.id);
+    console.log('SlimPaneAI: Tab title:', tab.title);
 
-    // Check if it's a special page
-    if (tab.url.startsWith('chrome://') ||
-        tab.url.startsWith('chrome-extension://') ||
-        tab.url.startsWith('edge://') ||
-        tab.url.startsWith('about:')) {
-      throw new Error('Cannot extract content from browser internal pages');
+    // Check if it's a special page that doesn't support content extraction
+    if (isSpecialPageUrl(tab.url)) {
+      console.log('SlimPaneAI: Special page detected, skipping extraction:', tab.url);
+      sendResponse({
+        success: true,
+        content: null,
+        title: tab.title || 'Special Page',
+        url: tab.url,
+        error: '当前页面不支持内容提取',
+      });
+      return;
     }
 
     try {
@@ -144,14 +221,17 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       // Try to inject content script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['content.js']
+        files: ['content.js'],
       });
 
       console.log('SlimPaneAI: Content script injection successful');
       // Wait for script initialization
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (injectionError) {
-      console.warn('SlimPaneAI: Content script injection failed or already exists:', injectionError);
+      console.warn(
+        'SlimPaneAI: Content script injection failed or already exists:',
+        injectionError
+      );
       // Continue, script might already exist
     }
 
@@ -164,7 +244,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       try {
         console.log(`SlimPaneAI: Sending message to content script (attempt ${retryCount + 1})`);
         response = await chrome.tabs.sendMessage(tab.id, {
-          type: 'extract-simple-content'
+          type: 'extract-simple-content',
         });
         console.log('SlimPaneAI: Content script response:', response);
         break;
@@ -172,20 +252,36 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
         console.warn(`SlimPaneAI: Message failed (attempt ${retryCount + 1}):`, messageError);
         retryCount++;
         if (retryCount >= maxRetries) {
-          throw new Error('Cannot establish connection with page, please refresh and try again');
+          // 提供更友好的错误信息
+          let errorMessage = '无法与页面通信，请刷新页面后重试';
+
+          if (messageError instanceof Error) {
+            if (messageError.message.includes('Could not establish connection')) {
+              errorMessage = '无法连接到页面，请刷新页面后重试';
+            } else if (messageError.message.includes('Extension context invalidated')) {
+              errorMessage = '扩展已更新，请刷新页面后重试';
+            } else if (messageError.message.includes('Cannot access')) {
+              errorMessage = '无法访问此页面，可能是权限限制';
+            } else if (messageError.message.includes('Receiving end does not exist')) {
+              errorMessage = '页面未准备就绪，请刷新页面后重试';
+            }
+          }
+
+          throw new Error(errorMessage);
         }
-        await new Promise(resolve => setTimeout(resolve, 200 * retryCount));
+        await new Promise((resolve) => setTimeout(resolve, 200 * retryCount));
       }
     }
 
-    if (response?.success && response.content) {
+    if (response?.success) {
       sendResponse({
         success: true,
-        content: response.content,
+        content: response.content, // 可能是 null
         title: response.title || tab.title || 'Unknown Page',
         url: tab.url,
         metadata: response.metadata,
-        blocks: response.blocks
+        blocks: response.blocks || [],
+        error: response.error, // 传递错误信息
       });
     } else {
       throw new Error(response?.error || 'Content extraction failed');
@@ -194,7 +290,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     console.error('SlimPaneAI: Background content extraction failed:', error);
     sendResponse({
       success: false,
-      error: error instanceof Error ? error.message : 'Content extraction failed'
+      error: error instanceof Error ? error.message : 'Content extraction failed',
     });
   }
 }
@@ -209,12 +305,12 @@ async function handleMessage(
       case 'ask-llm':
         await handleLLMRequest(message as LLMRequest, sendResponse);
         break;
-        
+
       case 'get-storage':
         const data = await getStorageData();
         sendResponse(data);
         break;
-        
+
       case 'set-storage':
         await setStorageData(message.payload);
 
@@ -224,22 +320,26 @@ async function handleMessage(
           const tabs = await chrome.tabs.query({});
           for (const tab of tabs) {
             if (tab.id) {
-              chrome.tabs.sendMessage(tab.id, {
-                type: 'storage-updated',
-                payload: message.payload
-              }).catch(() => {
-                // Ignore errors for tabs without content script
-              });
+              chrome.tabs
+                .sendMessage(tab.id, {
+                  type: 'storage-updated',
+                  payload: message.payload,
+                })
+                .catch(() => {
+                  // Ignore errors for tabs without content script
+                });
             }
           }
 
           // Also send to side panel if it's open
-          chrome.runtime.sendMessage({
-            type: 'storage-updated',
-            payload: message.payload
-          }).catch(() => {
-            // Ignore if no listeners
-          });
+          chrome.runtime
+            .sendMessage({
+              type: 'storage-updated',
+              payload: message.payload,
+            })
+            .catch(() => {
+              // Ignore if no listeners
+            });
         } catch (error) {
           // Silently handle notification errors
         }
@@ -276,7 +376,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
-        error: 'No model configured. Please configure a model in settings.'
+        error: 'No model configured. Please configure a model in settings.',
       });
       return;
     }
@@ -286,33 +386,34 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
-        error: 'API key not configured. Please add your API key in settings.'
+        error: 'API key not configured. Please add your API key in settings.',
       });
       return;
     }
 
     const adapter = createModelAdapter(modelConfig);
-    
-
 
     // Convert messages to API format
     const apiMessages = messages
-      .filter(msg => {
-        const isValid = msg.content &&
-                       msg.content.trim() &&
-                       msg.type &&
-                       ['user', 'assistant', 'system'].includes(msg.type);
+      .filter((msg) => {
+        const isValid =
+          msg.content &&
+          msg.content.trim() &&
+          msg.type &&
+          ['user', 'assistant', 'system'].includes(msg.type);
         return isValid;
       })
-      .map(msg => ({
+      .map((msg) => ({
         role: msg.type as 'system' | 'user' | 'assistant',
         content: msg.content,
       }));
 
     // Final validation
-    const invalidMessages = apiMessages.filter(msg => !msg.role || !msg.content);
+    const invalidMessages = apiMessages.filter((msg) => !msg.role || !msg.content);
     if (invalidMessages.length > 0) {
-      throw new Error(`Invalid messages found: ${invalidMessages.length} messages have empty role or content`);
+      throw new Error(
+        `Invalid messages found: ${invalidMessages.length} messages have empty role or content`
+      );
     }
 
     const apiRequest = {
@@ -347,7 +448,9 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
             const content = chunk.choices[0]?.delta?.content || '';
             const reasoning = chunk.choices[0]?.delta?.reasoning || '';
-            const done = chunk.choices[0]?.finish_reason !== null && chunk.choices[0]?.finish_reason !== undefined;
+            const done =
+              chunk.choices[0]?.finish_reason !== null &&
+              chunk.choices[0]?.finish_reason !== undefined;
 
             if (done) {
               hasFinished = true;
@@ -357,8 +460,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
             // 发送所有块，包括空内容的块（如角色块）和结束块
             // 只要有delta对象或者已完成，就发送
             const hasDelta = chunk.choices[0]?.delta !== undefined;
-
-
 
             if (hasDelta || done) {
               const streamMessage: LLMResponse = {
@@ -382,8 +483,6 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
         } finally {
           clearTimeout(streamTimeout);
         }
-
-
 
         // Ensure we send a final done message if we haven't already
         if (!hasFinished) {
@@ -417,7 +516,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
       // Handle non-streaming response
       const data = await response.json();
       const transformedResponse = adapter.transformResponse(data);
-      
+
       const responseMessage: LLMResponse = {
         type: 'llm-response',
         requestId: request.requestId,
@@ -427,10 +526,10 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
           done: true,
         },
       };
-      
+
       await sendMessageToSidePanel(responseMessage);
     }
-    
+
     sendResponse({ success: true });
   } catch (error) {
     // Handle LLM request errors
@@ -465,6 +564,8 @@ async function initializeDefaultSettings() {
       pageContentEnabled: true,
       autoExtractContent: false,
       showContentPanel: false,
+      pageChatSystemPrompt:
+        '你是一个专业的网页内容分析助手。请基于提供的网页内容回答用户问题。要求：1. 仔细阅读和理解网页内容；2. 基于内容事实进行回答，不要编造信息；3. 如果问题无法从内容中找到答案，请明确说明；4. 回答要准确、简洁、有条理。',
       ...existingData.userPreferences,
     },
   };
@@ -493,7 +594,7 @@ function createContextMenus() {
 }
 
 async function getStorageData(): Promise<StorageData> {
-  return await chrome.storage.local.get() as StorageData;
+  return (await chrome.storage.local.get()) as StorageData;
 }
 
 async function setStorageData(data: Partial<StorageData>) {
