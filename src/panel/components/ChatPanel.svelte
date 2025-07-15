@@ -65,9 +65,10 @@
     console.log('SlimPaneAI: 完整消息长度:', fullMessage.length);
 
     // 发送消息，但在聊天记录中只显示用户的原始消息
-    chatStore.sendMessage(fullMessage, modelId, providerId, {
+    chatStore.sendMessage(message, modelId, providerId, {
       displayMessage: message, // 在聊天记录中显示的消息
-      isPageChat // 标记这是网页聊天消息
+      isPageChat, // 标记这是网页聊天消息
+      systemContext: systemContext // 传递包含网页内容的完整prompt
     });
   }
 

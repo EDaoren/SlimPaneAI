@@ -143,6 +143,7 @@ function createChatStore() {
       options?: {
         displayMessage?: string;
         isPageChat?: boolean;
+        systemContext?: string; // 包含网页内容的完整prompt
       }
     ) {
       if (!content.trim()) return;
@@ -258,17 +259,32 @@ function createChatStore() {
         temperature: 0.7
       };
 
+      // Prepare messages for AI request
+      let messagesToSend = session.messages.slice(0, -1).filter(msg =>
+        msg.content &&
+        msg.content.trim() &&
+        msg.type &&
+        ['user', 'assistant', 'system'].includes(msg.type)
+      ); // Don't include the empty assistant message
+
+      // If we have systemContext (网页内容), replace the last user message content
+      if (options?.systemContext) {
+        const lastUserMessageIndex = messagesToSend.length - 1;
+        if (lastUserMessageIndex >= 0 && messagesToSend[lastUserMessageIndex].type === 'user') {
+          messagesToSend = [...messagesToSend];
+          messagesToSend[lastUserMessageIndex] = {
+            ...messagesToSend[lastUserMessageIndex],
+            content: options.systemContext // 使用包含网页内容的完整prompt
+          };
+        }
+      }
+
       // Send request to background script
       const request: LLMRequest = {
         type: 'ask-llm',
         requestId: assistantMessage.id,
         payload: {
-          messages: session.messages.slice(0, -1).filter(msg =>
-            msg.content &&
-            msg.content.trim() &&
-            msg.type &&
-            ['user', 'assistant', 'system'].includes(msg.type)
-          ), // Don't include the empty assistant message
+          messages: messagesToSend,
           modelConfig: finalModelConfig,
           stream: true,
         },
