@@ -9,7 +9,6 @@
   $: config = $toolbarConfigStore;
 
   let menuElement: HTMLDivElement;
-  let menuPosition = { top: '100%', right: '0', left: 'auto', bottom: 'auto' };
 
   function handleToggle(key: keyof typeof config) {
     toolbarConfigStore.updateConfig({ [key]: !config[key] });
@@ -24,117 +23,7 @@
     toolbarConfigStore.reset();
   }
 
-  // 计算菜单最佳位置
-  async function calculateMenuPosition() {
-    if (!menuElement) return;
 
-    await tick(); // 确保DOM已更新
-
-    // 获取触发按钮的位置（通过父容器）
-    const container = menuElement.parentElement;
-    if (!container) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const menuRect = menuElement.getBoundingClientRect();
-
-    // 视口尺寸
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // 菜单尺寸
-    const menuWidth = menuRect.width || 200;
-    const menuHeight = menuRect.height || 200;
-
-    // 计算各个方向的可用空间
-    const spaceRight = viewportWidth - containerRect.right;
-    const spaceLeft = containerRect.left;
-    const spaceBelow = viewportHeight - containerRect.bottom;
-    const spaceAbove = containerRect.top;
-
-    // 默认位置：右下
-    let position = {
-      top: '100%',
-      right: '0',
-      left: 'auto',
-      bottom: 'auto',
-      transform: 'none'
-    };
-
-    // 水平方向定位
-    let alignHorizontal = 'right'; // 默认右对齐
-
-    if (spaceRight < menuWidth && spaceLeft > spaceRight) {
-      // 右侧空间不足，左侧空间更多 - 向左展开
-      alignHorizontal = 'left';
-      position.right = 'auto';
-      position.left = '0';
-    }
-
-    // 垂直方向定位
-    let alignVertical = 'bottom'; // 默认向下展开
-
-    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-      // 下方空间不足，上方空间更多 - 向上展开
-      alignVertical = 'top';
-      position.top = 'auto';
-      position.bottom = '100%';
-    }
-
-    // 检查菜单是否会超出视口
-    if (alignVertical === 'top') {
-      // 向上展开时，检查顶部是否有足够空间
-      if (containerRect.top - menuHeight < 0) {
-        // 顶部空间不足，使用固定位置并添加滚动
-        position.bottom = 'auto';
-        position.top = '0';
-        position.maxHeight = `${containerRect.top}px`;
-      }
-    } else {
-      // 向下展开时，检查底部是否有足够空间
-      if (containerRect.bottom + menuHeight > viewportHeight) {
-        // 底部空间不足，限制最大高度
-        position.maxHeight = `${viewportHeight - containerRect.bottom - 10}px`;
-      }
-    }
-
-    // 检查水平方向是否会超出视口
-    if (alignHorizontal === 'left') {
-      // 向左展开时，检查左侧是否有足够空间
-      if (containerRect.left - menuWidth < 0) {
-        // 左侧空间不足，居中显示
-        position.left = '50%';
-        position.transform = 'translateX(-50%)';
-      }
-    } else {
-      // 向右展开时，检查右侧是否有足够空间
-      if (containerRect.right + menuWidth > viewportWidth) {
-        // 右侧空间不足，居中显示
-        position.right = 'auto';
-        position.left = '50%';
-        position.transform = 'translateX(-50%)';
-      }
-    }
-
-    console.log('SlimPaneAI: Menu position calculated:', {
-      alignHorizontal,
-      alignVertical,
-      position,
-      spaces: { spaceRight, spaceLeft, spaceBelow, spaceAbove },
-      containerRect: {
-        top: containerRect.top,
-        right: containerRect.right,
-        bottom: containerRect.bottom,
-        left: containerRect.left
-      }
-    });
-
-    menuPosition = position;
-  }
-
-  // 当菜单打开时计算位置
-  $: if (isOpen && menuElement) {
-    calculateMenuPosition();
-  }
 
   // 点击外部关闭菜单
   function handleOutsideClick(event: MouseEvent) {
@@ -153,14 +42,7 @@
   <div
     class="toolbar-config-menu"
     bind:this={menuElement}
-    style="
-      top: {menuPosition.top};
-      right: {menuPosition.right};
-      left: {menuPosition.left};
-      bottom: {menuPosition.bottom};
-      transform: {menuPosition.transform};
-      max-height: {menuPosition.maxHeight || 'none'};
-    "
+
   >
     <div class="menu-header">
       <h3>工具条设置</h3>
@@ -220,21 +102,42 @@
     z-index: 1000;
     min-width: 200px;
     max-width: 250px;
+    width: 220px;
     background: var(--bg-primary);
     border: 1px solid var(--border-primary);
     border-radius: 0.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 0;
-    margin: 0.25rem;
 
-    /* 确保菜单不会超出视口 */
+    /* 关键定位：从右下角向上展开，右对齐让菜单向左展开 */
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 0.5rem;
+
+    /* 限制高度避免超出屏幕 */
+    max-height: 300px;
     overflow-y: auto;
 
-    /* 平滑的定位过渡 */
-    transition: all 0.2s ease;
+    /* 确保不会超出左边界 */
+    min-width: 200px;
+
+    /* 动画效果 */
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: bottom right;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 
     /* 确保内容可见 */
     box-sizing: border-box;
+  }
+
+
+
+  /* 高度受限时的处理 */
+  @media (max-height: 600px) {
+    .toolbar-config-menu {
+      max-height: 200px;
+    }
   }
 
   .menu-header {

@@ -115,16 +115,9 @@ ${pageChatState.currentPageContent}`;
 
   // Handle toolbar config toggle
   function handleToolbarConfig(event: Event) {
-    console.log('SlimPaneAI: Toolbar config button clicked!');
-    console.log('SlimPaneAI: Event:', event);
-    console.log('SlimPaneAI: Current showToolbarConfig:', showToolbarConfig);
-    console.log('SlimPaneAI: toolbarConfigStore:', $toolbarConfigStore);
-
     event.preventDefault();
     event.stopPropagation();
-
     showToolbarConfig = !showToolbarConfig;
-    console.log('SlimPaneAI: New showToolbarConfig:', showToolbarConfig);
   }
 
   // Handle toolbar config close
