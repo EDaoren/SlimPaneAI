@@ -2,9 +2,13 @@
   import { onMount, tick } from 'svelte';
   import type { Message } from '@/types';
   import { mathRenderer } from '@/lib/math-renderer';
+  import { renderMarkdown } from '@/lib/markdown-renderer';
   import { settingsStore } from '../stores/settings';
   import { t } from '@/lib/i18n';
   import { supportsReasoning, getModelDisplayName } from '@/lib/model-capabilities';
+
+  // 导入 highlightjs-copy 的CSS样式
+  import 'highlightjs-copy/dist/highlightjs-copy.min.css';
 
   export let message: Message;
 
@@ -60,30 +64,7 @@
       .replace(/\*(.*?)\*/g, '<em>$1</em>'); // 斜体
   }
 
-  // 复制代码到剪贴板
-  async function copyCode(codeId: string) {
-    try {
-      const codeElement = document.getElementById(codeId);
-      if (codeElement) {
-        const code = codeElement.textContent || '';
-        await navigator.clipboard.writeText(code);
 
-        // 显示复制成功的反馈
-        const copyBtn = document.querySelector(`[data-copy-target="${codeId}"]`);
-        if (copyBtn) {
-          const originalText = copyBtn.textContent;
-          copyBtn.textContent = '✓';
-          copyBtn.classList.add('copied');
-          setTimeout(() => {
-            copyBtn.textContent = originalText;
-            copyBtn.classList.remove('copied');
-          }, 2000);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to copy code:', err);
-    }
-  }
 
   // 为不同模型生成头像
   function getModelAvatar(modelId?: string) {
@@ -140,136 +121,8 @@
   function formatContent(content: string): string {
     if (!content) return '';
 
-    // Enhanced markdown formatting without math processing
-    let processedContent = content;
-
-    // First protect code blocks to prevent processing their content
-    const codeBlocks: string[] = [];
-    processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
-      const index = codeBlocks.length;
-      const codeId = `code-block-${message.id}-${index}`;
-      const codeContent = escapeHtml(code.trim());
-
-      // 检测语言（如果有的话）
-      const lines = code.trim().split('\n');
-      let language = '';
-      let actualCode = codeContent;
-
-      if (lines.length > 0 && lines[0].match(/^[a-zA-Z0-9+#-]+$/)) {
-        language = lines[0];
-        actualCode = escapeHtml(lines.slice(1).join('\n'));
-      }
-
-      const codeBlock = `<div class="code-block-container"><div class="code-block-header">${language ? `<span class="code-language">${language}</span>` : '<span></span>'}<button class="copy-code-btn" data-copy-target="${codeId}" onclick="copyCode('${codeId}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H3m0 0l4-4m-4 4l4 4m6-7h7a2 2 0 012 2v10a2 2 0 01-2 2H10a2 2 0 01-2-2V9a2 2 0 012-2z"></path></svg>复制</button></div><pre><code id="${codeId}">${actualCode}</code></pre></div>`;
-
-      codeBlocks.push(codeBlock);
-      return `__CODE_BLOCK_${index}__`;
-    });
-
-    // Protect inline code
-    const inlineCodes: string[] = [];
-    processedContent = processedContent.replace(/`([^`]+)`/g, (match, code) => {
-      const index = inlineCodes.length;
-      inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
-      return `__INLINE_CODE_${index}__`;
-    });
-
-    // Process headers (must be at start of line)
-    processedContent = processedContent.replace(/^#{6}\s+(.+)$/gm, '<h6>$1</h6>');
-    processedContent = processedContent.replace(/^#{5}\s+(.+)$/gm, '<h5>$1</h5>');
-    processedContent = processedContent.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>');
-    processedContent = processedContent.replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>');
-    processedContent = processedContent.replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>');
-    processedContent = processedContent.replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>');
-
-    // Process horizontal rules
-    processedContent = processedContent.replace(/^---+$/gm, '<hr>');
-    processedContent = processedContent.replace(/^\*\*\*+$/gm, '<hr>');
-
-    // Process blockquotes
-    processedContent = processedContent.replace(/^>\s*(.+)$/gm, '<blockquote>$1</blockquote>');
-
-    // Process lists with stricter rules to avoid false positives
-    const lines = processedContent.split('\n');
-    const processedLines = [];
-    let inUnorderedList = false;
-    let inOrderedList = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmedLine = line.trim();
-
-      // More strict patterns for lists
-      const isUnorderedItem = /^[-*+]\s+(.+)$/.test(trimmedLine);
-      // For ordered lists, be more strict: must start with 1. or be consecutive
-      const orderedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
-      const isOrderedItem = orderedMatch && (
-        // Either starting a new list with 1.
-        parseInt(orderedMatch[1]) === 1 ||
-        // Or continuing an existing list
-        inOrderedList
-      );
-
-      if (isUnorderedItem) {
-        if (inOrderedList) {
-          processedLines.push('</ol>');
-          inOrderedList = false;
-        }
-        if (!inUnorderedList) {
-          processedLines.push('<ul>');
-          inUnorderedList = true;
-        }
-        processedLines.push(trimmedLine.replace(/^[-*+]\s+(.+)$/, '<li>$1</li>'));
-      } else if (isOrderedItem) {
-        if (inUnorderedList) {
-          processedLines.push('</ul>');
-          inUnorderedList = false;
-        }
-        if (!inOrderedList) {
-          processedLines.push('<ol>');
-          inOrderedList = true;
-        }
-        processedLines.push(trimmedLine.replace(/^\d+\.\s+(.+)$/, '<li>$1</li>'));
-      } else {
-        if (inUnorderedList) {
-          processedLines.push('</ul>');
-          inUnorderedList = false;
-        }
-        if (inOrderedList) {
-          processedLines.push('</ol>');
-          inOrderedList = false;
-        }
-        processedLines.push(line);
-      }
-    }
-
-    // Close any remaining lists
-    if (inUnorderedList) processedLines.push('</ul>');
-    if (inOrderedList) processedLines.push('</ol>');
-
-    processedContent = processedLines.join('\n');
-    // Note: This is a simplified approach. A more robust solution would group consecutive list items.
-
-    // Process links [text](url)
-    processedContent = processedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-    // Process text formatting
-    processedContent = processedContent.replace(/~~(.*?)~~/g, '<del>$1</del>'); // strikethrough
-    processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // bold
-    processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>'); // italic
-
-    // Convert line breaks
-    processedContent = processedContent.replace(/\n/g, '<br>');
-
-    // Restore code blocks and inline code
-    codeBlocks.forEach((code, index) => {
-      processedContent = processedContent.replace(`__CODE_BLOCK_${index}__`, code);
-    });
-    inlineCodes.forEach((code, index) => {
-      processedContent = processedContent.replace(`__INLINE_CODE_${index}__`, code);
-    });
-
-    return processedContent;
+    // 使用新的markdown渲染器，不包含数学公式
+    return renderMarkdown(content, { enableMath: false });
   }
 
   function escapeHtml(text: string): string {
@@ -278,200 +131,36 @@
     return div.innerHTML;
   }
 
-  // 简化的数学公式渲染
+  // 使用新的markdown渲染器处理包含数学公式的内容
   function formatContentWithMath(content: string): string {
     if (!content) return '';
 
     try {
-      // Handle math formulas FIRST to prevent HTML interference
-      const mathBlocks: string[] = [];
-      let processedContent = content;
+      // 使用新的markdown渲染器，包含数学公式处理
+      return renderMarkdown(content, {
+        enableMath: true,
+        mathRenderer: (mathContent: string) => {
+          // 检查是否是块级数学公式（通常较长或包含换行）
+          const isDisplayMode = mathContent.includes('\n') || mathContent.length > 50;
+          const rendered = mathRenderer.renderMath(mathContent, {
+            displayMode: isDisplayMode,
+            throwOnError: false
+          });
 
-      // Handle display math $$...$$
-      processedContent = processedContent.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
-        const index = mathBlocks.length;
-        const rendered = mathRenderer.renderMath(math, { displayMode: true, throwOnError: false });
-        mathBlocks.push(`<div class="math-display">${rendered}</div>`);
-        return `__MATH_BLOCK_${index}__`;
-      });
-
-      // Handle LaTeX display math \[...\]
-      processedContent = processedContent.replace(/\\\\?\[([\s\S]*?)\\\\?\]/g, (match, math) => {
-        const index = mathBlocks.length;
-        const rendered = mathRenderer.renderMath(math, { displayMode: true, throwOnError: false });
-        mathBlocks.push(`<div class="math-display">${rendered}</div>`);
-        return `__MATH_BLOCK_${index}__`;
-      });
-
-      // Handle inline math $...$
-      processedContent = processedContent.replace(/\$([^$\n]+)\$/g, (match, math) => {
-        const index = mathBlocks.length;
-        const rendered = mathRenderer.renderMath(math, { displayMode: false, throwOnError: false });
-        mathBlocks.push(`<span class="math-inline">${rendered}</span>`);
-        return `__MATH_BLOCK_${index}__`;
-      });
-
-      // Handle LaTeX inline math \(...\)
-      processedContent = processedContent.replace(/\\\\?\((.*?)\\\\?\)/g, (match, math) => {
-        const index = mathBlocks.length;
-        const rendered = mathRenderer.renderMath(math, { displayMode: false, throwOnError: false });
-        mathBlocks.push(`<span class="math-inline">${rendered}</span>`);
-        return `__MATH_BLOCK_${index}__`;
-      });
-
-      // Handle code blocks after math to protect them from other processing
-      const codeBlocks: string[] = [];
-      processedContent = processedContent.replace(/```([\s\S]*?)```/g, (match, code) => {
-        const index = codeBlocks.length;
-        const codeId = `code-block-${message.id}-${index}`;
-        const codeContent = escapeHtml(code.trim());
-
-        // 检测语言（如果有的话）
-        const lines = code.trim().split('\n');
-        let language = '';
-        let actualCode = codeContent;
-
-        if (lines.length > 0 && lines[0].match(/^[a-zA-Z0-9+#-]+$/)) {
-          language = lines[0];
-          actualCode = escapeHtml(lines.slice(1).join('\n'));
-        }
-
-        const codeBlock = `<div class="code-block-container"><div class="code-block-header">${language ? `<span class="code-language">${language}</span>` : '<span></span>'}<button class="copy-code-btn" data-copy-target="${codeId}" onclick="copyCode('${codeId}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H3m0 0l4-4m-4 4l4 4m6-7h7a2 2 0 012 2v10a2 2 0 01-2 2H10a2 2 0 01-2-2V9a2 2 0 012-2z"></path></svg>复制</button></div><pre><code id="${codeId}">${actualCode}</code></pre></div>`;
-
-        codeBlocks.push(codeBlock);
-        return `__CODE_BLOCK_${index}__`;
-      });
-
-      // Handle inline code
-      const inlineCodes: string[] = [];
-      processedContent = processedContent.replace(/`([^`]+)`/g, (match, code) => {
-        const index = inlineCodes.length;
-        inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
-        return `__INLINE_CODE_${index}__`;
-      });
-
-
-
-      // Process headers (must be at start of line)
-      processedContent = processedContent.replace(/^#{6}\s+(.+)$/gm, '<h6>$1</h6>');
-      processedContent = processedContent.replace(/^#{5}\s+(.+)$/gm, '<h5>$1</h5>');
-      processedContent = processedContent.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>');
-      processedContent = processedContent.replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>');
-      processedContent = processedContent.replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>');
-      processedContent = processedContent.replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>');
-
-      // Process horizontal rules
-      processedContent = processedContent.replace(/^---+$/gm, '<hr>');
-      processedContent = processedContent.replace(/^\*\*\*+$/gm, '<hr>');
-
-      // Process blockquotes
-      processedContent = processedContent.replace(/^>\s*(.+)$/gm, '<blockquote>$1</blockquote>');
-
-      // Process lists with stricter rules to avoid false positives
-      const lines = processedContent.split('\n');
-      const processedLines = [];
-      let inUnorderedList = false;
-      let inOrderedList = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmedLine = line.trim();
-
-        // More strict patterns for lists
-        const isUnorderedItem = /^[-*+]\s+(.+)$/.test(trimmedLine);
-        // For ordered lists, be much more strict:
-        // 1. Must start with 1. to begin a new list
-        // 2. Must be consecutive numbers when continuing
-        // 3. Avoid false positives in regular text
-        const orderedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
-        let isOrderedItem = false;
-
-        if (orderedMatch) {
-          const number = parseInt(orderedMatch[1]);
-          const content = orderedMatch[2];
-
-          // Only treat as list if:
-          // 1. Starting with 1. and content looks like a list item (short, no complex punctuation)
-          // 2. Or continuing an existing list with consecutive numbers
-          if (number === 1 && !inOrderedList) {
-            // Check if this looks like a real list item vs regular text
-            // List items are usually shorter and don't contain complex sentences
-            const looksLikeListItem = content.length < 100 && !content.includes('：') && !content.includes('。');
-            isOrderedItem = looksLikeListItem;
-          } else if (inOrderedList) {
-            // Continue existing list only with consecutive numbers
-            isOrderedItem = true;
+          if (isDisplayMode) {
+            return `<div class="math-display">${rendered}</div>`;
+          } else {
+            return `<span class="math-inline">${rendered}</span>`;
           }
         }
-
-        if (isUnorderedItem) {
-          if (inOrderedList) {
-            processedLines.push('</ol>');
-            inOrderedList = false;
-          }
-          if (!inUnorderedList) {
-            processedLines.push('<ul>');
-            inUnorderedList = true;
-          }
-          processedLines.push(trimmedLine.replace(/^[-*+]\s+(.+)$/, '<li>$1</li>'));
-        } else if (isOrderedItem) {
-          if (inUnorderedList) {
-            processedLines.push('</ul>');
-            inUnorderedList = false;
-          }
-          if (!inOrderedList) {
-            processedLines.push('<ol>');
-            inOrderedList = true;
-          }
-          processedLines.push(trimmedLine.replace(/^\d+\.\s+(.+)$/, '<li>$1</li>'));
-        } else {
-          if (inUnorderedList) {
-            processedLines.push('</ul>');
-            inUnorderedList = false;
-          }
-          if (inOrderedList) {
-            processedLines.push('</ol>');
-            inOrderedList = false;
-          }
-          processedLines.push(line);
-        }
-      }
-
-      // Close any remaining lists
-      if (inUnorderedList) processedLines.push('</ul>');
-      if (inOrderedList) processedLines.push('</ol>');
-
-      processedContent = processedLines.join('\n');
-
-      // Process links [text](url)
-      processedContent = processedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-      // Process text formatting
-      processedContent = processedContent.replace(/~~(.*?)~~/g, '<del>$1</del>'); // strikethrough
-      processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // bold
-      processedContent = processedContent.replace(/\*(.*?)\*/g, '<em>$1</em>'); // italic
-
-      // Convert line breaks
-      processedContent = processedContent.replace(/\n/g, '<br>');
-
-      // Restore math blocks, code blocks and inline codes
-      processedContent = processedContent.replace(/__MATH_BLOCK_(\d+)__/g, (match, index) => {
-        return mathBlocks[parseInt(index)];
       });
-
-      processedContent = processedContent.replace(/__CODE_BLOCK_(\d+)__/g, (match, index) => {
-        return codeBlocks[parseInt(index)];
-      });
-
-      processedContent = processedContent.replace(/__INLINE_CODE_(\d+)__/g, (match, index) => {
-        return inlineCodes[parseInt(index)];
-      });
-
-      return processedContent;
     } catch (error) {
+      console.error('Math rendering error:', error);
       return formatContent(content); // 回退到基本格式化
     }
   }
+
+
 
   // 防抖处理内容更新
   let contentUpdateTimer: number;
@@ -516,11 +205,6 @@
   }
 
   onMount(() => {
-    // 将copyCode函数添加到全局作用域
-    if (typeof window !== 'undefined') {
-      (window as any).copyCode = copyCode;
-    }
-
     // 设置 Intersection Observer 来检测可见性
     if ('IntersectionObserver' in window && messageElement) {
       const observer = new IntersectionObserver(
@@ -650,7 +334,6 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    white-space: pre-wrap;
   }
 
   .assistant-message-bubble {
@@ -664,7 +347,6 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    white-space: pre-wrap;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
@@ -701,7 +383,7 @@
     background: rgba(0, 0, 0, 0.1);
     padding: 0.5rem;
     border-radius: 0.25rem;
-    margin-top: 0.5rem;
+    margin: 0.125rem 0;
     font-size: 0.75rem;
     font-family: monospace;
     overflow-x: auto;
@@ -906,7 +588,7 @@
 
   .message-content :global(ul),
   .message-content :global(ol) {
-    margin: 0.125rem 0;
+    margin: 0.0625rem 0;
     padding-left: 1.125rem;
   }
 
@@ -1035,12 +717,35 @@
 
   /* Enhanced Code block styles */
   .message-content :global(.code-block-container) {
-    margin: 0.5rem 0 !important;
+    margin: 0.125rem 0 !important;
     border-radius: 0.5rem !important;
     overflow: hidden !important;
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Highlight.js 代码高亮样式 - 使用官方主题，只做必要的调整 */
+  .message-content :global(.hljs) {
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    overflow-x: auto !important;
+    margin: 0.5rem 0 !important;
+  }
+
+  /* highlightjs-copy 插件 - 使用默认样式 */
+
+  /* 内联代码样式 */
+  .message-content :global(.inline-code) {
+    background: rgba(0, 0, 0, 0.1) !important;
+    padding: 0.125rem 0.25rem !important;
+    border-radius: 0.25rem !important;
+    font-size: 0.875rem !important;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+    color: #dc2626 !important;
   }
 
   .message-content :global(.code-block-header) {
@@ -1112,7 +817,7 @@
     color: #e2e8f0;
     padding: 0.5rem;
     border-radius: 0.375rem;
-    margin: 0.25rem 0;
+    margin: 0.125rem 0;
     font-size: 0.875rem;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     overflow-x: auto;
@@ -1130,6 +835,16 @@
     padding: 0;
     border-radius: 0;
     font-size: inherit;
+  }
+
+  /* highlightjs-copy 插件 - 使用默认样式，只做最小调整 */
+  .message-content :global(.hljs-copy-wrapper) {
+    position: relative;
+  }
+
+  /* 只对复制按钮做最小的样式调整以适配我们的主题 */
+  .message-content :global(.hljs-copy-button) {
+    /* 让插件使用默认样式，我们只调整颜色以适配深色主题 */
   }
 
   /* Dark theme adjustments for code blocks */
