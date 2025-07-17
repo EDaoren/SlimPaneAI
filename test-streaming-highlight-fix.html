@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 流式代码高亮修复测试</title>
+    
+    <!-- 引入 highlight.js 和主题 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <!-- 引入 highlightjs-copy 插件 -->
+    <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0d1117;
+            color: #e6edf3;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            background: #161b22;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .status:not(.error) {
+            background: #0d4429;
+            color: #3fb950;
+            border: 1px solid #238636;
+        }
+        
+        .status.error {
+            background: #490202;
+            color: #f85149;
+            border: 1px solid #da3633;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #2ea043;
+        }
+        
+        button:disabled {
+            background: #484f58;
+            cursor: not-allowed;
+        }
+        
+        .message-content {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px 0;
+        }
+        
+        .streaming-indicator {
+            color: #7c3aed;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+        
+        /* 模拟 MessageItem 的样式 */
+        .message-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+            font-size: 0.875rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            overflow-x: auto;
+            line-height: 1.4;
+            border: 1px solid #334155;
+        }
+        
+        .message-content .hljs {
+            border-radius: 0.5rem !important;
+            margin: 0.5rem 0 !important;
+            font-size: 0.875rem !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 流式代码高亮修复测试</h1>
+    
+    <div class="test-section">
+        <h2>修复状态</h2>
+        <div id="fix-status" class="status">准备测试流式代码高亮修复...</div>
+    </div>
+    
+    <div class="controls">
+        <button id="start-test" onclick="startStreamingTest()">开始流式测试</button>
+        <button id="stop-test" onclick="stopStreamingTest()" disabled>停止测试</button>
+        <button onclick="clearContent()">清空内容</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>流式输出模拟</h2>
+        <div id="streaming-indicator" class="streaming-indicator" style="display: none;">
+            🔄 正在模拟流式输出...
+        </div>
+        <div id="message-content" class="message-content"></div>
+    </div>
+    
+    <script>
+        // 初始化 highlightjs-copy 插件
+        hljs.addPlugin(new CopyButtonPlugin({
+            lang: 'zh-CN',
+            callback: (text, el) => {
+                console.log('代码已复制到剪贴板');
+                updateStatus('✅ 代码复制成功！流式高亮修复效果正常。', false);
+            }
+        }));
+        
+        let streamingInterval;
+        let currentContent = '';
+        let isStreaming = false;
+        
+        // 模拟的代码内容
+        const codeContent = `# Python 示例代码
+def fibonacci(n):
+    """计算斐波那契数列"""
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+# JavaScript 示例
+function quickSort(arr) {
+    if (arr.length <= 1) return arr;
+    
+    const pivot = arr[Math.floor(arr.length / 2)];
+    const left = arr.filter(x => x < pivot);
+    const right = arr.filter(x => x > pivot);
+    const middle = arr.filter(x => x === pivot);
+    
+    return [...quickSort(left), ...middle, ...quickSort(right)];
+}
+
+# CSS 示例
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}`;
+        
+        // 模拟流式输出的内容
+        const streamingContent = `这是一个代码高亮测试。下面是一些示例代码：
+
+\`\`\`python
+${codeContent}
+\`\`\`
+
+测试完成！代码高亮应该在流式输出过程中保持稳定，不会闪烁。`;
+        
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('fix-status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+        
+        function startStreamingTest() {
+            if (isStreaming) return;
+            
+            isStreaming = true;
+            currentContent = '';
+            document.getElementById('start-test').disabled = true;
+            document.getElementById('stop-test').disabled = false;
+            document.getElementById('streaming-indicator').style.display = 'block';
+            
+            updateStatus('🔄 开始流式输出测试...', false);
+            
+            let charIndex = 0;
+            streamingInterval = setInterval(() => {
+                if (charIndex < streamingContent.length) {
+                    currentContent += streamingContent[charIndex];
+                    charIndex++;
+                    
+                    // 模拟 markdown 渲染（简化版）
+                    renderContent(currentContent);
+                } else {
+                    stopStreamingTest();
+                }
+            }, 50); // 50ms 间隔模拟快速流式输出
+        }
+        
+        function stopStreamingTest() {
+            if (!isStreaming) return;
+            
+            isStreaming = false;
+            clearInterval(streamingInterval);
+            document.getElementById('start-test').disabled = false;
+            document.getElementById('stop-test').disabled = true;
+            document.getElementById('streaming-indicator').style.display = 'none';
+            
+            // 最终高亮
+            highlightCodeBlocks();
+            updateStatus('✅ 流式输出测试完成！检查代码高亮是否稳定。', false);
+        }
+        
+        function clearContent() {
+            currentContent = '';
+            document.getElementById('message-content').innerHTML = '';
+            updateStatus('内容已清空，可以重新开始测试。', false);
+        }
+        
+        function renderContent(content) {
+            const container = document.getElementById('message-content');
+            
+            // 简单的 markdown 渲染（只处理代码块）
+            let html = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
+            
+            // 处理代码块
+            html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+                const language = lang || '';
+                const cleanCode = code.replace(/<br>/g, '\n');
+                return `<pre><code class="language-${language}">${cleanCode}</code></pre>`;
+            });
+            
+            container.innerHTML = html;
+            
+            // 防抖高亮（模拟修复后的逻辑）
+            clearTimeout(window.highlightTimeout);
+            window.highlightTimeout = setTimeout(() => {
+                highlightCodeBlocks();
+            }, 150);
+        }
+        
+        function highlightCodeBlocks() {
+            const container = document.getElementById('message-content');
+            const codeBlocks = container.querySelectorAll('pre code');
+
+            if (codeBlocks.length === 0) return;
+
+            codeBlocks.forEach((block) => {
+                try {
+                    const codeElement = block;
+                    const preElement = codeElement.parentElement;
+
+                    // 如果还没有hljs类，进行高亮
+                    if (!codeElement.classList.contains('hljs')) {
+                        hljs.highlightElement(codeElement);
+                    }
+
+                    // 确保pre元素也有hljs类（用于样式）
+                    if (preElement && preElement.tagName === 'PRE' && !preElement.classList.contains('hljs')) {
+                        preElement.classList.add('hljs');
+                    }
+                } catch (error) {
+                    console.warn('Failed to highlight code block:', error);
+                }
+            });
+        }
+        
+        // 初始状态
+        updateStatus('✅ 页面加载完成，点击"开始流式测试"来测试修复效果。', false);
+    </script>
+</body>
+</html>

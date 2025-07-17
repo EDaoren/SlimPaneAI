@@ -21,10 +21,12 @@ const md = new MarkdownIt({
     // 使用highlight.js进行代码高亮
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return hljs.highlight(str, { language: lang }).value;
+        const result = hljs.highlight(str, { language: lang });
+        return result.value;
       } catch (__) {}
     }
-    return ''; // 使用外部默认转义
+    // 当无法高亮时，返回转义后的HTML以确保安全
+    return md.utils.escapeHtml(str);
   }
 });
 
@@ -64,18 +66,51 @@ export function renderMarkdown(content: string, options: {
   // 使用 markdown-it 渲染（包含 KaTeX 插件处理数学公式）
   const html = md.render(content);
 
-  // 在客户端环境中，为新渲染的代码块初始化 highlight.js
-  if (typeof window !== 'undefined') {
-    // 使用 setTimeout 确保 DOM 更新后再初始化
-    setTimeout(() => {
-      const codeBlocks = document.querySelectorAll('pre code:not(.hljs)');
-      codeBlocks.forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-      });
-    }, 0);
-  }
-
   return html;
+}
+
+/**
+ * 为指定容器内的代码块应用高亮
+ * @param container 包含代码块的容器元素
+ */
+export function highlightCodeBlocks(container: HTMLElement): void {
+  if (typeof window === 'undefined') return;
+
+  // 查找所有代码块，包括已经高亮的（为了添加复制按钮）
+  const codeBlocks = container.querySelectorAll('pre code');
+  if (codeBlocks.length === 0) return; // 没有代码块
+
+  codeBlocks.forEach((block) => {
+    try {
+      const codeElement = block as HTMLElement;
+      const preElement = codeElement.parentElement as HTMLElement;
+
+      // 如果还没有hljs类，进行高亮
+      if (!codeElement.classList.contains('hljs')) {
+        hljs.highlightElement(codeElement);
+      }
+
+      // 确保pre元素也有hljs类（用于样式）
+      if (preElement && preElement.tagName === 'PRE' && !preElement.classList.contains('hljs')) {
+        preElement.classList.add('hljs');
+      }
+    } catch (error) {
+      console.warn('Failed to process code block:', error);
+    }
+  });
+}
+
+/**
+ * 检查容器内是否有需要高亮的代码块
+ * @param container 包含代码块的容器元素
+ * @returns 是否有需要高亮的代码块
+ */
+export function hasUnhighlightedCodeBlocks(container: HTMLElement): boolean {
+  if (typeof window === 'undefined') return false;
+
+  // 检查是否有代码块需要处理（包括添加复制按钮）
+  const codeBlocks = container.querySelectorAll('pre code');
+  return codeBlocks.length > 0;
 }
 
 /**

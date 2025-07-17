@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, afterUpdate, tick } from 'svelte';
   import type { Message } from '@/types';
-  import { renderMarkdown } from '@/lib/markdown-renderer';
+  import { renderMarkdown, highlightCodeBlocks, hasUnhighlightedCodeBlocks } from '@/lib/markdown-renderer';
   import { settingsStore } from '../stores/settings';
   import { t } from '@/lib/i18n';
   import { supportsReasoning, getModelDisplayName } from '@/lib/model-capabilities';
@@ -12,6 +12,7 @@
   export let message: Message;
 
   let contentElement: HTMLElement;
+  let userContentElement: HTMLElement;
   let messageElement: HTMLElement;
   let processedContent = '';
   let isProcessing = false;
@@ -136,6 +137,9 @@
 
   // 防抖处理内容更新
   let contentUpdateTimer: number;
+  let highlightTimer: number;
+  let needsHighlighting = false;
+  let lastContentLength = 0;
 
   function updateProcessedContent() {
     if (isProcessing || message.content === lastProcessedContent) {
@@ -155,6 +159,35 @@
     try {
       // 统一使用 markdown 渲染器处理所有内容（包括数学公式）
       processedContent = renderMarkdown(message.content, { enableMath: true });
+
+      // 检查内容是否包含代码块
+      const hasCodeBlocks = message.content.includes('```');
+      if (hasCodeBlocks) {
+        needsHighlighting = true;
+
+        // 智能防抖：根据内容变化量调整延迟
+        const contentLength = message.content.length;
+        const contentGrowth = contentLength - lastContentLength;
+        lastContentLength = contentLength;
+
+        // 如果内容增长很少，可能是流式输出接近结束
+        const delay = contentGrowth < 50 ? 100 : 200;
+
+        clearTimeout(highlightTimer);
+        highlightTimer = setTimeout(() => {
+          if (needsHighlighting) {
+            const targetElement = message.type === 'assistant' ? contentElement : userContentElement;
+            if (targetElement && hasUnhighlightedCodeBlocks(targetElement)) {
+              highlightCodeBlocks(targetElement);
+              needsHighlighting = false;
+            }
+          }
+        }, delay);
+      } else {
+        // 如果没有代码块，确保清除高亮标记
+        needsHighlighting = false;
+      }
+
     } catch (error) {
       // 出错时回退到基本格式化
       console.error('Error processing message content:', error);
@@ -200,6 +233,24 @@
       isVisible = true;
       updateProcessedContent();
     }
+  });
+
+  // 在DOM更新后进行最终的代码高亮
+  afterUpdate(() => {
+    if (needsHighlighting) {
+      const targetElement = message.type === 'assistant' ? contentElement : userContentElement;
+      if (targetElement && hasUnhighlightedCodeBlocks(targetElement)) {
+        // 立即高亮，用于处理非流式内容或最终状态
+        highlightCodeBlocks(targetElement);
+        needsHighlighting = false;
+      }
+    }
+  });
+
+  // 清理定时器
+  onDestroy(() => {
+    clearTimeout(contentUpdateTimer);
+    clearTimeout(highlightTimer);
   });
 </script>
 
@@ -261,7 +312,7 @@
         <!-- 主要回答内容（只有在有内容或思考状态时才显示bubble） -->
         {#if message.content.trim() || (supportsReasoning(message.model) && message.isThinking)}
           <div class="assistant-message-bubble">
-            <div class="message-content">
+            <div class="message-content" bind:this={contentElement}>
               {#if message.content.trim()}
                 {@html processedContent}
               {:else if supportsReasoning(message.model) && message.isThinking}
@@ -276,7 +327,7 @@
     <!-- User Message - Simple right aligned -->
     <div style="display: flex; justify-content: flex-end;">
       <div style="max-width: 75%; background: var(--message-user-bg); color: var(--message-user-text); padding: var(--message-padding); border-radius: 1rem; transition: background 0.2s ease, color 0.2s ease;">
-        <div class="message-content">
+        <div class="message-content" bind:this={userContentElement}>
           {#if message.content.trim()}
             {@html processedContent}
           {:else}
