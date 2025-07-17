@@ -5,10 +5,11 @@
   import { settingsStore } from './stores/settings';
   import { applyTheme } from '@/lib/theme-manager';
   import { initializeLanguage, t } from '@/lib/i18n';
-  import type { ExtensionMessage, TextSelectionMessage } from '@/types';
+  import type { ExtensionMessage, TextSelectionMessage, TabSwitchedMessage, PageNavigatedMessage } from '@/types';
 
   let isLoading = true;
   let unsubscribeSettings: (() => void) | null = null;
+  let chatPanel: ChatPanel;
 
   // 响应式应用主题变化和语言初始化
   $: if ($settingsStore.userPreferences) {
@@ -32,7 +33,7 @@
     isLoading = false;
   });
 
-  function handleMessage(message: ExtensionMessage) {
+  function handleMessage(message: ExtensionMessage, sender: any, sendResponse: (response?: any) => void) {
     console.log('🎯 [Panel] Received message:', message);
 
     switch (message.type) {
@@ -50,8 +51,32 @@
         console.log('💾 Storage updated, refreshing settings...');
         settingsStore.forceRefresh();
         break;
+      case 'tab-switched':
+        console.log('🔄 Tab switched, forwarding to ChatPanel');
+        if (chatPanel && chatPanel.handlePageContentMessage) {
+          chatPanel.handlePageContentMessage(message);
+        }
+        break;
+      case 'page-navigated':
+        console.log('🧭 Page navigated, forwarding to ChatPanel');
+        if (chatPanel && chatPanel.handlePageContentMessage) {
+          chatPanel.handlePageContentMessage(message);
+        }
+        break;
+      case 'page-content-extracted':
+      case 'pdf-processing-status':
+        console.log('📄 Page content message, forwarding to ChatPanel');
+        if (chatPanel && chatPanel.handlePageContentMessage) {
+          chatPanel.handlePageContentMessage(message);
+        }
+        break;
       default:
         console.log('❓ Unknown message type:', message.type);
+    }
+
+    // Always send a response to prevent port closure
+    if (sendResponse) {
+      sendResponse({ received: true });
     }
   }
 
@@ -89,7 +114,7 @@
         <div class="text-gray-500">{$t('chat.loading')}</div>
       </div>
     {:else}
-      <ChatPanel />
+      <ChatPanel bind:this={chatPanel} />
     {/if}
   </main>
 

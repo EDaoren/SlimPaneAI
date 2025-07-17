@@ -25,18 +25,9 @@
     tokenStats = TokenEstimator.getTokenStats($pageContent.content);
   }
 
-  onMount(() => {
-    loadCurrentPageContent();
-    
-    // Listen for page content updates
-    chrome.runtime.onMessage.addListener(handleMessage);
-  });
-
-  onDestroy(() => {
-    chrome.runtime.onMessage.removeListener(handleMessage);
-  });
-
-  function handleMessage(message: any) {
+  // Export function to handle messages from parent
+  export function handleMessage(message: any) {
+    console.log('SlimPaneAI: PageContentPanel received message:', message.type, message);
     switch (message.type) {
       case 'page-content-extracted':
         if (message.payload.content) {
@@ -49,32 +40,49 @@
           pdfStatus.set(message.payload.status);
         }
         break;
+      case 'tab-switched':
+      case 'page-navigated':
+        // When tab switches or page navigates, reload content
+        console.log('SlimPaneAI: Detected tab/page change, reloading content for:', message.payload.url);
+        loadCurrentPageContent();
+        break;
     }
   }
 
+  onMount(() => {
+    loadCurrentPageContent();
+  });
+
   async function loadCurrentPageContent() {
+    console.log('SlimPaneAI: loadCurrentPageContent called');
     isLoading.set(true);
     error.set(null);
 
     try {
       // Get current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      console.log('SlimPaneAI: Current tab:', tab?.url);
       if (!tab?.url) {
         throw new Error('No active tab found');
       }
 
       currentDomain = new URL(tab.url).hostname;
+      console.log('SlimPaneAI: Current domain:', currentDomain);
 
       // Load domain settings
       const settings = await domainSettingsManager.getDomainSettings(currentDomain);
       domainSettings.set(settings);
+      console.log('SlimPaneAI: Domain settings loaded:', settings);
 
       // Request page content from content script
       const response = await chrome.tabs.sendMessage(tab.id!, { type: 'get-page-content' });
+      console.log('SlimPaneAI: Content script response:', response);
       if (response?.content) {
         pageContent.set(response.content);
+        console.log('SlimPaneAI: Page content updated from content script');
       } else {
         // Try to extract content
+        console.log('SlimPaneAI: No content from content script, trying extraction');
         await extractPageContent();
       }
     } catch (err) {

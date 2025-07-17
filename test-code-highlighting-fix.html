@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码高亮修复测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 2rem;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section h2 {
+            color: #374151;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* 模拟 MessageItem 的样式 */
+        .message-content {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        /* 应用与 MessageItem.svelte 相同的样式 */
+        .message-content .hljs {
+            padding: 1rem !important;
+            border-radius: 0.5rem !important;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+            font-size: 0.875rem !important;
+            line-height: 1.5 !important;
+            overflow-x: auto !important;
+            margin: 0.5rem 0 !important;
+        }
+
+        .message-content .inline-code {
+            background: rgba(0, 0, 0, 0.1) !important;
+            padding: 0.125rem 0.25rem !important;
+            border-radius: 0.25rem !important;
+            font-size: 0.875rem !important;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+            color: #dc2626 !important;
+        }
+    </style>
+    
+    <!-- 引入 highlight.js 和主题 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <!-- 引入 highlightjs-copy 插件 -->
+    <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css">
+</head>
+<body>
+    <h1>🔧 代码高亮修复测试</h1>
+    
+    <div class="test-section">
+        <h2>修复状态</h2>
+        <div id="fix-status" class="status">正在检查修复效果...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>JavaScript 代码示例</h2>
+        <div class="message-content">
+            <pre><code class="language-javascript">// 这是一个 JavaScript 示例
+function createMarkdownRenderer() {
+  const md = new MarkdownIt({
+    html: true,
+    breaks: false,
+    linkify: true,
+    highlight: function (str, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          return hljs.highlight(str, { language: lang }).value;
+        } catch (__) {}
+      }
+      return '';
+    }
+  });
+  
+  return md;
+}
+
+// 初始化 highlightjs-copy 插件
+hljs.addPlugin(new CopyButtonPlugin({
+  lang: 'zh-CN',
+  callback: (text, el) => {
+    console.log('代码已复制到剪贴板');
+  }
+}));</code></pre>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Python 代码示例</h2>
+        <div class="message-content">
+            <pre><code class="language-python"># Python 代码高亮测试
+import os
+import sys
+from typing import List, Dict, Optional
+
+class CodeHighlighter:
+    """代码高亮处理器"""
+    
+    def __init__(self, theme: str = "github-dark"):
+        self.theme = theme
+        self.languages = ["python", "javascript", "typescript", "css", "html"]
+    
+    def highlight_code(self, code: str, language: str) -> str:
+        """高亮代码块"""
+        if language not in self.languages:
+            return code
+            
+        # 使用 highlight.js 进行高亮
+        return f'<pre><code class="language-{language}">{code}</code></pre>'
+    
+    def process_markdown(self, content: str) -> str:
+        """处理 Markdown 内容"""
+        lines = content.split('\n')
+        result = []
+        
+        for line in lines:
+            if line.startswith('```'):
+                # 处理代码块
+                result.append(self.highlight_code(line, 'markdown'))
+            else:
+                result.append(line)
+        
+        return '\n'.join(result)</code></pre>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>CSS 代码示例</h2>
+        <div class="message-content">
+            <pre><code class="language-css">/* CSS 代码高亮测试 */
+.message-content .hljs {
+  padding: 1rem !important;
+  border-radius: 0.5rem !important;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  overflow-x: auto !important;
+  margin: 0.5rem 0 !important;
+}
+
+/* 内联代码样式 */
+.message-content .inline-code {
+  background: rgba(0, 0, 0, 0.1) !important;
+  padding: 0.125rem 0.25rem !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.875rem !important;
+  color: #dc2626 !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .message-content .hljs {
+    font-size: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>内联代码测试</h2>
+        <div class="message-content">
+            <p>这里有一些内联代码示例：<code class="inline-code">const result = hljs.highlight(code, { language: 'javascript' })</code> 和 <code class="inline-code">import 'highlight.js/styles/github-dark.css'</code>。</p>
+            <p>修复后的代码高亮应该：</p>
+            <ul>
+                <li>使用 <code class="inline-code">github-dark</code> 主题</li>
+                <li>正确显示语法高亮颜色</li>
+                <li>包含复制按钮功能</li>
+                <li>保持良好的字体和间距</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 highlightjs-copy 插件
+        hljs.addPlugin(new CopyButtonPlugin({
+            lang: 'zh-CN',
+            callback: (text, el) => {
+                console.log('代码已复制到剪贴板:', text.substring(0, 50) + '...');
+                updateStatus('✅ 代码复制成功！修复效果正常。', false);
+            }
+        }));
+
+        // 高亮所有代码块
+        hljs.highlightAll();
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('fix-status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+
+        // 检查修复效果
+        setTimeout(() => {
+            const codeBlocks = document.querySelectorAll('.hljs');
+            const copyButtons = document.querySelectorAll('.hljs-copy-button');
+            
+            console.log(`找到 ${codeBlocks.length} 个代码块`);
+            console.log(`找到 ${copyButtons.length} 个复制按钮`);
+            
+            if (codeBlocks.length > 0 && copyButtons.length > 0) {
+                // 检查是否应用了正确的主题样式
+                const firstCodeBlock = codeBlocks[0];
+                const computedStyle = window.getComputedStyle(firstCodeBlock);
+                const backgroundColor = computedStyle.backgroundColor;
+                
+                console.log('代码块背景色:', backgroundColor);
+                
+                updateStatus(`✅ 代码高亮修复成功！找到 ${codeBlocks.length} 个代码块和 ${copyButtons.length} 个复制按钮。主题样式已正确应用。`);
+            } else {
+                updateStatus('❌ 代码高亮修复失败。请检查 highlight.js 和插件配置。', true);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

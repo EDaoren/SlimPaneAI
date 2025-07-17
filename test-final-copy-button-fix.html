@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终复制按钮修复测试</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .test-section h2 {
+            color: #475569;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-weight: 500;
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* 应用最终修复的样式 */
+        .hljs {
+            display: block !important;
+            overflow-x: auto !important;
+            padding: 0.75rem !important;
+            color: #c9d1d9 !important;
+            background: #0d1117 !important;
+            border-radius: 0.5rem !important;
+            margin: 0 !important;
+            scrollbar-width: thin !important;
+            scrollbar-gutter: stable !important;
+        }
+
+        .hljs::-webkit-scrollbar {
+            height: 8px !important;
+            width: 8px !important;
+        }
+
+        .hljs::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* 优化复制按钮和代码块的整体布局 - 使用更高优先级 */
+        .hljs-copy-wrapper {
+            position: relative !important;
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            margin: 0.5rem 0 !important;
+        }
+
+        /* 重置 highlightjs-copy 默认样式并应用我们的自定义样式 */
+        .hljs-copy-container {
+            position: absolute !important;
+            top: 0 !important;
+            right: 0 !important;
+            transform: none !important;
+            transition: none !important;
+        }
+
+        .hljs-copy-button,
+        .hljs-copy-button[data-copied="true"],
+        .hljs-copy-button:not([data-copied="true"]) {
+            /* 重置所有默认样式 */
+            all: unset !important;
+            /* 应用我们的自定义样式 */
+            position: absolute !important;
+            top: 0.75rem !important;
+            right: 0.75rem !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0.375rem 0.75rem !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 0.375rem !important;
+            color: #e2e8f0 !important;
+            font-size: 0.75rem !important;
+            font-weight: 500 !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            backdrop-filter: blur(4px) !important;
+            text-indent: 0 !important;
+            overflow: visible !important;
+            display: inline-block !important;
+            box-sizing: border-box !important;
+        }
+
+        .hljs-copy-button::before {
+            display: none !important;
+        }
+
+        .hljs-copy-button:hover {
+            background: rgba(0, 0, 0, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* 确保容器不会隐藏 */
+        .hljs-copy-container[data-autohide="true"] {
+            transform: none !important;
+        }
+
+        .test-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #0369a1;
+        }
+
+        .test-info ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .long-code {
+            white-space: nowrap;
+        }
+
+        /* 模拟项目中可能存在的 .btn 样式冲突 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 最终复制按钮修复测试</h1>
+        
+        <div class="test-info">
+            <h3>最终修复内容：</h3>
+            <ul>
+                <li>✅ 重置 highlightjs-copy 默认样式</li>
+                <li>✅ 使用 all: unset 清除所有继承样式</li>
+                <li>✅ 应用统一的自定义样式</li>
+                <li>✅ 确保复制按钮与代码块形成整体</li>
+                <li>✅ 防止项目中其他 .btn 样式的干扰</li>
+            </ul>
+        </div>
+
+        <div id="fix-status" class="status">正在测试最终修复效果...</div>
+
+        <div class="test-section">
+            <h2>短代码示例</h2>
+            <pre><code class="language-bash">docker compose ps</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>长代码示例（测试滚动）</h2>
+            <pre><code class="language-bash long-code">wget https://raw.githubusercontent.com/tbpgr/ept-load/refs/heads/main/docker-compose.yml && wget -O .env https://raw.githubusercontent.com/tbpgr/ept-load/refs/heads/main/.env.example</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>多行代码示例</h2>
+            <pre><code class="language-javascript">// 测试复制按钮的整体性和样式一致性
+const testFunction = () => {
+    console.log("复制按钮应该与代码块形成一个整体");
+    return "样式应该统一，没有额外的空白";
+};</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>CSS 代码示例</h2>
+            <pre><code class="language-css">/* 最终修复的关键样式 */
+.hljs-copy-button {
+    all: unset !important;
+    position: absolute !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+}</code></pre>
+        </div>
+
+        <!-- 添加一个普通按钮来测试样式冲突 -->
+        <div class="test-section">
+            <h2>样式冲突测试</h2>
+            <p>下面是一个普通的 .btn 按钮，用来测试是否会影响复制按钮：</p>
+            <button class="btn" style="background: #3b82f6; color: white;">普通按钮</button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 highlightjs-copy 插件
+        hljs.addPlugin(new CopyButtonPlugin({
+            lang: 'zh-CN',
+            callback: (text, el) => {
+                console.log('代码已复制到剪贴板');
+                updateStatus('✅ 代码复制成功！最终修复效果正常。', false);
+            }
+        }));
+
+        // 高亮所有代码块
+        hljs.highlightAll();
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('fix-status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+
+        // 检查最终修复效果
+        setTimeout(() => {
+            const codeBlocks = document.querySelectorAll('.hljs');
+            const copyButtons = document.querySelectorAll('.hljs-copy-button');
+            const wrappers = document.querySelectorAll('.hljs-copy-wrapper');
+            
+            console.log(`找到 ${codeBlocks.length} 个代码块`);
+            console.log(`找到 ${copyButtons.length} 个复制按钮`);
+            console.log(`找到 ${wrappers.length} 个包装容器`);
+            
+            // 检查复制按钮的样式
+            copyButtons.forEach((button, index) => {
+                const computedStyle = window.getComputedStyle(button);
+                console.log(`复制按钮 ${index + 1} 样式:`, {
+                    position: computedStyle.position,
+                    background: computedStyle.background,
+                    padding: computedStyle.padding,
+                    borderRadius: computedStyle.borderRadius,
+                    top: computedStyle.top,
+                    right: computedStyle.right
+                });
+            });
+            
+            if (codeBlocks.length > 0 && copyButtons.length > 0) {
+                updateStatus(`✅ 最终修复成功！找到 ${codeBlocks.length} 个代码块和 ${copyButtons.length} 个复制按钮。样式已完全统一。`);
+            } else {
+                updateStatus('❌ 修复失败，请检查配置。', true);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

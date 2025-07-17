@@ -137,6 +137,25 @@ export interface TextSelectionMessage extends ExtensionMessage {
   };
 }
 
+// Tab and navigation message types
+export interface TabSwitchedMessage extends ExtensionMessage {
+  type: 'tab-switched';
+  payload: {
+    tabId: number;
+    url: string;
+    title: string;
+  };
+}
+
+export interface PageNavigatedMessage extends ExtensionMessage {
+  type: 'page-navigated';
+  payload: {
+    tabId: number;
+    url: string;
+    title: string;
+  };
+}
+
 // Storage types
 export interface StorageData {
   modelSettings?: ModelSettings; // Legacy support

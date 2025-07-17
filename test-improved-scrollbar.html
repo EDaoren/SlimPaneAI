@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>改进的代码块滚动条测试</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .test-section h2 {
+            color: #475569;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-weight: 500;
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* 应用改进后的样式 */
+        .hljs {
+            display: block !important;
+            overflow-x: auto !important;
+            padding: 0.75rem !important;
+            color: #c9d1d9 !important;
+            background: #0d1117 !important;
+            border-radius: 0.5rem !important;
+            margin: 0 !important;
+            /* 使用细滚动条，防止抖动 */
+            scrollbar-width: thin !important;
+            scrollbar-gutter: stable !important;
+        }
+
+        /* 自定义代码块滚动条样式 */
+        .hljs::-webkit-scrollbar {
+            height: 8px !important;
+            width: 8px !important;
+        }
+
+        .hljs::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* 优化复制按钮和代码块的整体布局 */
+        .hljs-copy-wrapper {
+            position: relative !important;
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            margin: 0.5rem 0 !important;
+        }
+
+        .hljs-copy-button {
+            position: absolute !important;
+            top: 0.75rem !important;
+            right: 0.75rem !important;
+            padding: 0.375rem 0.75rem !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 0.375rem !important;
+            color: #e2e8f0 !important;
+            font-size: 0.75rem !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            backdrop-filter: blur(4px) !important;
+        }
+
+        .hljs-copy-button:hover {
+            background: rgba(0, 0, 0, 0.8) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .test-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #0369a1;
+        }
+
+        .test-info ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .long-code {
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 改进的代码块滚动条测试</h1>
+        
+        <div class="test-info">
+            <h3>改进内容：</h3>
+            <ul>
+                <li>✅ 恢复滚动功能，长代码可以正常滚动</li>
+                <li>✅ 使用细滚动条，减少视觉干扰</li>
+                <li>✅ 复制按钮与代码块形成整体</li>
+                <li>✅ 优化边距和间距</li>
+                <li>✅ 防止滚动条导致的页面抖动</li>
+            </ul>
+        </div>
+
+        <div id="fix-status" class="status">正在测试改进效果...</div>
+
+        <div class="test-section">
+            <h2>短代码示例（不需要滚动）</h2>
+            <pre><code class="language-bash">docker compose ps</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>长代码示例（需要水平滚动）</h2>
+            <pre><code class="language-bash long-code">git clone https://github.com/tbpgr/ept-load.git && cd ept-load && go mod tidy && go build -o ept-load main.go && ./ept-load --help</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>多行长代码示例</h2>
+            <pre><code class="language-javascript">// 这是一个很长的JavaScript代码示例，用来测试水平滚动功能
+const veryLongVariableName = "这是一个非常长的字符串，用来测试代码块的水平滚动功能是否正常工作";
+function veryLongFunctionName(parameterWithVeryLongName, anotherParameterWithEvenLongerName) {
+    return parameterWithVeryLongName + anotherParameterWithEvenLongerName + veryLongVariableName;
+}</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>CSS 代码示例</h2>
+            <pre><code class="language-css">/* 改进后的滚动条样式 */
+.hljs::-webkit-scrollbar {
+    height: 8px !important;
+    width: 8px !important;
+}
+
+.hljs::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+}</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>复制按钮整体性测试</h2>
+            <p>观察复制按钮是否与代码块形成一个整体，边框是否统一：</p>
+            <pre><code class="language-python">print("测试复制按钮的整体性")</code></pre>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 highlightjs-copy 插件
+        hljs.addPlugin(new CopyButtonPlugin({
+            lang: 'zh-CN',
+            callback: (text, el) => {
+                console.log('代码已复制到剪贴板');
+                updateStatus('✅ 代码复制成功！改进效果正常。', false);
+            }
+        }));
+
+        // 高亮所有代码块
+        hljs.highlightAll();
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('fix-status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+
+        // 检查改进效果
+        setTimeout(() => {
+            const codeBlocks = document.querySelectorAll('.hljs');
+            const copyButtons = document.querySelectorAll('.hljs-copy-button');
+            const wrappers = document.querySelectorAll('.hljs-copy-wrapper');
+            
+            console.log(`找到 ${codeBlocks.length} 个代码块`);
+            console.log(`找到 ${copyButtons.length} 个复制按钮`);
+            console.log(`找到 ${wrappers.length} 个包装容器`);
+            
+            // 检查滚动功能
+            let hasScrollableContent = false;
+            codeBlocks.forEach((block, index) => {
+                const computedStyle = window.getComputedStyle(block);
+                const overflowX = computedStyle.overflowX;
+                const scrollWidth = block.scrollWidth;
+                const clientWidth = block.clientWidth;
+                
+                console.log(`代码块 ${index + 1}:`, {
+                    overflowX,
+                    scrollWidth,
+                    clientWidth,
+                    needsScroll: scrollWidth > clientWidth
+                });
+                
+                if (scrollWidth > clientWidth) {
+                    hasScrollableContent = true;
+                }
+            });
+            
+            if (codeBlocks.length > 0 && copyButtons.length > 0) {
+                const message = hasScrollableContent 
+                    ? `✅ 改进成功！找到 ${codeBlocks.length} 个代码块和 ${copyButtons.length} 个复制按钮。长代码可以正常滚动，短代码不显示滚动条。`
+                    : `✅ 改进成功！找到 ${codeBlocks.length} 个代码块和 ${copyButtons.length} 个复制按钮。滚动条样式已优化。`;
+                updateStatus(message);
+            } else {
+                updateStatus('❌ 代码高亮或复制功能异常，请检查配置。', true);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

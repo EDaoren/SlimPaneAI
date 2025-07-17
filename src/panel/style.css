@@ -624,8 +624,8 @@ html, body {
   }
 }
 
-/* Code highlighting */
-pre {
+/* Code highlighting - 避免干扰 highlight.js 主题 */
+pre:not(.hljs) {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -634,15 +634,161 @@ pre {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.4;
+  /* 使用细滚动条 */
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
 }
 
-code {
+/* 普通 pre 元素的滚动条样式 */
+pre:not(.hljs)::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+pre:not(.hljs)::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+pre:not(.hljs)::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+pre:not(.hljs)::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+code:not(.hljs):not(.inline-code) {
   background: #f1f5f9;
   padding: 2px 4px;
   border-radius: 3px;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 13px;
 }
+
+/* 强制确保 highlight.js 样式不被覆盖 */
+.hljs {
+  display: block !important;
+  overflow-x: auto !important;
+  padding: 0.75rem !important;
+  color: #c9d1d9 !important;
+  background: #0d1117 !important;
+  border-radius: 0.5rem !important;
+  margin: 0 !important;
+  /* 使用细滚动条，防止抖动 */
+  scrollbar-width: thin !important;
+  scrollbar-gutter: stable !important;
+}
+
+/* 自定义代码块滚动条样式 */
+.hljs::-webkit-scrollbar {
+  height: 8px !important;
+  width: 8px !important;
+}
+
+.hljs::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+}
+
+.hljs::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 4px !important;
+}
+
+.hljs::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* 确保父容器定位上下文 */
+.hljs-copy-wrapper {
+  position: relative !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+  margin: 0.5rem 0 !important;
+  min-height: fit-content !important;
+  display: block !important;
+  border: none !important;
+}
+
+/* 确保 hljs 元素保持原有的圆角和样式 */
+.hljs-copy-wrapper .hljs {
+  margin: 0 !important;
+  /* 恢复代码块的圆角 */
+  border-radius: 0.5rem !important;
+  /* 确保代码块填满容器 */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* 为复制按钮预留更多空间 */
+  padding-right: 5rem !important;
+}
+
+/* 重新定位按钮容器 - 直接定位到代码块内部 */
+.hljs-copy-container {
+  position: absolute !important;
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  height: auto !important;
+  width: auto !important;
+  display: block !important;
+  z-index: 10 !important;
+  transform: none !important;
+  transition: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.hljs-copy-button,
+.hljs-copy-button[data-copied="true"],
+.hljs-copy-button:not([data-copied="true"]) {
+  /* 重置所有默认样式 */
+  all: unset !important;
+  /* 直接绝对定位按钮到代码块右上角 */
+  position: absolute !important;
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  margin: 0 !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0.25rem 0.5rem !important;
+  background: rgba(55, 65, 81, 0.9) !important;
+  border: 1px solid rgba(156, 163, 175, 0.3) !important;
+  border-radius: 0.25rem !important;
+  color: #f3f4f6 !important;
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  text-indent: 0 !important;
+  overflow: visible !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  opacity: 0.85 !important;
+  z-index: 20 !important;
+  /* 添加轻微阴影增强层次感 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.hljs-copy-button::before {
+  display: none !important;
+}
+
+.hljs-copy-button:hover {
+  background: rgba(75, 85, 99, 0.95) !important;
+  border-color: rgba(156, 163, 175, 0.5) !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 确保容器不会隐藏 */
+.hljs-copy-container[data-autohide="true"] {
+  transform: none !important;
+}
+
+/* 移除调试样式，容器现在不需要特殊样式 */
 
 /* Essential Tailwind-like utilities */
 .flex {

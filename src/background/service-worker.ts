@@ -4,20 +4,40 @@ import type {
   LLMResponse,
   StorageData,
   TextSelectionMessage,
+  TabSwitchedMessage,
+  PageNavigatedMessage,
 } from '@/types';
 import { createModelAdapter } from '@/lib/model-adapters';
 
-// Helper function to send messages to side panel
-function sendMessageToSidePanel(message: any) {
-  try {
-    // Send message to all extension contexts
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        // This is normal when no listeners are present
+// Helper function to send messages to side panel with retry
+async function sendMessageToSidePanel(message: any, retries = 3) {
+  console.log('SlimPaneAI: Sending message to side panel:', message.type, message);
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      console.log('SlimPaneAI: Message sent successfully on attempt', attempt, 'response:', response);
+      return response;
+    } catch (error) {
+      console.log(`SlimPaneAI: Message send attempt ${attempt} failed:`, error.message);
+
+      if (attempt === retries) {
+        console.warn('SlimPaneAI: All message send attempts failed, side panel may not be open');
+        return null;
       }
-    });
-  } catch (error) {
-    // Silently handle errors
+
+      // Wait before retry, with exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+    }
   }
 }
 
@@ -107,6 +127,70 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     setTimeout(() => {
       chrome.runtime.sendMessage(message);
     }, 500);
+  }
+});
+
+// Track last active tab to detect tab switches
+let lastActiveTabId: number | null = null;
+
+// Handle tab activation (tab switching)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  console.log('SlimPaneAI: Tab activated:', activeInfo.tabId);
+
+  // Check if this is actually a different tab
+  if (lastActiveTabId !== activeInfo.tabId) {
+    lastActiveTabId = activeInfo.tabId;
+
+    try {
+      // Get tab information
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+
+      // Only notify if tab has a valid URL and is not a special page
+      if (tab.url && !isSpecialPageUrl(tab.url)) {
+        console.log('SlimPaneAI: Notifying side panel of tab switch to:', tab.url);
+
+        // Add a small delay to ensure side panel is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Notify side panel about tab switch
+        await sendMessageToSidePanel({
+          type: 'tab-switched',
+          payload: {
+            tabId: activeInfo.tabId,
+            url: tab.url,
+            title: tab.title || '',
+          },
+        });
+      }
+    } catch (error) {
+      console.warn('SlimPaneAI: Failed to handle tab activation:', error);
+    }
+  }
+});
+
+// Handle tab updates (navigation, refresh, etc.)
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only handle when page loading is complete and URL has changed
+  if (changeInfo.status === 'complete' && changeInfo.url && tab.active) {
+    console.log('SlimPaneAI: Tab updated with new URL:', changeInfo.url);
+
+    // Only notify if it's not a special page
+    if (!isSpecialPageUrl(changeInfo.url)) {
+      console.log('SlimPaneAI: Notifying side panel of page navigation to:', changeInfo.url);
+
+      // Add a small delay to ensure side panel is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Notify side panel about page navigation
+      await sendMessageToSidePanel({
+        type: 'page-navigated',
+        payload: {
+          tabId: tabId,
+          url: changeInfo.url,
+          title: tab.title || '',
+        },
+      });
+    }
   }
 });
 
@@ -354,7 +438,7 @@ async function handleMessage(
       case 'page-content-extracted':
       case 'pdf-processing-status':
         // Forward page content messages to side panel
-        sendMessageToSidePanel(message);
+        await sendMessageToSidePanel(message);
         sendResponse({ success: true });
         break;
 
@@ -373,7 +457,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     // Check if model is configured
     if (!modelConfig || modelConfig.provider === 'none' || !modelConfig.apiKey) {
-      sendMessageToSidePanel({
+      await sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
         error: 'No model configured. Please configure a model in settings.',
@@ -383,7 +467,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     // Validate API key
     if (!modelConfig.apiKey.trim()) {
-      sendMessageToSidePanel({
+      await sendMessageToSidePanel({
         type: 'llm-error',
         requestId: request.requestId,
         error: 'API key not configured. Please add your API key in settings.',
@@ -536,7 +620,7 @@ async function handleLLMRequest(request: LLMRequest, sendResponse: (response?: a
 
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    sendMessageToSidePanel({
+    await sendMessageToSidePanel({
       type: 'llm-error',
       requestId: request.requestId,
       error: errorMessage,

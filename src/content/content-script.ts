@@ -77,6 +77,7 @@ function handleMessage(message: any, sender: chrome.runtime.MessageSender, sendR
       highlightText(message.payload.text);
       break;
 
+    case 'get-page-content':
     case 'extract-simple-content':
       handleExtractSimpleContent(sendResponse);
       return true; // 保持消息通道开放以支持异步响应

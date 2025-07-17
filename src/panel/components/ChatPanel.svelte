@@ -15,6 +15,7 @@
   let showSessions = false;
   let showPageContent = false;
   let messagesContainer: HTMLElement;
+  let pageContentPanel: PageContentPanel;
 
   $: currentSession = $chatStore.currentSession;
   $: sessions = $chatStore.sessions;
@@ -137,6 +138,13 @@
 
   // 决定是否使用虚拟滚动（当消息数量较多时）
   $: useVirtualScroll = currentSession && currentSession.messages.length > 50;
+
+  // Export function to handle page content messages from parent
+  export function handlePageContentMessage(message: any) {
+    if (pageContentPanel && pageContentPanel.handleMessage) {
+      pageContentPanel.handleMessage(message);
+    }
+  }
 </script>
 
 <div class="chat-panel">
@@ -227,6 +235,7 @@
   {#if showPageContent}
     <div class="page-content-overlay">
       <PageContentPanel
+        bind:this={pageContentPanel}
         visible={showPageContent}
         onContentSelect={handlePageContentSelect}
       />

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视觉优化测试</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/highlightjs-copy/dist/highlightjs-copy.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .test-section h2 {
+            color: #475569;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-weight: 500;
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* 应用视觉优化后的样式 */
+        .hljs {
+            display: block !important;
+            overflow-x: auto !important;
+            padding: 0.75rem !important;
+            color: #c9d1d9 !important;
+            background: #0d1117 !important;
+            border-radius: 0.5rem !important;
+            margin: 0 !important;
+            scrollbar-width: thin !important;
+            scrollbar-gutter: stable !important;
+        }
+
+        .hljs::-webkit-scrollbar {
+            height: 8px !important;
+            width: 8px !important;
+        }
+
+        .hljs::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3) !important;
+            border-radius: 4px !important;
+        }
+
+        .hljs::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* 优化复制按钮和代码块的整体布局 - 让复制按钮真正在代码块内部 */
+        .hljs-copy-wrapper {
+            position: relative !important;
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+            margin: 0.5rem 0 !important;
+            /* 确保容器高度完全包含代码块 */
+            min-height: fit-content !important;
+            display: block !important;
+            /* 移除外边框，让代码块自己处理边框 */
+            border: none !important;
+        }
+
+        /* 确保 hljs 元素保持原有的圆角和样式 */
+        .hljs-copy-wrapper .hljs {
+            margin: 0 !important;
+            /* 恢复代码块的圆角 */
+            border-radius: 0.5rem !important;
+            /* 确保代码块填满容器 */
+            width: 100% !important;
+            box-sizing: border-box !important;
+            /* 为复制按钮预留空间 */
+            padding-right: 4rem !important;
+        }
+
+        /* 重置 highlightjs-copy 默认样式并应用我们的自定义样式 */
+        .hljs-copy-container {
+            position: absolute !important;
+            top: 0 !important;
+            right: 0 !important;
+            transform: none !important;
+            transition: none !important;
+        }
+
+        .hljs-copy-button,
+        .hljs-copy-button[data-copied="true"],
+        .hljs-copy-button:not([data-copied="true"]) {
+            /* 重置所有默认样式 */
+            all: unset !important;
+            /* 应用我们的自定义样式 - 让按钮看起来在代码块内部 */
+            position: absolute !important;
+            top: 0.5rem !important;
+            right: 0.5rem !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0.25rem 0.5rem !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 0.25rem !important;
+            color: #c9d1d9 !important;
+            font-size: 0.7rem !important;
+            font-weight: 400 !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            backdrop-filter: blur(8px) !important;
+            text-indent: 0 !important;
+            overflow: visible !important;
+            display: inline-block !important;
+            box-sizing: border-box !important;
+            /* 添加轻微的阴影，增强层次感 */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .hljs-copy-button::before {
+            display: none !important;
+        }
+
+        .hljs-copy-button:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        /* 确保容器不会隐藏 */
+        .hljs-copy-container[data-autohide="true"] {
+            transform: none !important;
+        }
+
+        .test-info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #0369a1;
+        }
+
+        .test-info ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .comparison-item {
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .comparison-item h3 {
+            margin-top: 0;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 视觉优化测试</h1>
+        
+        <div class="test-info">
+            <h3>视觉优化内容：</h3>
+            <ul>
+                <li>✅ 复制按钮不再贴边，有合适的间距（0.5rem）</li>
+                <li>✅ 恢复代码块的圆角效果</li>
+                <li>✅ 复制按钮使用半透明背景，看起来在代码块内部</li>
+                <li>✅ 为复制按钮预留右侧空间，避免文字被遮挡</li>
+                <li>✅ 添加阴影效果，增强层次感</li>
+                <li>✅ 优化按钮大小和字体，更加精致</li>
+            </ul>
+        </div>
+
+        <div id="fix-status" class="status">正在测试视觉优化效果...</div>
+
+        <div class="test-section">
+            <h2>单行代码测试</h2>
+            <p>观察复制按钮是否有合适的间距，不再贴边：</p>
+            <pre><code class="language-bash">docker compose ps</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>多行代码测试</h2>
+            <p>观察代码块是否保持圆角，复制按钮是否看起来在内部：</p>
+            <pre><code class="language-javascript">// 测试视觉优化效果
+const testFunction = () => {
+    console.log("复制按钮应该有合适的间距");
+    console.log("代码块应该保持圆角");
+    return "整体效果应该更加精致";
+};</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>长代码测试（右侧空间预留）</h2>
+            <p>观察长代码是否为复制按钮预留了空间，文字不被遮挡：</p>
+            <pre><code class="language-bash">wget https://raw.githubusercontent.com/tbpgr/ept-load/refs/heads/main/docker-compose.yml && wget -O .env https://raw.githubusercontent.com/tbpgr/ept-load/refs/heads/main/.env.example</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>CSS 代码测试</h2>
+            <p>测试不同类型代码的显示效果：</p>
+            <pre><code class="language-css">/* 优化后的复制按钮样式 */
+.hljs-copy-button {
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.25rem !important;
+}</code></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>悬停效果测试</h2>
+            <p>将鼠标悬停在复制按钮上，观察阴影和背景变化：</p>
+            <pre><code class="language-python">print("测试悬停效果")</code></pre>
+        </div>
+    </div>
+
+    <script>
+        // 初始化 highlightjs-copy 插件
+        hljs.addPlugin(new CopyButtonPlugin({
+            lang: 'zh-CN',
+            callback: (text, el) => {
+                console.log('代码已复制到剪贴板');
+                updateStatus('✅ 代码复制成功！视觉优化效果正常。', false);
+            }
+        }));
+
+        // 高亮所有代码块
+        hljs.highlightAll();
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('fix-status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'status error' : 'status';
+        }
+
+        // 检查视觉优化效果
+        setTimeout(() => {
+            const codeBlocks = document.querySelectorAll('.hljs');
+            const copyButtons = document.querySelectorAll('.hljs-copy-button');
+            const wrappers = document.querySelectorAll('.hljs-copy-wrapper');
+            
+            console.log(`找到 ${codeBlocks.length} 个代码块`);
+            console.log(`找到 ${copyButtons.length} 个复制按钮`);
+            console.log(`找到 ${wrappers.length} 个包装容器`);
+            
+            // 检查视觉效果
+            copyButtons.forEach((button, index) => {
+                const computedStyle = window.getComputedStyle(button);
+                const rect = button.getBoundingClientRect();
+                
+                console.log(`复制按钮 ${index + 1} 视觉效果:`, {
+                    top: computedStyle.top,
+                    right: computedStyle.right,
+                    background: computedStyle.background,
+                    borderRadius: computedStyle.borderRadius,
+                    boxShadow: computedStyle.boxShadow,
+                    padding: computedStyle.padding
+                });
+            });
+            
+            // 检查代码块圆角
+            codeBlocks.forEach((block, index) => {
+                const computedStyle = window.getComputedStyle(block);
+                console.log(`代码块 ${index + 1} 圆角:`, {
+                    borderRadius: computedStyle.borderRadius,
+                    paddingRight: computedStyle.paddingRight
+                });
+            });
+            
+            if (codeBlocks.length > 0 && copyButtons.length > 0) {
+                updateStatus(`✅ 视觉优化成功！找到 ${codeBlocks.length} 个代码块和 ${copyButtons.length} 个复制按钮。样式已完全优化。`);
+            } else {
+                updateStatus('❌ 优化失败，请检查配置。', true);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

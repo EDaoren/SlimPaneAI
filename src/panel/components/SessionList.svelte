@@ -3,6 +3,7 @@
   import type { ChatSession } from '@/types';
   import { chatStore } from '../stores/chat';
   import { t } from '@/lib/i18n';
+  import { renderMarkdown } from '@/lib/markdown-renderer';
   
   export let sessions: ChatSession[];
   export let currentSessionId: string | undefined;
@@ -39,6 +40,19 @@
     }
   }
   
+  // 渲染会话标题，支持数学公式
+  function renderSessionTitle(title: string): string {
+    if (!title) return '';
+
+    // 使用 markdown 渲染器处理标题中的数学公式
+    try {
+      return renderMarkdown(title, { enableMath: true });
+    } catch (error) {
+      console.error('Error rendering session title:', error);
+      return title; // 出错时回退到原始标题
+    }
+  }
+
   function createNewSession() {
     chatStore.createNewSession();
     dispatch('close');
@@ -102,7 +116,7 @@
             <div class="session-content-wrapper">
               <div class="session-info">
                 <h3 class="session-title-text">
-                  {session.title}
+                  {@html renderSessionTitle(session.title)}
                 </h3>
                 <p class="session-meta">
                   {formatDate(session.updatedAt)} · {session.messages.filter(m => m.type !== 'system').length} {$t('chat.messages')}

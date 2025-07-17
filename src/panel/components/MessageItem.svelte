@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import type { Message } from '@/types';
-  import { mathRenderer } from '@/lib/math-renderer';
   import { renderMarkdown } from '@/lib/markdown-renderer';
   import { settingsStore } from '../stores/settings';
   import { t } from '@/lib/i18n';
@@ -121,8 +120,8 @@
   function formatContent(content: string): string {
     if (!content) return '';
 
-    // 使用新的markdown渲染器，不包含数学公式
-    return renderMarkdown(content, { enableMath: false });
+    // 使用新的markdown渲染器，包含数学公式
+    return renderMarkdown(content, { enableMath: true });
   }
 
   function escapeHtml(text: string): string {
@@ -131,34 +130,7 @@
     return div.innerHTML;
   }
 
-  // 使用新的markdown渲染器处理包含数学公式的内容
-  function formatContentWithMath(content: string): string {
-    if (!content) return '';
 
-    try {
-      // 使用新的markdown渲染器，包含数学公式处理
-      return renderMarkdown(content, {
-        enableMath: true,
-        mathRenderer: (mathContent: string) => {
-          // 检查是否是块级数学公式（通常较长或包含换行）
-          const isDisplayMode = mathContent.includes('\n') || mathContent.length > 50;
-          const rendered = mathRenderer.renderMath(mathContent, {
-            displayMode: isDisplayMode,
-            throwOnError: false
-          });
-
-          if (isDisplayMode) {
-            return `<div class="math-display">${rendered}</div>`;
-          } else {
-            return `<span class="math-inline">${rendered}</span>`;
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Math rendering error:', error);
-      return formatContent(content); // 回退到基本格式化
-    }
-  }
 
 
 
@@ -181,18 +153,11 @@
     lastProcessedContent = message.content;
 
     try {
-      // 检查是否包含数学公式
-      const hasMath = mathRenderer.hasMathFormulas(message.content);
-
-      if (hasMath) {
-        // 处理数学公式
-        processedContent = formatContentWithMath(message.content);
-      } else {
-        // 没有数学公式，直接使用简单格式化
-        processedContent = formatContent(message.content);
-      }
+      // 统一使用 markdown 渲染器处理所有内容（包括数学公式）
+      processedContent = renderMarkdown(message.content, { enableMath: true });
     } catch (error) {
       // 出错时回退到基本格式化
+      console.error('Error processing message content:', error);
       processedContent = formatContent(message.content);
     } finally {
       isProcessing = false;
@@ -334,6 +299,7 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
+    overflow: visible;
   }
 
   .assistant-message-bubble {
@@ -347,6 +313,7 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
+    overflow: visible;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
@@ -364,7 +331,7 @@
     overflow-wrap: break-word;
     word-break: break-word;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow: visible;
   }
 
   .message-content :global(code) {
@@ -381,12 +348,35 @@
 
   .message-content :global(pre) {
     background: rgba(0, 0, 0, 0.1);
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    margin: 0.125rem 0;
-    font-size: 0.75rem;
-    font-family: monospace;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     overflow-x: auto;
+    line-height: 1.4;
+    /* 使用细滚动条 */
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+
+  .message-content :global(pre::-webkit-scrollbar) {
+    height: 6px;
+    width: 6px;
+  }
+
+  .message-content :global(pre::-webkit-scrollbar-track) {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  .message-content :global(pre::-webkit-scrollbar-thumb) {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+
+  .message-content :global(pre::-webkit-scrollbar-thumb:hover) {
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .user-message .message-content :global(pre) {
@@ -420,6 +410,16 @@
     color: inherit !important;
     font-family: KaTeX_Main, "Times New Roman", serif !important;
     transition: none !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  /* 块级数学公式自适应宽度 */
+  .message-content :global(.katex-display .katex) {
+    display: block;
+    max-width: 100%;
+    overflow: visible;
   }
 
   .message-content :global(.katex *) {
@@ -429,6 +429,28 @@
   .message-content :global(.katex-display) {
     margin: 0.25em 0;
     text-align: center;
+    max-width: 100%;
+    overflow: visible;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* 让超长公式自动缩放 */
+    transform-origin: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 当公式太长时自动缩放 */
+  @media (max-width: 768px) {
+    .message-content :global(.katex-display) {
+      font-size: 0.9em;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .message-content :global(.katex-display) {
+      font-size: 0.8em;
+    }
   }
 
   /* Fix KaTeX root symbol rendering */
@@ -544,8 +566,6 @@
     line-height: 1.6;
     background: #ffffff;
     border-top: 1px solid #f1f5f9;
-    max-height: 400px;
-    overflow-y: auto;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   }
 
@@ -715,25 +735,11 @@
     }
   }
 
-  /* Enhanced Code block styles */
-  .message-content :global(.code-block-container) {
-    margin: 0.125rem 0 !important;
-    border-radius: 0.5rem !important;
-    overflow: hidden !important;
-    background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  }
-
-  /* Highlight.js 代码高亮样式 - 使用官方主题，只做必要的调整 */
+  /* Highlight.js 代码高亮样式 - 最小干预 */
   .message-content :global(.hljs) {
-    padding: 1rem !important;
     border-radius: 0.5rem !important;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace !important;
-    font-size: 0.875rem !important;
-    line-height: 1.5 !important;
-    overflow-x: auto !important;
     margin: 0.5rem 0 !important;
+    font-size: 0.875rem !important;
   }
 
   /* highlightjs-copy 插件 - 使用默认样式 */
@@ -765,31 +771,7 @@
     letter-spacing: 0.05em !important;
   }
 
-  .message-content :global(.copy-code-btn) {
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.25rem !important;
-    padding: 0.25rem 0.5rem !important;
-    background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 0.25rem !important;
-    color: #64748b !important;
-    font-size: 0.75rem !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-  }
-
-  .message-content :global(.copy-code-btn:hover) {
-    background: #f1f5f9 !important;
-    border-color: #94a3b8 !important;
-    color: #475569 !important;
-  }
-
-  .message-content :global(.copy-code-btn.copied) {
-    background: #dcfce7 !important;
-    border-color: #86efac !important;
-    color: #166534 !important;
-  }
+  /* 移除自定义复制按钮样式，使用 highlightjs-copy 默认样式 */
 
   .message-content :global(.code-block-container pre) {
     background: #1e293b !important;
@@ -801,6 +783,28 @@
     overflow-x: auto !important;
     line-height: 1.5 !important;
     border-radius: 0 !important;
+    /* 使用细滚动条，防止抖动 */
+    scrollbar-width: thin !important;
+    scrollbar-gutter: stable !important;
+  }
+
+  .message-content :global(.code-block-container pre::-webkit-scrollbar) {
+    height: 8px !important;
+    width: 8px !important;
+  }
+
+  .message-content :global(.code-block-container pre::-webkit-scrollbar-track) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+  }
+
+  .message-content :global(.code-block-container pre::-webkit-scrollbar-thumb) {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+  }
+
+  .message-content :global(.code-block-container pre::-webkit-scrollbar-thumb:hover) {
+    background: rgba(255, 255, 255, 0.5) !important;
   }
 
   .message-content :global(.code-block-container pre code) {
@@ -811,40 +815,139 @@
     color: inherit !important;
   }
 
-  /* Legacy pre styles for simple code blocks */
-  .message-content :global(pre:not(.code-block-container pre)) {
+  /* Legacy pre styles for simple code blocks - 避免干扰 highlight.js */
+  .message-content :global(pre:not(.hljs):not(.code-block-container pre)) {
     background: #1e293b;
     color: #e2e8f0;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
-    margin: 0.125rem 0;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
     font-size: 0.875rem;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     overflow-x: auto;
     line-height: 1.4;
     border: 1px solid #334155;
+    /* 使用细滚动条 */
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
   }
 
-  .user-message .message-content :global(pre) {
+  .message-content :global(pre:not(.hljs):not(.code-block-container pre)::-webkit-scrollbar) {
+    height: 6px;
+    width: 6px;
+  }
+
+  .message-content :global(pre:not(.hljs):not(.code-block-container pre)::-webkit-scrollbar-track) {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  .message-content :global(pre:not(.hljs):not(.code-block-container pre)::-webkit-scrollbar-thumb) {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  .message-content :global(pre:not(.hljs):not(.code-block-container pre)::-webkit-scrollbar-thumb:hover) {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .user-message .message-content :global(pre:not(.hljs)) {
     background: rgba(30, 41, 59, 0.9);
     border-color: rgba(51, 65, 85, 0.8);
   }
 
-  .message-content :global(pre code) {
+  .message-content :global(pre:not(.hljs) code) {
     background: none;
     padding: 0;
     border-radius: 0;
     font-size: inherit;
   }
 
-  /* highlightjs-copy 插件 - 使用默认样式，只做最小调整 */
+  /* 确保父容器定位上下文 */
   .message-content :global(.hljs-copy-wrapper) {
     position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin: 0.5rem 0;
+    min-height: fit-content;
+    display: block;
+    border: none;
   }
 
-  /* 只对复制按钮做最小的样式调整以适配我们的主题 */
-  .message-content :global(.hljs-copy-button) {
-    /* 让插件使用默认样式，我们只调整颜色以适配深色主题 */
+  /* 确保 hljs 元素保持原有的圆角和样式 */
+  .message-content :global(.hljs-copy-wrapper .hljs) {
+    margin: 0 !important;
+    /* 恢复代码块的圆角 */
+    border-radius: 0.5rem !important;
+    /* 确保代码块填满容器 */
+    width: 100% !important;
+    box-sizing: border-box !important;
+    /* 为复制按钮预留更多空间 */
+    padding-right: 5rem !important;
+  }
+
+  /* 重新定位按钮容器 */
+  .message-content :global(.hljs-copy-container) {
+    position: absolute !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    height: auto !important;
+    width: auto !important;
+    display: block !important;
+    z-index: 10 !important;
+    transform: none !important;
+    transition: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .message-content :global(.hljs-copy-button),
+  .message-content :global(.hljs-copy-button[data-copied="true"]),
+  .message-content :global(.hljs-copy-button:not([data-copied="true"])) {
+    /* 重置所有默认样式 */
+    all: unset !important;
+    /* 直接绝对定位按钮到代码块右上角 */
+    position: absolute !important;
+    top: 0.75rem !important;
+    right: 0.75rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0.25rem 0.5rem !important;
+    background: rgba(55, 65, 81, 0.9) !important;
+    border: 1px solid rgba(156, 163, 175, 0.3) !important;
+    border-radius: 0.25rem !important;
+    color: #f3f4f6 !important;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    text-indent: 0 !important;
+    overflow: visible !important;
+    display: inline-block !important;
+    box-sizing: border-box !important;
+    opacity: 0.85 !important;
+    z-index: 20 !important;
+    /* 添加轻微阴影增强层次感 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .message-content :global(.hljs-copy-button::before) {
+    display: none !important;
+  }
+
+  .message-content :global(.hljs-copy-button:hover) {
+    background: rgba(75, 85, 99, 0.95) !important;
+    border-color: rgba(156, 163, 175, 0.5) !important;
+    opacity: 1 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* 确保容器不会隐藏 */
+  .message-content :global(.hljs-copy-container[data-autohide="true"]) {
+    transform: none !important;
   }
 
   /* Dark theme adjustments for code blocks */
@@ -859,23 +962,7 @@
       border-bottom-color: #475569;
     }
 
-    .message-content :global(.copy-code-btn) {
-      background: #475569;
-      border-color: #64748b;
-      color: #e2e8f0;
-    }
-
-    .message-content :global(.copy-code-btn:hover) {
-      background: #64748b;
-      border-color: #94a3b8;
-      color: #f8fafc;
-    }
-
-    .message-content :global(.copy-code-btn.copied) {
-      background: #166534;
-      border-color: #22c55e;
-      color: #dcfce7;
-    }
+    /* 移除深色主题下的复制按钮样式，使用插件默认样式 */
   }
 
 
