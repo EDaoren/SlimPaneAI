@@ -153,17 +153,37 @@ function createPageChatStore() {
 
   return {
     subscribe,
-    
+
+    /**
+     * 初始化页面聊天状态（从存储中恢复）
+     */
+    initialize: async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({ type: 'get-storage' });
+        const pageChatEnabled = response.pageChatEnabled || false;
+
+        update(state => ({
+          ...state,
+          enabled: pageChatEnabled
+        }));
+
+        console.log('SlimPaneAI: Page chat state initialized from storage:', pageChatEnabled);
+      } catch (error) {
+        console.error('SlimPaneAI: Failed to initialize page chat state:', error);
+      }
+    },
+
     /**
      * 切换网页聊天模式
      */
     toggle: async () => {
       console.log('SlimPaneAI: Toggle called');
       let shouldExtract = false;
+      let newEnabled = false;
 
       // 先更新状态
       update(state => {
-        const newEnabled = !state.enabled;
+        newEnabled = !state.enabled;
         shouldExtract = newEnabled;
         console.log('SlimPaneAI: State updated, enabled:', newEnabled);
 
@@ -174,9 +194,28 @@ function createPageChatStore() {
         };
       });
 
+      // 持久化状态到 Chrome 存储
+      try {
+        await chrome.runtime.sendMessage({
+          type: 'set-storage',
+          payload: {
+            pageChatEnabled: newEnabled
+          }
+        });
+        console.log('SlimPaneAI: Page chat status saved to storage:', newEnabled);
+
+        // 等待一小段时间确保存储操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      } catch (error) {
+        console.error('SlimPaneAI: Failed to save page chat status:', error);
+        // 如果保存失败，不要继续提取内容
+        return;
+      }
+
       // 如果需要启用，异步提取内容
       if (shouldExtract) {
-        console.log('SlimPaneAI: Starting content extraction');
+        console.log('SlimPaneAI: Starting content extraction after storage sync');
         try {
           await extractCurrentPageContent();
           console.log('SlimPaneAI: Content extraction completed');
@@ -202,6 +241,25 @@ function createPageChatStore() {
           error: null
         };
       });
+
+      // 持久化状态到 Chrome 存储
+      try {
+        await chrome.runtime.sendMessage({
+          type: 'set-storage',
+          payload: {
+            pageChatEnabled: enabled
+          }
+        });
+        console.log('SlimPaneAI: Page chat status saved to storage:', enabled);
+
+        // 等待一小段时间确保存储操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      } catch (error) {
+        console.error('SlimPaneAI: Failed to save page chat status:', error);
+        // 如果保存失败，不要继续提取内容
+        return;
+      }
 
       // 如果需要启用，异步提取内容
       if (shouldExtract) {

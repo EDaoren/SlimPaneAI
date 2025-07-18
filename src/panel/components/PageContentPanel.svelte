@@ -3,6 +3,7 @@
   import { writable } from 'svelte/store';
   import type { PageContent, DomainSettings, PDFProcessingStatus } from '@/types';
   import { domainSettingsManager } from '@/lib/domain-settings';
+  import { pageChatStore } from '@/panel/stores/page-chat';
   import { TokenEstimator } from '@/lib/token-estimator';
   import { t } from '@/lib/i18n';
 
@@ -44,9 +45,29 @@
       case 'page-navigated':
         // When tab switches or page navigates, reload content
         console.log('SlimPaneAI: Detected tab/page change, reloading content for:', message.payload.url);
-        loadCurrentPageContent();
+        handleTabSwitch(message.payload);
         break;
     }
+  }
+
+  // Handle tab switch with page chat store update
+  async function handleTabSwitch(payload: { tabId: number; url: string; title: string }) {
+    console.log('SlimPaneAI: Handling tab switch to:', payload.url);
+
+    // Clear current content immediately to show loading state
+    pageContent.set(null);
+    error.set(null);
+
+    // Update page chat store if it's enabled
+    const pageChatState = $pageChatStore;
+    if (pageChatState.enabled) {
+      console.log('SlimPaneAI: Page chat is enabled, refreshing content');
+      // This will trigger content extraction for the new tab
+      await pageChatStore.refresh();
+    }
+
+    // Also reload content for the page content panel
+    await loadCurrentPageContent();
   }
 
   onMount(() => {
@@ -74,19 +95,15 @@
       domainSettings.set(settings);
       console.log('SlimPaneAI: Domain settings loaded:', settings);
 
-      // Request page content from content script
-      const response = await chrome.tabs.sendMessage(tab.id!, { type: 'get-page-content' });
-      console.log('SlimPaneAI: Content script response:', response);
-      if (response?.content) {
-        pageContent.set(response.content);
-        console.log('SlimPaneAI: Page content updated from content script');
-      } else {
-        // Try to extract content
-        console.log('SlimPaneAI: No content from content script, trying extraction');
-        await extractPageContent();
-      }
+      // For tab switches, directly use background script extraction
+      // This is more reliable than trying content script first
+      console.log('SlimPaneAI: Using background script for content extraction');
+      await extractPageContent();
+
     } catch (err) {
-      error.set(err instanceof Error ? err.message : 'Failed to load page content');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load page content';
+      console.error('SlimPaneAI: loadCurrentPageContent failed:', errorMessage);
+      error.set(errorMessage);
     } finally {
       isLoading.set(false);
     }
@@ -97,19 +114,32 @@
     error.set(null);
 
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id) {
-        throw new Error('No active tab found');
-      }
+      console.log('SlimPaneAI: Extracting page content via background script');
 
-      const response = await chrome.tabs.sendMessage(tab.id, { type: 'extract-page-content' });
-      if (response?.success && response.content) {
-        pageContent.set(response.content);
+      // Send message to background script to extract content
+      const response = await chrome.runtime.sendMessage({
+        type: 'extract-page-content'
+      });
+
+      console.log('SlimPaneAI: Background script response:', response);
+
+      if (response?.success) {
+        if (response.content) {
+          pageContent.set(response.content);
+          console.log('SlimPaneAI: Page content extracted successfully');
+        } else {
+          // Special page or no content
+          pageContent.set(null);
+          console.log('SlimPaneAI: Special page or no content available');
+          throw new Error(response.error || '当前页面不支持内容提取');
+        }
       } else {
         throw new Error(response?.error || 'Failed to extract content');
       }
     } catch (err) {
-      error.set(err instanceof Error ? err.message : 'Failed to extract page content');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to extract page content';
+      console.error('SlimPaneAI: Content extraction failed:', errorMessage);
+      error.set(errorMessage);
     } finally {
       isLoading.set(false);
     }

@@ -253,9 +253,29 @@ function isSpecialPageUrl(url: string): boolean {
 /**
  * Handle page content extraction request from side panel
  */
+
+
 async function handleExtractPageContent(sendResponse: (response?: any) => void) {
   try {
     console.log('SlimPaneAI: Background handling extract-page-content');
+
+    // 首先检查页面聊天是否启用
+    const data = await getStorageData();
+    const pageChatEnabled = data.pageChatEnabled || false;
+
+    if (!pageChatEnabled) {
+      console.log('SlimPaneAI: Page chat is disabled, skipping content extraction');
+      sendResponse({
+        success: true,
+        content: null,
+        title: 'Page Chat Disabled',
+        url: '',
+        metadata: null,
+        blocks: [],
+        error: 'Page chat is disabled'
+      });
+      return;
+    }
 
     // Get current active tab with detailed error handling
     let tabs;
@@ -368,6 +388,21 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
         error: response.error, // 传递错误信息
       });
     } else {
+      // 检查是否是页面聊天被禁用的情况
+      if (response?.error === 'Page chat is disabled') {
+        console.log('SlimPaneAI: Page chat is disabled, content extraction skipped');
+        sendResponse({
+          success: true,
+          content: null,
+          title: tab.title || 'Unknown Page',
+          url: tab.url,
+          metadata: null,
+          blocks: [],
+          error: 'Page chat is disabled'
+        });
+        return;
+      }
+
       throw new Error(response?.error || 'Content extraction failed');
     }
   } catch (error) {

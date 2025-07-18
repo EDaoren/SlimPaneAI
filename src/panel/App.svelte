@@ -3,6 +3,7 @@
   import ChatPanel from './components/ChatPanel.svelte';
   import { chatStore } from './stores/chat';
   import { settingsStore } from './stores/settings';
+  import { pageChatStore } from './stores/page-chat';
   import { applyTheme } from '@/lib/theme-manager';
   import { initializeLanguage, t } from '@/lib/i18n';
   import type { ExtensionMessage, TextSelectionMessage, TabSwitchedMessage, PageNavigatedMessage } from '@/types';
@@ -22,6 +23,9 @@
     await settingsStore.loadSettings();
     await chatStore.loadChatHistory();
 
+    // Initialize page chat state
+    await pageChatStore.initialize();
+
     // 国际化初始化通过响应式语句处理
 
     // Listen for messages from background script
@@ -33,7 +37,7 @@
     isLoading = false;
   });
 
-  function handleMessage(message: ExtensionMessage, sender: any, sendResponse: (response?: any) => void) {
+  async function handleMessage(message: ExtensionMessage, sender: any, sendResponse: (response?: any) => void) {
     console.log('🎯 [Panel] Received message:', message);
 
     switch (message.type) {
@@ -52,13 +56,15 @@
         settingsStore.forceRefresh();
         break;
       case 'tab-switched':
-        console.log('🔄 Tab switched, forwarding to ChatPanel');
+        console.log('🔄 Tab switched, handling globally');
+        await handleTabSwitch(message as TabSwitchedMessage);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
         break;
       case 'page-navigated':
-        console.log('🧭 Page navigated, forwarding to ChatPanel');
+        console.log('🧭 Page navigated, handling globally');
+        await handlePageNavigation(message as PageNavigatedMessage);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
@@ -83,6 +89,48 @@
   function handleTextSelection(message: TextSelectionMessage) {
     const { text, action } = message.payload;
     chatStore.handleTextSelection(text, action);
+  }
+
+  // Handle tab switch globally to ensure page chat store is updated
+  async function handleTabSwitch(message: TabSwitchedMessage) {
+    console.log('SlimPaneAI: Global tab switch handler, URL:', message.payload.url);
+
+    // Get current page chat state
+    let currentState: any;
+    const unsubscribe = pageChatStore.subscribe(state => {
+      currentState = state;
+    });
+    unsubscribe();
+
+    if (currentState.enabled) {
+      console.log('SlimPaneAI: Page chat is enabled, refreshing content for new tab');
+      // Refresh page chat content for the new tab
+      await pageChatStore.refresh();
+    } else {
+      console.log('SlimPaneAI: Page chat is disabled, clearing old content to prepare for potential future use');
+      // Clear old content so that when user enables page chat, it will extract the current page
+      pageChatStore.setPageContent('', '', '', null, null);
+    }
+  }
+
+  // Handle page navigation globally
+  async function handlePageNavigation(message: PageNavigatedMessage) {
+    console.log('SlimPaneAI: Global page navigation handler, URL:', message.payload.url);
+
+    // Get current page chat state
+    let currentState: any;
+    const unsubscribe = pageChatStore.subscribe(state => {
+      currentState = state;
+    });
+    unsubscribe();
+
+    if (currentState.enabled) {
+      console.log('SlimPaneAI: Page chat is enabled, refreshing content for navigated page');
+      await pageChatStore.refresh();
+    } else {
+      console.log('SlimPaneAI: Page chat is disabled, clearing old content to prepare for potential future use');
+      pageChatStore.setPageContent('', '', '', null, null);
+    }
   }
 
   function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {

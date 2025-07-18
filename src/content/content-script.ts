@@ -146,20 +146,19 @@ function getPageContext() {
 
 // 移除复杂的页面监听功能，只保留简单的内容提取
 
+
+
 /**
  * Handle simple content extraction for page chat
  */
 async function handleExtractSimpleContent(sendResponse: (response?: any) => void) {
   try {
-    console.log('SlimPaneAI: 开始提取页面内容');
-    console.log('SlimPaneAI: 当前页面URL:', window.location.href);
-    console.log('SlimPaneAI: 页面标题:', document.title);
+    console.log('SlimPaneAI: Starting content extraction for:', window.location.href);
 
     // 使用专业的内容处理器
     const processedContent = await processCurrentPageContent();
 
     if (!processedContent) {
-      console.log('SlimPaneAI: 内容提取返回null，可能是特殊页面或提取失败');
       sendResponse({
         success: true,
         content: null,
@@ -171,9 +170,7 @@ async function handleExtractSimpleContent(sendResponse: (response?: any) => void
       return;
     }
 
-    console.log('SlimPaneAI: 提取的内容长度:', processedContent.rawText.length);
-    console.log('SlimPaneAI: 内容块数量:', processedContent.blocks.length);
-    console.log('SlimPaneAI: 内容预览:', processedContent.rawText.substring(0, 200) + '...');
+    console.log(`SlimPaneAI: Content extraction completed (${processedContent.rawText.length} chars, ${processedContent.blocks.length} blocks)`);
 
     sendResponse({
       success: true,
@@ -265,17 +262,138 @@ async function processCurrentPageContent() {
     // 使用新的 Readability 提取器
     const extractedContent = await extractContentWithReadability();
 
-    if (!extractedContent) {
-      console.warn('SlimPaneAI: Readability extraction failed');
-      return null;
+    if (extractedContent) {
+      return formatReadabilityResult(extractedContent);
     }
 
-    return formatReadabilityResult(extractedContent);
+    // 如果 Readability 失败，使用回退方案
+    console.log('SlimPaneAI: Readability failed, switching to fallback extraction');
+    return useFallbackExtraction();
 
   } catch (error) {
     console.error('SlimPaneAI: Content processing failed:', error);
+    // 尝试回退方案
+    try {
+      console.log('SlimPaneAI: Readability error, attempting fallback extraction');
+      return useFallbackExtraction();
+    } catch (fallbackError) {
+      console.error('SlimPaneAI: Both Readability and fallback failed:', fallbackError);
+      return null;
+    }
+  }
+}
+
+/**
+ * 回退内容提取方案（当 Readability 失败时使用）
+ */
+function useFallbackExtraction() {
+
+
+  try {
+    // 提取基本信息
+    const url = window.location.href;
+    const title = document.title || extractTitleFromContent();
+
+    // 尝试多种方式提取主要内容
+    let mainContent = '';
+
+    // 1. 尝试常见的主要内容选择器
+    const mainSelectors = [
+      'main',
+      'article',
+      '.main-content',
+      '.content',
+      '.post-content',
+      '.article-content',
+      '.entry-content',
+      '#content',
+      '#main-content',
+      // 通用语义化选择器
+      '.summary',
+      '.para',
+      '.body-wrapper',
+      '.content-wrapper'
+    ];
+
+    for (const selector of mainSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = extractTextFromElementSimple(element as HTMLElement);
+        if (text && text.length > 200) {
+          mainContent = text;
+
+          break;
+        }
+      }
+    }
+
+    // 2. 如果没有找到主要内容，使用 body 内容但过滤噪声
+    if (!mainContent || mainContent.length < 200) {
+
+      mainContent = extractBodyContentSimple();
+    }
+
+    // 3. 最后的回退：使用所有文本内容
+    if (!mainContent || mainContent.length < 100) {
+
+      mainContent = document.body?.textContent?.trim() || '';
+    }
+
+    if (!mainContent || mainContent.length < 50) {
+
+      return null;
+    }
+
+    // 清理内容
+    const cleanedText = cleanTextContent(mainContent);
+
+    // 构建元数据
+    const metadata = {
+      url,
+      title,
+      author: extractAuthor(),
+      publishedTime: extractPublishedTime(),
+      capturedAt: new Date().toISOString(),
+      language: detectLanguage(),
+      wordCount: cleanedText.length,
+      siteName: extractSiteName()
+    };
+
+    // 简单的内容分块
+    const blocks = segmentTextIntoBlocks(cleanedText);
+
+    console.log(`SlimPaneAI: Content extracted via fallback method (${cleanedText.length} chars)`);
+
+    return {
+      metadata,
+      blocks,
+      rawText: cleanedText,
+      htmlContent: null, // 回退方案不提供 HTML 内容
+      excerpt: cleanedText.substring(0, 200) + (cleanedText.length > 200 ? '...' : '')
+    };
+
+  } catch (error) {
+    console.error('SlimPaneAI: Fallback extraction failed:', error);
     return null;
   }
+}
+
+/**
+ * 提取站点名称
+ */
+function extractSiteName(): string {
+  // 尝试从 meta 标签获取
+  const siteName = document.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
+  if (siteName) return siteName;
+
+  // 从域名推断
+  const hostname = window.location.hostname;
+  if (hostname.includes('baidu.com')) return '百度';
+  if (hostname.includes('zhihu.com')) return '知乎';
+  if (hostname.includes('weibo.com')) return '微博';
+  if (hostname.includes('csdn.net')) return 'CSDN';
+
+  return hostname;
 }
 
 /**
@@ -378,6 +496,66 @@ function cleanTextContent(text: string): string {
 }
 
 /**
+ * 通用DOM预处理 - 优化DOM结构以提高Readability成功率
+ */
+function preprocessDOMForReadability(doc: Document) {
+  try {
+    // 1. 合并相邻的小文本节点
+    const textNodes = doc.createTreeWalker(
+      doc.body,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+
+    const nodesToProcess: Text[] = [];
+    let node;
+    while (node = textNodes.nextNode()) {
+      if (node.textContent && node.textContent.trim().length > 0) {
+        nodesToProcess.push(node as Text);
+      }
+    }
+
+    // 2. 移除只包含空白或无意义内容的元素
+    const emptyElements = doc.querySelectorAll('div, span, p');
+    emptyElements.forEach(el => {
+      const text = el.textContent?.trim();
+      if (!text || text.length < 10) {
+        // 检查是否包含有意义的子元素
+        const hasSignificantChildren = el.querySelector('img, video, audio, iframe, canvas, svg');
+        if (!hasSignificantChildren) {
+          el.remove();
+        }
+      }
+    });
+
+    // 3. 提升被过度嵌套的文本内容
+    const deeplyNestedElements = doc.querySelectorAll('div > div > div > div');
+    deeplyNestedElements.forEach(el => {
+      const text = el.textContent?.trim();
+      if (text && text.length > 50 && el.children.length === 0) {
+        // 如果是纯文本且内容足够长，考虑提升层级
+        const parent = el.parentElement;
+        if (parent && parent.children.length === 1) {
+          parent.innerHTML = el.innerHTML;
+        }
+      }
+    });
+
+    // 4. 为常见的内容容器添加语义化标记
+    const contentContainers = doc.querySelectorAll('[class*="content"], [class*="article"], [class*="post"], [class*="main"], [class*="body"]');
+    contentContainers.forEach(el => {
+      if (!el.getAttribute('data-readability-enhanced')) {
+        el.setAttribute('data-readability-enhanced', 'true');
+      }
+    });
+
+  } catch (error) {
+    console.warn('SlimPaneAI: DOM preprocessing failed:', error);
+  }
+}
+
+/**
  * 使用 Mozilla Readability 提取内容
  */
 async function extractContentWithReadability() {
@@ -392,14 +570,49 @@ async function extractContentWithReadability() {
     if (!Readability || !isProbablyReaderable) {
       const loaded = await initializeReadability();
       if (!loaded) {
-        console.warn('SlimPaneAI: Readability library not available');
         return null;
       }
     }
 
     // 检查页面是否适合 Readability 处理
-    if (!isProbablyReaderable(document)) {
-      console.warn('SlimPaneAI: Page is not readerable');
+    let isReaderable = isProbablyReaderable(document);
+
+    // 如果默认设置失败，尝试更宽松的通用检查
+    if (!isReaderable) {
+      // 通用内容检查
+      const textLength = document.body?.textContent?.trim().length || 0;
+
+      // 查找各种可能的内容容器（通用选择器）
+      const contentSelectors = [
+        'p', 'article', 'main', '[class*="content"]', '[class*="article"]',
+        '[class*="post"]', '[class*="entry"]', '[class*="body"]', '[class*="text"]',
+        '[class*="summary"]', '[class*="description"]', '[class*="detail"]',
+        '[class*="para"]', '[class*="section"]', 'div'
+      ];
+
+      let contentScore = 0;
+      let significantElements = 0;
+
+      for (const selector of contentSelectors) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          const text = el.textContent?.trim() || '';
+          if (text.length > 60) {
+            const score = Math.sqrt(text.length - 60);
+            contentScore += score;
+            significantElements++;
+          }
+        });
+
+        // 如果已经找到足够的内容，就不需要继续检查了
+        if (contentScore > 20) break;
+      }
+
+      // 更宽松的通用判断标准
+      isReaderable = textLength > 300 && (contentScore > 10 || significantElements > 2);
+    }
+
+    if (!isReaderable) {
       return null;
     }
 
@@ -409,8 +622,11 @@ async function extractContentWithReadability() {
     // 应用黑名单移除噪声元素
     applyReadabilityBlacklist(clonedDoc);
 
-    // 使用 Readability 提取内容
-    const reader = new Readability(clonedDoc, {
+    // 应用通用DOM预处理
+    preprocessDOMForReadability(clonedDoc);
+
+    // 使用 Readability 提取内容 - 先尝试默认配置
+    let reader = new Readability(clonedDoc, {
       debug: false,
       maxElemsToParse: 0,
       nbTopCandidates: 5,
@@ -418,16 +634,44 @@ async function extractContentWithReadability() {
       classesToPreserve: ['highlight', 'code', 'pre']
     });
 
-    const article = reader.parse();
+    let article = reader.parse();
+    let extractionMethod = 'default';
+
+    // 如果默认配置失败，尝试更宽松的配置
+    if (!article) {
+      // 重新创建文档副本（因为 Readability 会修改文档）
+      const clonedDoc2 = document.cloneNode(true) as Document;
+      applyReadabilityBlacklist(clonedDoc2);
+
+      // 更宽松的 Readability 配置
+      reader = new Readability(clonedDoc2, {
+        debug: false,
+        maxElemsToParse: 0,
+        nbTopCandidates: 15,        // 进一步增加候选数量
+        charThreshold: 150,         // 进一步降低字符阈值
+        classesToPreserve: [
+          // 代码和格式化相关
+          'highlight', 'code', 'pre',
+          // 通用内容容器类名
+          'content', 'main', 'article', 'post', 'entry', 'body', 'text',
+          'summary', 'description', 'detail', 'info', 'section',
+          // 通用结构类名
+          'wrapper', 'container', 'inner',
+          // 通用文章结构
+          'title', 'heading', 'paragraph', 'para'
+        ],
+        keepClasses: true           // 保留更多类名
+      });
+
+      article = reader.parse();
+      extractionMethod = 'lenient';
+    }
 
     if (!article) {
-      console.warn('SlimPaneAI: Readability failed to parse article');
       return null;
     }
 
-    console.log('SlimPaneAI: Readability extraction successful');
-    console.log('SlimPaneAI: Title:', article.title);
-    console.log('SlimPaneAI: Content length:', article.textContent.length);
+    console.log(`SlimPaneAI: Content extracted via ${extractionMethod} Readability (${article.textContent.length} chars)`);
 
     return {
       title: article.title || '',
