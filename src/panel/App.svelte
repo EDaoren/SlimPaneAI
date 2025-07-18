@@ -42,21 +42,17 @@
 
     switch (message.type) {
       case 'text-selected':
-        console.log('📝 Handling text selection');
         handleTextSelection(message as TextSelectionMessage);
         break;
       case 'llm-chunk':
       case 'llm-response':
       case 'llm-error':
-        console.log('🤖 Forwarding to chat store');
         chatStore.handleMessage(message);
         break;
       case 'storage-updated':
-        console.log('💾 Storage updated, refreshing settings...');
         settingsStore.forceRefresh();
         break;
       case 'tab-switched':
-        console.log('🔄 Tab switched, handling globally');
         await handleTabSwitch(message as TabSwitchedMessage);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);

@@ -1,5 +1,5 @@
 import type { DomainSettings, ContentExtractionSettings, StorageData } from '@/types';
-import { getDefaultExtractionSettings } from '../content-extractor';
+import { EXTRACTION_CONFIG } from '../web-content';
 
 /**
  * 域名设置管理器
@@ -194,7 +194,12 @@ export class DomainSettingsManager {
     const defaultSettings: DomainSettings = {
       domain,
       enabled: true,
-      extractionSettings: getDefaultExtractionSettings(),
+      extractionSettings: {
+        enableBlacklist: true,
+        enableFallback: true,
+        minContentLength: EXTRACTION_CONFIG.MIN_CONTENT_LENGTH,
+        customBlacklist: []
+      },
       lastUpdated: Date.now()
     };
 

@@ -66,12 +66,10 @@
 
   function handleSaveProvider(event: CustomEvent<{ provider: ServiceProvider }>) {
     const { provider } = event.detail;
-    console.log('🔧 [ServiceProviderManager] Saving provider:', provider);
     const updatedProviders = {
       ...serviceProviders,
       [provider.id]: provider
     };
-    console.log('🔧 [ServiceProviderManager] Updated providers:', updatedProviders);
     dispatch('update', { serviceProviders: updatedProviders });
     showModal = false;
     editingProvider = null;

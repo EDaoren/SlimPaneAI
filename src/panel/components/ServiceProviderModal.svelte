@@ -24,7 +24,6 @@
         ...provider,
         models: [...provider.models]
       };
-      console.log('🔧 [ServiceProviderModal] Initialized form data for editing:', formData);
     } else {
       // New custom provider
       formData = {
@@ -38,7 +37,6 @@
         baseUrl: '',
         models: []
       };
-      console.log('🔧 [ServiceProviderModal] Initialized form data for new provider:', formData);
     }
     initialized = true;
   }
@@ -284,7 +282,6 @@
                   class="form-input"
                   placeholder={$t('settings.enterApiKey')}
                   required
-                  on:input={() => console.log('🔧 [ServiceProviderModal] API Key input:', formData.apiKey)}
                 />
                 <button
                   type="button"

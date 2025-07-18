@@ -7,7 +7,7 @@ import { katex } from '@mdit/plugin-katex';
 hljs.addPlugin(new CopyButtonPlugin({
   lang: 'zh-CN', // 设置为中文
   callback: (text, el) => {
-    console.log('代码已复制到剪贴板');
+    // 代码已复制到剪贴板
   }
 }));
 

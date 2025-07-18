@@ -72,8 +72,6 @@ ${metadata?.publishedTime ? `发布时间: ${metadata.publishedTime}` : ''}
 
 网页内容:
 ${pageChatState.currentPageContent}`;
-
-      console.log('SlimPaneAI: 使用自定义系统prompt，内容长度:', pageContent.length);
     }
 
     dispatch('send', {

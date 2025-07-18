@@ -59,12 +59,6 @@
   }>) {
     const { message, systemPrompt, pageContent, modelId, providerId, isPageChat } = event.detail;
 
-    console.log('SlimPaneAI: 发送消息');
-    console.log('SlimPaneAI: 用户消息:', message);
-    console.log('SlimPaneAI: 是否网页聊天:', isPageChat);
-    console.log('SlimPaneAI: 系统prompt长度:', systemPrompt?.length || 0);
-    console.log('SlimPaneAI: 页面内容长度:', pageContent?.length || 0);
-
     // 检查页面聊天状态
     const pageChatState = $pageChatStore;
     let showPageChatWarning = false;
@@ -72,7 +66,6 @@
     if (pageChatState.enabled && !pageContent) {
       // 页面聊天开启但没有内容，显示警告
       showPageChatWarning = true;
-      console.log('SlimPaneAI: 页面聊天开启但内容提取失败，将以普通模式回答');
     }
 
     // 发送消息，传递系统prompt和页面内容

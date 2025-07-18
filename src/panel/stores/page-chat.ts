@@ -354,14 +354,8 @@ export function generateWebQAPrompt(userQuestion: string, state: PageChatState):
     const taskType = detectTaskType(userQuestion);
     const language = detectQuestionLanguage(userQuestion);
 
-    console.log('SlimPaneAI: 生成专业Prompt');
-    console.log('SlimPaneAI: 任务类型:', taskType);
-    console.log('SlimPaneAI: 检测语言:', language);
-
     // 生成结构化Prompt
     const prompt = generateStructuredPrompt(userQuestion, state, language, taskType);
-
-    console.log('SlimPaneAI: 生成的Prompt长度:', prompt.length);
 
     return prompt;
   } catch (error) {

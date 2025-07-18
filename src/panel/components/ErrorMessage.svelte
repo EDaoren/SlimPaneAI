@@ -131,7 +131,6 @@
         title="重试"
         on:click={() => {
           // 可以添加重试逻辑
-          console.log('Retry button clicked');
         }}
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

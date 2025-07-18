@@ -28,7 +28,6 @@
 
   // Export function to handle messages from parent
   export function handleMessage(message: any) {
-    console.log('SlimPaneAI: PageContentPanel received message:', message.type, message);
     switch (message.type) {
       case 'page-content-extracted':
         if (message.payload.content) {
@@ -44,7 +43,6 @@
       case 'tab-switched':
       case 'page-navigated':
         // When tab switches or page navigates, reload content
-        console.log('SlimPaneAI: Detected tab/page change, reloading content for:', message.payload.url);
         handleTabSwitch(message.payload);
         break;
     }
@@ -52,8 +50,6 @@
 
   // Handle tab switch with page chat store update
   async function handleTabSwitch(payload: { tabId: number; url: string; title: string }) {
-    console.log('SlimPaneAI: Handling tab switch to:', payload.url);
-
     // Clear current content immediately to show loading state
     pageContent.set(null);
     error.set(null);
@@ -61,7 +57,6 @@
     // Update page chat store if it's enabled
     const pageChatState = $pageChatStore;
     if (pageChatState.enabled) {
-      console.log('SlimPaneAI: Page chat is enabled, refreshing content');
       // This will trigger content extraction for the new tab
       await pageChatStore.refresh();
     }
@@ -75,29 +70,24 @@
   });
 
   async function loadCurrentPageContent() {
-    console.log('SlimPaneAI: loadCurrentPageContent called');
     isLoading.set(true);
     error.set(null);
 
     try {
       // Get current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      console.log('SlimPaneAI: Current tab:', tab?.url);
       if (!tab?.url) {
         throw new Error('No active tab found');
       }
 
       currentDomain = new URL(tab.url).hostname;
-      console.log('SlimPaneAI: Current domain:', currentDomain);
 
       // Load domain settings
       const settings = await domainSettingsManager.getDomainSettings(currentDomain);
       domainSettings.set(settings);
-      console.log('SlimPaneAI: Domain settings loaded:', settings);
 
       // For tab switches, directly use background script extraction
       // This is more reliable than trying content script first
-      console.log('SlimPaneAI: Using background script for content extraction');
       await extractPageContent();
 
     } catch (err) {
@@ -114,23 +104,17 @@
     error.set(null);
 
     try {
-      console.log('SlimPaneAI: Extracting page content via background script');
-
       // Send message to background script to extract content
       const response = await chrome.runtime.sendMessage({
         type: 'extract-page-content'
       });
 
-      console.log('SlimPaneAI: Background script response:', response);
-
       if (response?.success) {
         if (response.content) {
           pageContent.set(response.content);
-          console.log('SlimPaneAI: Page content extracted successfully');
         } else {
           // Special page or no content
           pageContent.set(null);
-          console.log('SlimPaneAI: Special page or no content available');
           throw new Error(response.error || '当前页面不支持内容提取');
         }
       } else {

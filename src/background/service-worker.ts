@@ -11,8 +11,6 @@ import { createModelAdapter } from '@/lib/model-adapters';
 
 // Helper function to send messages to side panel with retry
 async function sendMessageToSidePanel(message: any, retries = 3) {
-  console.log('SlimPaneAI: Sending message to side panel:', message.type, message);
-
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await new Promise((resolve, reject) => {
@@ -25,11 +23,8 @@ async function sendMessageToSidePanel(message: any, retries = 3) {
         });
       });
 
-      console.log('SlimPaneAI: Message sent successfully on attempt', attempt, 'response:', response);
       return response;
     } catch (error) {
-      console.log(`SlimPaneAI: Message send attempt ${attempt} failed:`, error.message);
-
       if (attempt === retries) {
         console.warn('SlimPaneAI: All message send attempts failed, side panel may not be open');
         return null;
@@ -261,7 +256,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
 
     // 首先检查页面聊天是否启用
     const data = await getStorageData();
-    const pageChatEnabled = data.pageChatEnabled || false;
+    const pageChatEnabled = data.userPreferences?.pageContentEnabled ?? true;
 
     if (!pageChatEnabled) {
       console.log('SlimPaneAI: Page chat is disabled, skipping content extraction');
@@ -321,14 +316,12 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     }
 
     try {
-      console.log('SlimPaneAI: Injecting content script to tab:', tab.id);
       // Try to inject content script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['content.js'],
       });
 
-      console.log('SlimPaneAI: Content script injection successful');
       // Wait for script initialization
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (injectionError) {
@@ -346,14 +339,11 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
 
     while (retryCount < maxRetries) {
       try {
-        console.log(`SlimPaneAI: Sending message to content script (attempt ${retryCount + 1})`);
         response = await chrome.tabs.sendMessage(tab.id, {
           type: 'extract-simple-content',
         });
-        console.log('SlimPaneAI: Content script response:', response);
         break;
       } catch (messageError) {
-        console.warn(`SlimPaneAI: Message failed (attempt ${retryCount + 1}):`, messageError);
         retryCount++;
         if (retryCount >= maxRetries) {
           // 提供更友好的错误信息
@@ -378,6 +368,13 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     }
 
     if (response?.success) {
+      // 验证接收到的内容
+      if (response.content) {
+        console.log(`SlimPaneAI: 后台接收到内容:`, response);
+      } else {
+        console.log(`SlimPaneAI: 后台接收到空内容 - 可能是特殊页面或提取失败`);
+      }
+
       sendResponse({
         success: true,
         content: response.content, // 可能是 null
@@ -390,7 +387,6 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     } else {
       // 检查是否是页面聊天被禁用的情况
       if (response?.error === 'Page chat is disabled') {
-        console.log('SlimPaneAI: Page chat is disabled, content extraction skipped');
         sendResponse({
           success: true,
           content: null,
