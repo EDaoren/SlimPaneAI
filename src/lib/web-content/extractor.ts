@@ -200,14 +200,10 @@ export class WebContentExtractor {
         charThreshold: EXTRACTION_CONFIG.READABILITY_CHAR_THRESHOLD,
         keepClasses: true,
         classesToPreserve: [
-          // 代码和格式化相关
-          'highlight', 'code', 'pre', 'language-',
-          // 图片和媒体相关
-          'figure', 'gallery', 'image', 'photo', 'video',
-          'lazy-', 'wp-', 'zoomable-', 'video-',
-          // 内容结构相关
-          'content', 'article', 'post', 'entry', 'main',
-          'summary', 'description', 'detail'
+          // 代码高亮 & Markdown
+          /^language-/,          // language-javascript, language-python …
+          /^highlight/,          // highlight, highlight-source-js …
+          /^prism-/,             // prism-token-* …
         ]
       };
 
