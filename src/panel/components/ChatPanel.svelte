@@ -9,13 +9,11 @@
   import ChatInput from './ChatInput.svelte';
   import SessionList from './SessionList.svelte';
   import Toolbar from './Toolbar.svelte';
-  import PageContentPanel from './PageContentPanel.svelte';
+
   import { t } from '@/lib/i18n';
 
   let showSessions = false;
-  let showPageContent = false;
   let messagesContainer: HTMLElement;
-  let pageContentPanel: PageContentPanel;
 
   $: currentSession = $chatStore.currentSession;
   $: sessions = $chatStore.sessions;
@@ -89,7 +87,7 @@
   }
 
   function handleClearChat() {
-    if (currentSession && confirm($t('prompts.clearChatConfirm'))) {
+    if (currentSession) {
       chatStore.clearCurrentSession();
     }
   }
@@ -102,20 +100,7 @@
     showSessions = !showSessions;
   }
 
-  function handleTogglePageContent() {
-    showPageContent = !showPageContent;
-  }
 
-  function handlePageContentSelect(content: string) {
-    // 将页面内容插入到聊天输入框
-    const event = new CustomEvent('page-content-selected', {
-      detail: { content }
-    });
-    window.dispatchEvent(event);
-
-    // 关闭页面内容面板
-    showPageContent = false;
-  }
 
   function handleShowOptions() {
     // 打开设置页面
@@ -132,12 +117,7 @@
   // 决定是否使用虚拟滚动（当消息数量较多时）
   $: useVirtualScroll = currentSession && currentSession.messages.length > 50;
 
-  // Export function to handle page content messages from parent
-  export function handlePageContentMessage(message: any) {
-    if (pageContentPanel && pageContentPanel.handleMessage) {
-      pageContentPanel.handleMessage(message);
-    }
-  }
+
 </script>
 
 <div class="chat-panel">
@@ -221,19 +201,9 @@
   <!-- Right Toolbar -->
   <Toolbar
     onToggleChatHistory={handleToggleChatHistory}
-    onTogglePageContent={handleTogglePageContent}
   />
 
-  <!-- Page Content Panel -->
-  {#if showPageContent}
-    <div class="page-content-overlay">
-      <PageContentPanel
-        bind:this={pageContentPanel}
-        visible={showPageContent}
-        onContentSelect={handlePageContentSelect}
-      />
-    </div>
-  {/if}
+
 </div>
 
 <style>
@@ -282,15 +252,5 @@
     background: var(--bg-primary);
   }
 
-  .page-content-overlay {
-    position: absolute;
-    top: 0;
-    right: 56px; /* Toolbar width */
-    bottom: 0;
-    width: 400px;
-    background: var(--bg-primary);
-    border-left: 1px solid var(--border-primary);
-    z-index: 20;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  }
+
 </style>

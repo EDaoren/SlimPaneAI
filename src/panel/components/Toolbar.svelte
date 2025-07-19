@@ -3,7 +3,6 @@
   import { t } from '@/lib/i18n';
 
   export let onToggleChatHistory: () => void;
-  export let onTogglePageContent: () => void;
 
   function openSettings() {
     window.chrome?.runtime?.openOptionsPage();
@@ -17,9 +16,7 @@
     onToggleChatHistory();
   }
 
-  function handlePageContent() {
-    onTogglePageContent();
-  }
+
 </script>
 
 <div class="toolbar">
@@ -34,16 +31,7 @@
     </svg>
   </button>
 
-  <!-- 页面内容 -->
-  <button
-    class="toolbar-button"
-    on:click={handlePageContent}
-    title={$t('pageContent.title')}
-  >
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  </button>
+
 
   <!-- 聊天记录 -->
   <button

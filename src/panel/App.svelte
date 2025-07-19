@@ -66,15 +66,6 @@
         break;
       case 'spa-page-navigated':
         await handleSPAPageNavigation(message);
-        if (chatPanel && chatPanel.handlePageContentMessage) {
-          chatPanel.handlePageContentMessage(message);
-        }
-        break;
-      case 'page-content-extracted':
-      case 'pdf-processing-status':
-        if (chatPanel && chatPanel.handlePageContentMessage) {
-          chatPanel.handlePageContentMessage(message);
-        }
         break;
       default:
         console.log('❓ Unknown message type:', message.type);

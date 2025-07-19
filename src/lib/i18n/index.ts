@@ -401,13 +401,25 @@ export const t = derived(
 
 // 设置语言
 export function setLanguage(language: Language) {
-  currentLanguage.set(language);
+  try {
+    console.log('🌍 [i18n] Setting language to:', language);
+    currentLanguage.set(language);
+    console.log('✅ [i18n] Language set successfully');
+  } catch (error) {
+    console.error('❌ [i18n] Failed to set language:', error);
+  }
 }
 
 // 从用户偏好初始化语言
 export function initializeLanguage(preferences: UserPreferences) {
-  if (preferences.language) {
+  try {
+    if (!preferences || !preferences.language) {
+      console.warn('⚠️ [i18n] No language preference found, using default');
+      return;
+    }
+
     const targetLanguage = preferences.language as Language;
+    console.log('🌍 [i18n] Initializing language to:', targetLanguage);
 
     // 检查是否需要更新语言
     let currentLang: Language = 'zh'; // 默认值
@@ -417,7 +429,13 @@ export function initializeLanguage(preferences: UserPreferences) {
     if (currentLang !== targetLanguage) {
       setLanguage(targetLanguage);
       isLanguageInitialized = true;
+      console.log('✅ [i18n] Language initialized successfully');
+    } else {
+      console.log('ℹ️ [i18n] Language already set to target language');
+      isLanguageInitialized = true;
     }
+  } catch (error) {
+    console.error('❌ [i18n] Failed to initialize language:', error);
   }
 }
 

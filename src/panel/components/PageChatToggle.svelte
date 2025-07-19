@@ -8,9 +8,7 @@
     pageChatStore.toggle();
   }
 
-  function handleRefresh() {
-    pageChatStore.refresh();
-  }
+
 
   // 格式化内容长度显示
   function formatContentLength(content: string | null): string {
@@ -65,9 +63,6 @@
       {:else if state.error}
         <div class="status-text error">
           {state.error}
-          <button class="retry-button" on:click={handleRefresh}>
-            {$t('common.retry')}
-          </button>
         </div>
       {:else if state.currentPageContent}
         <div class="content-info">
@@ -78,19 +73,11 @@
             <span class="content-length">
               {formatContentLength(state.currentPageContent)} {$t('pageChat.characters')}
             </span>
-            <button class="refresh-button" on:click={handleRefresh} title={$t('pageChat.refresh')}>
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
           </div>
         </div>
       {:else}
         <div class="status-text">
           {$t('pageChat.noContent')}
-          <button class="retry-button" on:click={handleRefresh}>
-            {$t('pageChat.extract')}
-          </button>
         </div>
       {/if}
     </div>
@@ -193,31 +180,7 @@
     color: #ef4444;
   }
 
-  .retry-button,
-  .refresh-button {
-    padding: 0.125rem 0.375rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-primary);
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
 
-  .retry-button:hover,
-  .refresh-button:hover {
-    background: var(--bg-secondary);
-    border-color: var(--border-secondary);
-  }
-
-  .refresh-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem;
-    min-width: auto;
-  }
 
   .content-info {
     display: flex;

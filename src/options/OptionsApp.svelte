@@ -21,94 +21,125 @@
   // 语言初始化状态
   let languageInitialized = false;
 
+  // 设置更新状态管理
+  let isUpdatingSettings = false;
+  let pendingUpdates = new Map<string, any>();
+  let updateTimeout: number | null = null;
+  let settingsUpdateTimeout: number | null = null; // 设置更新超时保护
+
+  // UI状态隔离 - 用于防止跨设置UI状态污染
+  let localUIState = {
+    theme: '',
+    language: '',
+    fontSize: '',
+    messageDensity: ''
+  };
+
   // 导航菜单项
   let navigationItems: Array<{id: string, name: string, icon: string, title: string, description?: string}> = [];
 
   // 导航菜单项 - 只有在语言真正初始化后才更新，避免使用初始状态
-  $: if (languageInitialized) {
+  $: if (languageInitialized && $currentLanguage) {
     console.log('🔄 [Options] Language changed to:', $currentLanguage, 'updating navigationItems');
-    navigationItems = [
-      {
-        id: 'ai-models',
-        name: $t('settings.models'),
-        title: $t('settings.models'),
-        icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
-        description: $t('settings.modelSettings')
-      },
-      {
-        id: 'preferences',
-        name: $t('settings.preferences'),
-        title: $t('settings.preferences'),
-        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
-        description: $t('settings.general')
-      },
-      {
-        id: 'appearance',
-        name: $t('settings.appearance'),
-        title: $t('settings.appearance'),
-        icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4 4 4 0 004-4V5z',
-        description: $t('settings.theme')
-      },
-      {
-        id: 'about',
-        name: $t('settings.about'),
-        title: $t('settings.about'),
-        icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-        description: $t('settings.about')
-      }
-    ];
-    console.log('🔄 [Options] NavigationItems updated for language', $currentLanguage, ':', navigationItems.map(item => ({ id: item.id, title: item.title })));
+    try {
+      navigationItems = [
+        {
+          id: 'ai-models',
+          name: $t('settings.models'),
+          title: $t('settings.models'),
+          icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+          description: $t('settings.modelSettings')
+        },
+        {
+          id: 'preferences',
+          name: $t('settings.preferences'),
+          title: $t('settings.preferences'),
+          icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+          description: $t('settings.general')
+        },
+        {
+          id: 'appearance',
+          name: $t('settings.appearance'),
+          title: $t('settings.appearance'),
+          icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4 4 4 0 004-4V5z',
+          description: $t('settings.theme')
+        },
+        {
+          id: 'about',
+          name: $t('settings.about'),
+          title: $t('settings.about'),
+          icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+          description: $t('settings.about')
+        }
+      ];
+      console.log('🔄 [Options] NavigationItems updated for language', $currentLanguage, ':', navigationItems.map(item => ({ id: item.id, title: item.title })));
+    } catch (error) {
+      console.error('❌ [Options] Error updating navigation items:', error);
+    }
   }
 
-  $: modelEntries = Object.entries($settingsStore.modelSettings);
-  $: serviceProviders = $settingsStore.serviceProviders;
-  $: userPreferences = $settingsStore.userPreferences;
-  $: modelOptions = getModelDisplayOptions(serviceProviders);
+  // 安全的响应式变量，添加防护措施
+  $: modelEntries = $settingsStore?.modelSettings ? Object.entries($settingsStore.modelSettings) : [];
+  $: serviceProviders = $settingsStore?.serviceProviders || {};
+  $: userPreferences = $settingsStore?.userPreferences;
+  $: modelOptions = serviceProviders ? getModelDisplayOptions(serviceProviders) : [];
   $: hasModels = modelOptions.length > 0;
 
-  // 应用主题变化和语言初始化
-  $: if (userPreferences && !$settingsStore.isLoading && !languageInitialized) {
-    console.log('🌍 [Options] Applying preferences (settings loaded):', userPreferences);
-    applyTheme(userPreferences);
-    // 只有在设置完全加载后且未初始化时才初始化国际化系统
-    console.log('🌍 [Options] Initializing language (first time):', userPreferences.language);
-    initializeLanguage(userPreferences);
-    languageInitialized = true;
+  // 同步本地UI状态 - 只在非更新状态下同步，避免冲突
+  $: if (userPreferences && !isUpdatingSettings) {
+    localUIState = {
+      theme: userPreferences.theme || '',
+      language: userPreferences.language || '',
+      fontSize: userPreferences.fontSize || '',
+      messageDensity: userPreferences.messageDensity || ''
+    };
   }
 
-  // 单独处理主题变化（不影响语言初始化）
-  $: if (userPreferences && !$settingsStore.isLoading && languageInitialized) {
-    applyTheme(userPreferences);
+  // 统一的设置初始化逻辑 - 只在首次加载时执行
+  $: if (userPreferences && !$settingsStore.isLoading && !languageInitialized && !isUpdatingSettings) {
+    try {
+      console.log('🌍 [Options] First-time initialization:', userPreferences);
+
+      // 初始化语言
+      initializeLanguage(userPreferences);
+      languageInitialized = true;
+
+      // 应用初始主题
+      applyTheme(userPreferences);
+
+      console.log('✅ [Options] Initial setup completed');
+    } catch (error) {
+      console.error('❌ [Options] Error in initial setup:', error);
+    }
   }
 
   onMount(() => {
     const initializeApp = async () => {
-    await settingsStore.loadSettings();
+      try {
+        console.log('🚀 [Options] Starting app initialization');
+        await settingsStore.loadSettings();
 
-    // Initialize service providers if none exist
-    if (Object.keys($settingsStore.serviceProviders).length === 0) {
-      const { getDefaultServiceProviders } = await import('@/lib/service-providers');
-      const defaultProviders = getDefaultServiceProviders();
-      await settingsStore.saveServiceProviders(defaultProviders);
-    }
+        // Initialize service providers if none exist
+        if (Object.keys($settingsStore.serviceProviders).length === 0) {
+          const { getDefaultServiceProviders } = await import('@/lib/service-providers');
+          const defaultProviders = getDefaultServiceProviders();
+          await settingsStore.saveServiceProviders(defaultProviders);
+        }
 
-    // 应用初始主题（语言初始化由响应式语句处理）
-    const currentSettings = settingsStore.getCurrentState();
-    if (currentSettings.userPreferences) {
-      console.log('🌍 [Options] onMount - Applying loaded preferences:', currentSettings.userPreferences);
-      applyTheme(currentSettings.userPreferences);
-      // 语言初始化由响应式语句处理，这里不重复初始化
-    }
+        // 监听系统主题变化
+        const unwatch = watchSystemTheme(() => {
+          const currentSettings = settingsStore.getCurrentState();
+          if (currentSettings.userPreferences?.theme === 'auto' && !isUpdatingSettings) {
+            // 只在非更新状态下响应系统主题变化，避免冲突
+            applyTheme(currentSettings.userPreferences);
+          }
+        });
 
-    // 监听系统主题变化
-    const unwatch = watchSystemTheme(() => {
-      const currentSettings = settingsStore.getCurrentState();
-      if (currentSettings.userPreferences?.theme === 'auto') {
-        applyTheme(currentSettings.userPreferences);
+        console.log('✅ [Options] App initialization completed');
+        return unwatch;
+      } catch (error) {
+        console.error('❌ [Options] App initialization failed:', error);
       }
-    });
-
-      return unwatch;
     };
 
     // Listen for messages from background script
@@ -116,6 +147,24 @@
 
     // Initialize the app
     initializeApp();
+
+    // 清理函数
+    return () => {
+      // 清理待处理的更新
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+      if (settingsUpdateTimeout) {
+        clearTimeout(settingsUpdateTimeout);
+      }
+      pendingUpdates.clear();
+      isUpdatingSettings = false;
+
+      // 移除消息监听器
+      chrome.runtime.onMessage.removeListener(handleMessage);
+
+      console.log('🧹 [Options] Component cleanup completed');
+    };
   });
 
   function handleMessage(message: any) {
@@ -128,6 +177,105 @@
         break;
       default:
         console.log('❓ Unknown message type:', message.type);
+    }
+  }
+
+  // 强制重置设置更新状态的函数
+  function forceResetSettingsState() {
+    console.log('🔄 [Options] Force resetting settings state');
+    isUpdatingSettings = false;
+    pendingUpdates.clear();
+    if (settingsUpdateTimeout) {
+      clearTimeout(settingsUpdateTimeout);
+      settingsUpdateTimeout = null;
+    }
+  }
+
+  // 统一的设置更新函数，实现防抖和原子性操作
+  async function updateSetting(key: string, value: any, applyImmediately = false) {
+    try {
+      // 清除之前的超时保护
+      if (settingsUpdateTimeout) {
+        clearTimeout(settingsUpdateTimeout);
+      }
+
+      if (isUpdatingSettings) {
+        console.log('⏳ [Options] Settings update in progress, queuing:', key);
+        pendingUpdates.set(key, value);
+        return;
+      }
+
+      console.log(`🔧 [Options] Updating setting: ${key} =`, value);
+      isUpdatingSettings = true;
+
+      // 设置超时保护，防止状态卡死
+      settingsUpdateTimeout = setTimeout(() => {
+        console.warn('⚠️ [Options] Settings update timeout, force resetting state');
+        forceResetSettingsState();
+      }, 5000);
+
+      // 立即更新本地UI状态，防止UI闪烁
+      localUIState = {
+        ...localUIState,
+        [key]: value
+      };
+
+      // 防护措施：确保userPreferences存在
+      if (!userPreferences) {
+        console.error('❌ [Options] Cannot update setting: userPreferences is null');
+        forceResetSettingsState();
+        return;
+      }
+
+      const newPreferences = {
+        ...userPreferences,
+        [key]: value
+      };
+
+      // 保存到存储
+      await settingsStore.saveUserPreferences(newPreferences);
+
+      // 立即应用特定设置（如果需要）
+      if (applyImmediately) {
+        switch (key) {
+          case 'theme':
+            applyTheme(newPreferences);
+            break;
+          case 'language':
+            setLanguage(value);
+            break;
+          case 'fontSize':
+          case 'messageDensity':
+            applyTheme(newPreferences);
+            break;
+        }
+      }
+
+      console.log(`✅ [Options] Setting ${key} updated successfully`);
+
+      // 清除超时保护
+      if (settingsUpdateTimeout) {
+        clearTimeout(settingsUpdateTimeout);
+        settingsUpdateTimeout = null;
+      }
+
+      // 处理待处理的更新
+      if (pendingUpdates.size > 0) {
+        const nextUpdate = Array.from(pendingUpdates.entries())[0];
+        pendingUpdates.delete(nextUpdate[0]);
+
+        // 延迟处理下一个更新，避免冲突
+        setTimeout(() => {
+          isUpdatingSettings = false;
+          updateSetting(nextUpdate[0], nextUpdate[1], applyImmediately);
+        }, 100);
+      } else {
+        isUpdatingSettings = false;
+      }
+
+    } catch (error) {
+      console.error(`❌ [Options] Failed to update setting ${key}:`, error);
+      forceResetSettingsState();
     }
   }
 
@@ -180,65 +328,34 @@
     editingConfig = null;
   }
 
+  // 重写的设置处理函数，使用统一的更新机制
   async function handleDefaultModelChange(e: Event) {
     const target = e.target as HTMLSelectElement;
-    const newPreferences = {
-      ...userPreferences,
-      defaultModel: target.value
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
+    await updateSetting('defaultModel', target.value);
   }
 
   async function handleDefaultModelSelectChange(event: CustomEvent) {
-    const newPreferences = {
-      ...userPreferences,
-      defaultModel: event.detail.value
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
+    await updateSetting('defaultModel', event.detail.value);
   }
 
-
-
   async function handleThemeChange(theme: 'light' | 'dark' | 'auto') {
-    const newPreferences = {
-      ...userPreferences,
-      theme
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
-    // 立即应用主题
-    applyTheme(newPreferences);
+    console.log('🎨 [Options] Theme change requested:', theme, 'Current state:', { isUpdatingSettings, userPreferences: !!userPreferences });
+    await updateSetting('theme', theme, true);
   }
 
   async function handleLanguageChange(language: 'en' | 'zh') {
-    console.log('🌍 [Options] Language change requested:', language);
-    const newPreferences = {
-      ...userPreferences,
-      language
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
-    // 立即切换界面语言
-    console.log('🌍 [Options] Setting language immediately:', language);
-    setLanguage(language);
+    console.log('🌍 [Options] Language change requested:', language, 'Current state:', { isUpdatingSettings, userPreferences: !!userPreferences });
+    await updateSetting('language', language, true);
   }
 
   async function handleFontSizeChange(fontSize: 'small' | 'medium' | 'large') {
-    const newPreferences = {
-      ...userPreferences,
-      fontSize
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
-    // 立即应用字体大小
-    applyTheme(newPreferences);
+    console.log('📝 [Options] Font size change requested:', fontSize, 'Current state:', { isUpdatingSettings, userPreferences: !!userPreferences });
+    await updateSetting('fontSize', fontSize, true);
   }
 
   async function handleMessageDensityChange(messageDensity: 'compact' | 'normal' | 'relaxed') {
-    const newPreferences = {
-      ...userPreferences,
-      messageDensity
-    };
-    await settingsStore.saveUserPreferences(newPreferences);
-    // 立即应用消息密度
-    applyTheme(newPreferences);
+    console.log('📏 [Options] Message density change requested:', messageDensity, 'Current state:', { isUpdatingSettings, userPreferences: !!userPreferences });
+    await updateSetting('messageDensity', messageDensity, true);
   }
 
 
@@ -352,17 +469,17 @@
         <!-- 偏好设置内容 -->
         <div class="settings-grid">
           <!-- 默认模型 -->
-          {#if hasModels}
+          {#if hasModels && userPreferences}
             <div class="setting-item">
               <div class="setting-header">
-                <h3 class="setting-title">{$t('settings.defaultModel')}</h3>
-                <p class="setting-description">{$t('settings.selectDefaultModel')}</p>
+                <h3 class="setting-title">{$t('settings.defaultModel') || '默认模型'}</h3>
+                <p class="setting-description">{$t('settings.selectDefaultModel') || '选择默认模型'}</p>
               </div>
               <div class="setting-control">
                 <CustomSelect
                   options={modelOptions}
                   bind:value={userPreferences.defaultModel}
-                  placeholder={$t('settings.selectDefaultModel')}
+                  placeholder={$t('settings.selectDefaultModel') || '选择默认模型'}
                   size="md"
                   variant="default"
                   on:change={handleDefaultModelSelectChange}
@@ -372,15 +489,15 @@
           {:else}
             <div class="setting-item">
               <div class="setting-header">
-                <h3 class="setting-title">{$t('settings.defaultModel')}</h3>
-                <p class="setting-description">{$t('settings.modelSettings')}</p>
+                <h3 class="setting-title">{$t('settings.defaultModel') || '默认模型'}</h3>
+                <p class="setting-description">{$t('settings.modelSettings') || '模型设置'}</p>
               </div>
               <div class="setting-control">
                 <button
                   class="btn-primary"
                   on:click={() => currentPage = 'ai-models'}
                 >
-                  {$t('settings.addModel')}
+                  {$t('settings.addModel') || '添加模型'}
                 </button>
               </div>
             </div>
@@ -421,6 +538,31 @@
       {:else if currentPage === 'appearance'}
         <!-- 外观设置内容 -->
         <div class="settings-grid">
+          <!-- 调试信息和重置按钮 -->
+          {#if isUpdatingSettings || pendingUpdates.size > 0}
+            <div class="setting-item debug-panel">
+              <div class="setting-header">
+                <h3 class="setting-title">🔧 调试信息</h3>
+                <p class="setting-description">当前设置更新状态</p>
+              </div>
+              <div class="setting-control">
+                <div class="debug-info">
+                  <p>更新状态: {isUpdatingSettings ? '进行中' : '空闲'}</p>
+                  <p>待处理更新: {pendingUpdates.size}</p>
+                  {#if pendingUpdates.size > 0}
+                    <p>待处理项: {Array.from(pendingUpdates.keys()).join(', ')}</p>
+                  {/if}
+                </div>
+                <button
+                  class="reset-state-btn"
+                  on:click={forceResetSettingsState}
+                  title="强制重置设置状态"
+                >
+                  🔄 重置状态
+                </button>
+              </div>
+            </div>
+          {/if}
           <!-- 主题设置 -->
           <div class="setting-item">
             <div class="setting-header">
@@ -430,8 +572,9 @@
             <div class="setting-control">
               <div class="theme-options">
                 <button
-                  class="theme-option {userPreferences.theme === 'light' ? 'theme-option-active' : ''}"
+                  class="theme-option {localUIState.theme === 'light' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('light')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="theme-preview theme-light">
                     <div class="theme-preview-content">
@@ -442,13 +585,14 @@
                       </div>
                     </div>
                   </div>
-                  <span class="theme-name">{$t('settings.themeLight')}</span>
-                  <span class="theme-description">{$t('settings.themeLightDesc')}</span>
+                  <span class="theme-name">{$t('settings.themeLight') || '浅色'}</span>
+                  <span class="theme-description">{$t('settings.themeLightDesc') || '浅色主题'}</span>
                 </button>
 
                 <button
-                  class="theme-option {userPreferences.theme === 'dark' ? 'theme-option-active' : ''}"
+                  class="theme-option {localUIState.theme === 'dark' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('dark')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="theme-preview theme-dark">
                     <div class="theme-preview-content">
@@ -459,13 +603,14 @@
                       </div>
                     </div>
                   </div>
-                  <span class="theme-name">{$t('settings.themeDark')}</span>
-                  <span class="theme-description">{$t('settings.themeDarkDesc')}</span>
+                  <span class="theme-name">{$t('settings.themeDark') || '深色'}</span>
+                  <span class="theme-description">{$t('settings.themeDarkDesc') || '深色主题'}</span>
                 </button>
 
                 <button
-                  class="theme-option {userPreferences.theme === 'auto' ? 'theme-option-active' : ''}"
+                  class="theme-option {localUIState.theme === 'auto' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('auto')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="theme-preview theme-auto">
                     <div class="theme-preview-content">
@@ -484,36 +629,40 @@
           </div>
 
           <!-- 语言设置 -->
-          <div class="setting-item">
-            <div class="setting-header">
-              <h3 class="setting-title">{$t('settings.language')}</h3>
-              <p class="setting-description">{$t('settings.languageDesc')}</p>
-            </div>
-            <div class="setting-control">
-              <div class="language-options">
-                <button
-                  class="language-option {userPreferences.language === 'zh' ? 'language-option-active' : ''}"
-                  on:click={() => handleLanguageChange('zh')}
-                >
-                  <div class="language-flag">🇨🇳</div>
-                  <div class="language-info">
-                    <span class="language-name">{$t('settings.languageChinese')}</span>
-                    <span class="language-description">{$t('settings.languageChineseDesc')}</span>
-                  </div>
-                </button>
-                <button
-                  class="language-option {userPreferences.language === 'en' ? 'language-option-active' : ''}"
-                  on:click={() => handleLanguageChange('en')}
-                >
-                  <div class="language-flag">🇺🇸</div>
-                  <div class="language-info">
-                    <span class="language-name">{$t('settings.languageEnglish')}</span>
-                    <span class="language-description">{$t('settings.languageEnglishDesc')}</span>
-                  </div>
-                </button>
+          {#if userPreferences}
+            <div class="setting-item">
+              <div class="setting-header">
+                <h3 class="setting-title">{$t('settings.language') || '语言'}</h3>
+                <p class="setting-description">{$t('settings.languageDesc') || '选择界面语言'}</p>
+              </div>
+              <div class="setting-control">
+                <div class="language-options">
+                  <button
+                    class="language-option {localUIState.language === 'zh' ? 'language-option-active' : ''}"
+                    on:click={() => handleLanguageChange('zh')}
+                    disabled={isUpdatingSettings || !userPreferences}
+                  >
+                    <div class="language-flag">🇨🇳</div>
+                    <div class="language-info">
+                      <span class="language-name">{$t('settings.languageChinese') || '中文'}</span>
+                      <span class="language-description">{$t('settings.languageChineseDesc') || '简体中文'}</span>
+                    </div>
+                  </button>
+                  <button
+                    class="language-option {localUIState.language === 'en' ? 'language-option-active' : ''}"
+                    on:click={() => handleLanguageChange('en')}
+                    disabled={isUpdatingSettings || !userPreferences}
+                  >
+                    <div class="language-flag">🇺🇸</div>
+                    <div class="language-info">
+                      <span class="language-name">{$t('settings.languageEnglish') || 'English'}</span>
+                      <span class="language-description">{$t('settings.languageEnglishDesc') || 'English'}</span>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          {/if}
 
           <!-- 字体设置 -->
           <div class="setting-item">
@@ -524,25 +673,28 @@
             <div class="setting-control">
               <div class="font-size-options">
                 <button
-                  class="font-size-option font-size-small {userPreferences.fontSize === 'small' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-small {localUIState.fontSize === 'small' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('small')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>{$t('settings.fontSizeSmall')}</span>
+                  <span>{$t('settings.fontSizeSmall') || '小'}</span>
                 </button>
                 <button
-                  class="font-size-option font-size-medium {userPreferences.fontSize === 'medium' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-medium {localUIState.fontSize === 'medium' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('medium')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>{$t('settings.fontSizeMedium')}</span>
+                  <span>{$t('settings.fontSizeMedium') || '中'}</span>
                 </button>
                 <button
-                  class="font-size-option font-size-large {userPreferences.fontSize === 'large' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-large {localUIState.fontSize === 'large' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('large')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <span class="font-size-preview">Aa</span>
-                  <span>{$t('settings.fontSizeLarge')}</span>
+                  <span>{$t('settings.fontSizeLarge') || '大'}</span>
                 </button>
               </div>
             </div>
@@ -557,30 +709,33 @@
             <div class="setting-control">
               <div class="density-options">
                 <button
-                  class="density-option {userPreferences.messageDensity === 'compact' ? 'density-active' : ''}"
+                  class="density-option {localUIState.messageDensity === 'compact' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('compact')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="density-preview density-compact">
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                   </div>
-                  <span>{$t('settings.densityCompact')}</span>
+                  <span>{$t('settings.densityCompact') || '紧凑'}</span>
                 </button>
                 <button
-                  class="density-option {userPreferences.messageDensity === 'normal' ? 'density-active' : ''}"
+                  class="density-option {localUIState.messageDensity === 'normal' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('normal')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="density-preview density-normal">
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                     <div class="density-message"></div>
                   </div>
-                  <span>{$t('settings.densityNormal')}</span>
+                  <span>{$t('settings.densityNormal') || '正常'}</span>
                 </button>
                 <button
-                  class="density-option {userPreferences.messageDensity === 'relaxed' ? 'density-active' : ''}"
+                  class="density-option {localUIState.messageDensity === 'relaxed' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('relaxed')}
+                  disabled={isUpdatingSettings || !userPreferences}
                 >
                   <div class="density-preview density-relaxed">
                     <div class="density-message"></div>
@@ -1452,6 +1607,52 @@
     .modal-overlay {
       padding: 0;
     }
+  }
+
+  /* 调试面板样式 */
+  .debug-panel {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .debug-info {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-family: monospace;
+    font-size: 0.875rem;
+  }
+
+  .debug-info p {
+    margin: 0.25rem 0;
+  }
+
+  .reset-state-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .reset-state-btn:hover {
+    background: #c82333;
+  }
+
+  :global(.dark) .debug-panel {
+    background: #2d1b0e;
+    border-color: #8b6914;
+  }
+
+  :global(.dark) .debug-info {
+    background: #1a1a1a;
+    color: #e9ecef;
   }
 
 

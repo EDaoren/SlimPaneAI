@@ -284,31 +284,7 @@ function createPageChatStore() {
     }
   }
 
-  /**
-   * 重试提取内容
-   */
-  async function retryExtraction() {
-    // 检查是否可以重试（防止频繁重试）
-    let canRetry = false;
-    const now = Date.now();
 
-    update(state => {
-      // 如果最后一次尝试在3秒内，不允许重试
-      if (state.lastAttempt && now - state.lastAttempt < 3000) {
-        canRetry = false;
-      } else {
-        canRetry = true;
-      }
-      return state;
-    });
-
-    if (!canRetry) {
-      return;
-    }
-
-    // 执行提取
-    await extractCurrentPageContent();
-  }
 
   return {
     subscribe,
@@ -487,10 +463,7 @@ function createPageChatStore() {
       }
     },
 
-    /**
-     * 重试提取内容
-     */
-    retryExtraction,
+
 
     /**
      * 检查URL变化并自动抓取内容

@@ -5,9 +5,7 @@
 
   $: state = $pageChatStore;
 
-  function handleRetry() {
-    pageChatStore.retryExtraction();
-  }
+
 
   function isSpecialPageError(error: string | null): boolean {
     return error?.includes('不支持内容提取') ||
@@ -65,16 +63,7 @@
       </span>
     </div>
 
-    {#if state.status === 'failed' && !isSpecialPageError(state.error)}
-      <button
-        class="retry-button"
-        on:click={handleRetry}
-        disabled={state.status === 'extracting'}
-        title="重试提取页面内容"
-      >
-        重试
-      </button>
-    {/if}
+
 
     {#if state.error && !compact}
       <div class="error-message">
@@ -115,25 +104,7 @@
     font-weight: 500;
   }
 
-  .retry-button {
-    padding: 2px 8px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
 
-  .retry-button:hover:not(:disabled) {
-    background: #0056b3;
-  }
-
-  .retry-button:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
 
   .error-message {
     flex: 1;

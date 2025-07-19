@@ -181,39 +181,14 @@ ${pageState.currentPageContent}`;
     await pageChatStore.toggle();
   }
 
-  // Handle page chat refresh
-  function handlePageChatRefresh() {
-    pageChatStore.retryExtraction();
-  }
 
 
 
-  function handlePageContentSelected(event: Event) {
-    const customEvent = event as CustomEvent;
 
   // Setup event listeners
   onMount(() => {
     adjustTextAreaHeight();
-
-    // Listen for page content selection
-    window.addEventListener('page-content-selected', handlePageContentSelected as EventListener);
   });
-
-  onDestroy(() => {
-    window.removeEventListener('page-content-selected', handlePageContentSelected as EventListener);
-  });
-    const content = customEvent.detail.content;
-    if (content) {
-      // Insert content into message input
-      message = (message ? message + '\n\n' : '') + `基于以下页面内容回答：\n\n${content}`;
-      adjustTextAreaHeight();
-
-      // Focus on textarea
-      if (textArea) {
-        textArea.focus();
-      }
-    }
-  }
   
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -279,20 +254,7 @@ ${pageState.currentPageContent}`;
           </svg>
         </button>
 
-        <!-- Page Chat Refresh Button -->
-        {#if $pageChatStore.enabled && ($pageChatStore.status === 'failed' || $pageChatStore.status === 'idle')}
-          <button
-            class="action-btn"
-            title="重新提取页面内容"
-            type="button"
-            on:click={handlePageChatRefresh}
-            disabled={$pageChatStore.status === 'extracting'}
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        {/if}
+
       {/if}
 
       <!-- Action Buttons Area -->
@@ -443,7 +405,14 @@ ${pageState.currentPageContent}`;
     }
 
     .action-buttons.compact .action-btn {
-      padding: 0.375rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      padding: 0.25rem;
+    }
+
+    .action-buttons.compact .action-btn svg {
+      width: 0.875rem;
+      height: 0.875rem;
     }
 
     /* 响应式设计 - 处理侧边栏最小化时的重叠问题 */
@@ -642,7 +611,7 @@ ${pageState.currentPageContent}`;
 
     .action-buttons {
       display: flex;
-      gap: 0.25rem;
+      gap: 0.5rem;
       flex-shrink: 0;
     }
 
@@ -650,9 +619,9 @@ ${pageState.currentPageContent}`;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 2rem;
-      height: 2rem;
-      padding: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0.5rem;
       border: none;
       border-radius: 0.375rem;
       background: transparent;

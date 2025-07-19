@@ -6,7 +6,7 @@ import { setLanguage } from './i18n';
  */
 export function applyTheme(preferences: UserPreferences) {
   const { theme } = preferences;
-  
+
   // Remove existing theme classes
   document.documentElement.classList.remove('light', 'dark');
 
@@ -18,15 +18,12 @@ export function applyTheme(preferences: UserPreferences) {
     // Use explicit theme
     document.documentElement.classList.add(theme);
   }
-  
+
   // Apply other preferences
   applyFontSize(preferences.fontSize);
   applyMessageDensity(preferences.messageDensity);
 
-  // Apply language preference
-  if (preferences.language) {
-    setLanguage(preferences.language as 'zh' | 'en');
-  }
+  // Note: Language preference is handled separately to avoid conflicts
 }
 
 /**
