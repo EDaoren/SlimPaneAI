@@ -3,8 +3,8 @@
  * 负责页面内容提取和消息处理
  */
 
-import { extractAndProcessCurrentPage } from '../lib/web-content';
-import type { ProcessingResult } from '../lib/web-content';
+import { extractContent } from '../lib/content-extraction';
+import type { ExtractionResult } from '../lib/content-extraction';
 
 // 全局类型声明
 declare global {
@@ -80,8 +80,8 @@ function handleMessage(
  */
 async function handleExtractContent(sendResponse: (response?: any) => void) {
   try {
-    // 使用新的内容提取器
-    const result = await extractAndProcessCurrentPage({
+    // 使用统一的内容提取系统
+    const result = await extractContent(window.location.href, {
       enableBlacklist: true,
       enableFallback: true,
       minContentLength: 50
@@ -91,7 +91,7 @@ async function handleExtractContent(sendResponse: (response?: any) => void) {
       sendResponse({
         success: true,
         content: result.content.rawText,
-        title: result.content.metadata.title,
+        title: result.content.title,
         metadata: result.content.metadata,
         blocks: result.content.blocks,
         error: null
@@ -103,7 +103,7 @@ async function handleExtractContent(sendResponse: (response?: any) => void) {
         title: document.title,
         metadata: null,
         blocks: [],
-        error: result.error || '页面内容提取失败或当前页面不支持内容提取'
+        error: result.error || '内容提取失败或当前页面不支持内容提取'
       });
     }
   } catch (error) {

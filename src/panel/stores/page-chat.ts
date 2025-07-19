@@ -94,6 +94,11 @@ const EXTRACT_COOLDOWN = 2000;
 function isSpecialPageUrl(url: string): boolean {
   if (!url) return true;
 
+  // 检查是否是支持的文档类型（PDF等）
+  if (isSupportedDocumentType(url)) {
+    return false; // 支持的文档类型不是特殊页面
+  }
+
   // 浏览器内部页面
   const browserProtocols = [
     'chrome://',
@@ -140,6 +145,26 @@ function isSpecialPageUrl(url: string): boolean {
   ) {
     return true;
   }
+
+  return false;
+}
+
+/**
+ * 检查是否是支持的文档类型
+ */
+function isSupportedDocumentType(url: string): boolean {
+  const urlLower = url.toLowerCase();
+
+  // PDF文档
+  if (urlLower.includes('.pdf')) {
+    return true;
+  }
+
+  // 未来可以添加其他文档类型
+  // Word文档
+  // if (urlLower.includes('.doc') || urlLower.includes('.docx')) {
+  //   return true;
+  // }
 
   return false;
 }

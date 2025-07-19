@@ -188,6 +188,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 function isSpecialPageUrl(url: string): boolean {
   if (!url) return true;
 
+  // 检查是否是支持的文档类型（PDF等）
+  if (isSupportedDocumentType(url)) {
+    return false; // 支持的文档类型不是特殊页面
+  }
+
   // 浏览器内部页面
   const browserProtocols = [
     'chrome://',
@@ -234,6 +239,26 @@ function isSpecialPageUrl(url: string): boolean {
   ) {
     return true;
   }
+
+  return false;
+}
+
+/**
+ * 检查是否是支持的文档类型
+ */
+function isSupportedDocumentType(url: string): boolean {
+  const urlLower = url.toLowerCase();
+
+  // PDF文档
+  if (urlLower.includes('.pdf')) {
+    return true;
+  }
+
+  // 未来可以添加其他文档类型
+  // Word文档
+  // if (urlLower.includes('.doc') || urlLower.includes('.docx')) {
+  //   return true;
+  // }
 
   return false;
 }
@@ -329,7 +354,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     }
 
     const tab = await getCurrentActiveTab();
-    if (!tab) {
+    if (!tab || !tab.id || !tab.url) {
       throw new Error('未找到活动标签页');
     }
     // Check if it's a special page that doesn't support content extraction
@@ -392,8 +417,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       }
     }
 
-    if (response?.success) {
-
+    if (response && response.success) {
       sendResponse({
         success: true,
         content: response.content, // 可能是 null
@@ -405,7 +429,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       });
     } else {
       // 检查是否是页面聊天被禁用的情况
-      if (response?.error === 'Page chat is disabled') {
+      if (response && response.error === 'Page chat is disabled') {
         sendResponse({
           success: true,
           content: null,
@@ -418,7 +442,7 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
         return;
       }
 
-      throw new Error(response?.error || 'Content extraction failed');
+      throw new Error((response && response.error) || 'Content extraction failed');
     }
   } catch (error) {
     sendResponse({

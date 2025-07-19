@@ -37,24 +37,33 @@ export const LAYOUT_NOISE = [
   '.breadcrumb', '.tags-sidebar', '.category-sidebar'
 ] as const;
 
-// 站点特定规则
+// 站点特定规则（保留正文、删除噪声）
 export const SITE_RULES: Record<string, string[]> = {
-  // Discourse论坛通用规则
+  /* ---------- Discourse 系列 ---------- */
+  // 官方社区
   'discourse.org': [
     '.topic-list-header', '.topic-list-item .topic-statuses',
     '.topic-map', '.topic-navigation', '.suggested-topics',
     '.post-links-container', '.post-menu-area', '.topic-footer-buttons',
-    '.user-card', '.quote-controls', '.post-controls',
-    '.topic-category', '.topic-tags', '.topic-avatar'
+    '.user-card--controls',       // 仅移除弹出的操作区
+    '.quote-controls', '.post-controls',
+    '.topic-category', '.topic-tags'
   ],
-
+  // Meta 论坛
   'meta.discourse.org': [
     '.topic-list-header', '.topic-list-item .topic-statuses',
     '.topic-map', '.topic-navigation', '.suggested-topics',
     '.post-links-container', '.post-menu-area', '.topic-footer-buttons',
-    '.user-card', '.quote-controls', '.post-controls'
+    '.user-card--controls', '.quote-controls', '.post-controls'
+  ],
+  // 其他 Discourse 站，如 linux.do
+  'linux.do': [
+    '.topic-list-header', '.topic-map', '.topic-navigation',
+    '.post-links-container', '.post-menu-area', '.topic-footer-buttons',
+    '.user-card--controls', '.quote-controls'
   ],
 
+  /* ---------- 社交 / 内容平台 ---------- */
   // 微博
   'weibo.com': [
     '.WB_footer', '.wb_feed_nav', '.WB_global_nav',
@@ -63,9 +72,9 @@ export const SITE_RULES: Record<string, string[]> = {
 
   // 知乎
   'zhihu.com': [
-    '.Post-SideActions', '.Recommended', '.Card-section',
+    '.Post-SideActions', '.Recommended', '.Card--side',
     '.ContentItem-actions', '.RichContent-actions',
-    '.Question-sideColumn', '.Card', '.Recommendations',
+    '.Question-sideColumn', '.Recommendations',
     '.VoteButton'
   ],
 
@@ -78,8 +87,7 @@ export const SITE_RULES: Record<string, string[]> = {
   // CSDN
   'csdn.net': [
     '.tool-box', '.recommend-box', '.aside-box',
-    '.comment-box', '.toolbar-advert',
-    '.side-toolbar'
+    '.comment-box', '.toolbar-advert', '.side-toolbar'
   ],
 
   // 简书
@@ -90,18 +98,25 @@ export const SITE_RULES: Record<string, string[]> = {
 
   // 掘金
   'juejin.cn': [
-    '.sidebar', '.recommended-area', '.author-info-block',
-    '.article-suspended-panel', '.follow-button',
-    '.recommend'
+    '.sidebar', '.recommended-area', '.article-suspended-panel',
+    '.follow-button', '.recommend'
   ],
 
+  /* ---------- 技术问答 ---------- */
   // Stack Overflow
   'stackoverflow.com': [
-    '.js-sidebar', '.s-sidebarwidget', '.module',
+    '.js-sidebar', '.s-sidebarwidget',
     '.bottom-notice', '.js-dismissable-hero',
     '.js-zone-container', '.question-stats', '.vote'
   ],
 
+  // SegmentFault
+  'segmentfault.com': [
+    '.widget-links', '.recommend', '.sidebar',
+    '.article-widget'
+  ],
+
+  /* ---------- 其它 ---------- */
   // Reddit
   'reddit.com': [
     '.sidebar', '.side', '.promotedlink',
@@ -110,16 +125,12 @@ export const SITE_RULES: Record<string, string[]> = {
 
   // GitHub
   'github.com': [
-    '.Header', '.footer', '.js-header-wrapper',
-    '.BorderGrid-cell--secondary', '.Layout-sidebar'
-  ],
-
-  // SegmentFault
-  'segmentfault.com': [
-    '.widget-links', '.recommend', '.sidebar',
-    '.article-widget'
+    '.footer', '.js-header-wrapper',
+    '.BorderGrid-cell--secondary', '.Layout-sidebar',
+    '.Header-old', '.site-footer'
   ]
 } as const;
+
 
 // 内容选择器（按优先级排序）
 export const CONTENT_SELECTORS = [

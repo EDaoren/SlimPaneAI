@@ -1,8 +1,8 @@
 import type { PageContent, PDFProcessingStatus } from '@/types';
 
 /**
- * PDF处理器
- * 使用PDF.js库来读取和处理PDF文档
+ * PDF内容处理器
+ * 使用PDF.js库来读取和处理PDF文档内容
  */
 export class PDFProcessor {
   private pdfjsLib: any = null;
@@ -22,25 +22,23 @@ export class PDFProcessor {
 
     this.loadingPromise = new Promise(async (resolve, reject) => {
       try {
-        // 动态加载PDF.js
-        if (typeof window !== 'undefined' && !window.pdfjsLib) {
-          // 加载PDF.js CDN
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-          script.onload = () => {
-            this.pdfjsLib = window.pdfjsLib;
-            // 设置worker路径
-            this.pdfjsLib.GlobalWorkerOptions.workerSrc = 
-              'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            resolve();
-          };
-          script.onerror = reject;
-          document.head.appendChild(script);
-        } else {
-          this.pdfjsLib = window.pdfjsLib;
+        // 使用本地安装的PDF.js
+        if (typeof window !== 'undefined') {
+          // 动态导入pdfjs-dist
+          const pdfjsModule = await import('pdfjs-dist');
+          this.pdfjsLib = pdfjsModule;
+
+          // 禁用worker以避免CSP问题
+          // 在浏览器扩展环境中，worker可能会有CSP限制
+          this.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+
+          console.log('SlimPaneAI: PDF.js initialized successfully (worker disabled for CSP compatibility)');
           resolve();
+        } else {
+          reject(new Error('PDF.js requires browser environment'));
         }
       } catch (error) {
+        console.error('SlimPaneAI: Failed to load PDF.js:', error);
         reject(error);
       }
     });

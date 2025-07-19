@@ -193,7 +193,12 @@ export class WebContentExtractor {
         classesToPreserve: [
           ...codeClasses,
           /^lazy-/, /^wp-/, /^zoomable/, /^gallery/, /^figure/, /^video-/,
-          /^comment/, /^reply/, /^post-body/
+          /^comment/, /^reply/, /^post-body/, /^user/,
+          /^author/,
+          /^poster/,
+          /^username/,
+          /^nickname/,
+          /^full-name/
         ]
       };
     }

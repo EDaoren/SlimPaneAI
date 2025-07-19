@@ -195,10 +195,13 @@ export class DomainSettingsManager {
       domain,
       enabled: true,
       extractionSettings: {
-        enableBlacklist: true,
-        enableFallback: true,
-        minContentLength: EXTRACTION_CONFIG.MIN_CONTENT_LENGTH,
-        customBlacklist: []
+        enabled: true,
+        autoExtract: true,
+        includeImages: false,
+        includeLinks: true,
+        maxTokens: 8000,
+        excludeSelectors: [],
+        includeSelectors: []
       },
       lastUpdated: Date.now()
     };
