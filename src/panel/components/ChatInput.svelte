@@ -48,39 +48,66 @@
     }
   }
   
-  function handleSubmit() {
-    if (!message.trim() || disabled) return;
+  /**
+   * 确保页面内容是最新的
+   */
+  async function ensureContentFreshness() {
+    const currentUrl = window.location.href;
+    const isContentFresh = await pageChatStore.checkContentFreshness(currentUrl);
 
-    const parsedModel = parseModelSelection(selectedModel);
-    const userMessage = message.trim();
+    if (!isContentFresh) {
+      await pageChatStore.forceRefresh();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
 
-    // 检查是否启用了网页聊天模式
-    const pageChatState = $pageChatStore;
-    let systemPrompt = '';
-    let pageContent = '';
+  /**
+   * 构建页面内容上下文
+   */
+  function buildPageContext(pageState: any): string {
+    if (!pageState.currentPageContent) return '';
 
-    if (pageChatState.enabled && pageChatState.currentPageContent) {
-      // 获取用户自定义的系统prompt
-      systemPrompt = userPreferences.pageChatSystemPrompt || '你是一个专业的网页内容分析助手。请基于提供的网页内容回答用户问题。';
-
-      // 构建页面内容上下文
-      const metadata = pageChatState.currentPageMetadata;
-      pageContent = `网页标题: ${pageChatState.currentPageTitle || '未知'}
-网页链接: ${pageChatState.currentPageUrl || '未知'}
+    const metadata = pageState.currentPageMetadata;
+    return `网页标题: ${pageState.currentPageTitle || '未知'}
+网页链接: ${pageState.currentPageUrl || '未知'}
 ${metadata?.author ? `作者: ${metadata.author}` : ''}
 ${metadata?.publishedTime ? `发布时间: ${metadata.publishedTime}` : ''}
 
 网页内容:
-${pageChatState.currentPageContent}`;
+${pageState.currentPageContent}`;
+  }
+
+  /**
+   * 处理消息发送
+   */
+  async function handleSubmit() {
+    if (!message.trim() || disabled) return;
+
+    const parsedModel = parseModelSelection(selectedModel);
+    const userMessage = message.trim();
+    const pageChatState = $pageChatStore;
+
+    let systemPrompt = '';
+    let pageContent = '';
+
+    if (pageChatState.enabled) {
+      await ensureContentFreshness();
+      const updatedPageChatState = $pageChatStore;
+
+      if (updatedPageChatState.currentPageContent) {
+        systemPrompt = userPreferences.pageChatSystemPrompt ||
+          '你是一个专业的网页内容分析助手。请基于提供的网页内容回答用户问题。';
+        pageContent = buildPageContext(updatedPageChatState);
+      }
     }
 
     dispatch('send', {
-      message: userMessage, // 用户看到的原始消息
-      systemPrompt: systemPrompt, // 自定义系统prompt
-      pageContent: pageContent, // 网页内容
+      message: userMessage,
+      systemPrompt: systemPrompt,
+      pageContent: pageContent,
       modelId: parsedModel?.modelId || selectedModel,
       providerId: parsedModel?.providerId,
-      isPageChat: pageChatState.enabled && !!pageChatState.currentPageContent
+      isPageChat: pageChatState.enabled && !!pageContent
     });
 
     message = '';

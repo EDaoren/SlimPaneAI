@@ -437,36 +437,7 @@
     color: #ef4444;
   }
 
-  .select-wrapper {
-    position: relative;
-  }
 
-  .form-select {
-    width: 100%;
-    padding: 0.875rem 2.5rem 0.875rem 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 0.75rem;
-    background: white;
-    font-size: 0.875rem;
-    color: #374151;
-    transition: all 0.2s ease;
-    appearance: none;
-  }
-
-  .form-select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  .select-icon {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6b7280;
-    pointer-events: none;
-  }
 
   .form-actions {
     display: flex;

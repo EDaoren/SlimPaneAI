@@ -246,20 +246,83 @@ function isSpecialPageUrl(url: string): boolean {
 }
 
 /**
+ * 获取当前活动标签页
+ */
+async function getCurrentActiveTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = tabs;
+
+    if (!tab || !tab.id || !tab.url) {
+      return null;
+    }
+
+    return tab;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * 处理SPA URL变化
+ */
+async function handleSPAUrlChange(message: any, sender: chrome.runtime.MessageSender) {
+  const { oldUrl, newUrl, title, source } = message.payload;
+
+  // 检查是否是有效的URL变化
+  if (!newUrl || isSpecialPageUrl(newUrl)) {
+    return;
+  }
+
+  // 检查是否是同一个标签页
+  if (!sender.tab?.id) {
+    return;
+  }
+
+  // 只处理当前活动标签页的URL变化
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab || activeTab.id !== sender.tab.id) {
+      return;
+    }
+  } catch (error) {
+    return;
+  }
+
+  // 添加延迟确保内容加载完成
+  const delay = source === 'dom-mutation' ? 800 : 300;
+  await new Promise(resolve => setTimeout(resolve, delay));
+
+  // 通知side panel URL变化
+  try {
+    await sendMessageToSidePanel({
+      type: 'spa-page-navigated',
+      payload: {
+        tabId: sender.tab.id,
+        url: newUrl,
+        title: title || '',
+        oldUrl: oldUrl,
+        source: source,
+        timestamp: message.payload.timestamp
+      },
+    });
+  } catch (error) {
+    // 静默处理通知失败
+  }
+}
+
+/**
  * Handle page content extraction request from side panel
  */
 
 
 async function handleExtractPageContent(sendResponse: (response?: any) => void) {
   try {
-    console.log('SlimPaneAI: Background handling extract-page-content');
-
     // 首先检查页面聊天是否启用
     const data = await getStorageData();
     const pageChatEnabled = data.userPreferences?.pageContentEnabled ?? true;
 
     if (!pageChatEnabled) {
-      console.log('SlimPaneAI: Page chat is disabled, skipping content extraction');
       sendResponse({
         success: true,
         content: null,
@@ -272,39 +335,12 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       return;
     }
 
-    // Get current active tab with detailed error handling
-    let tabs;
-    try {
-      tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    } catch (error) {
-      console.error('SlimPaneAI: Failed to query tabs:', error);
-      throw new Error('无法访问浏览器标签页，请检查扩展权限');
-    }
-
-    const [tab] = tabs;
-
+    const tab = await getCurrentActiveTab();
     if (!tab) {
-      console.warn('SlimPaneAI: No active tab found');
       throw new Error('未找到活动标签页');
     }
-
-    if (!tab.id) {
-      console.warn('SlimPaneAI: Tab has no ID:', tab);
-      throw new Error('标签页ID无效');
-    }
-
-    if (!tab.url) {
-      console.warn('SlimPaneAI: Tab has no URL:', tab);
-      throw new Error('标签页URL无效，可能是新标签页或特殊页面');
-    }
-
-    console.log('SlimPaneAI: Active tab found:', tab.url);
-    console.log('SlimPaneAI: Tab ID:', tab.id);
-    console.log('SlimPaneAI: Tab title:', tab.title);
-
     // Check if it's a special page that doesn't support content extraction
     if (isSpecialPageUrl(tab.url)) {
-      console.log('SlimPaneAI: Special page detected, skipping extraction:', tab.url);
       sendResponse({
         success: true,
         content: null,
@@ -325,10 +361,6 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       // Wait for script initialization
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (injectionError) {
-      console.warn(
-        'SlimPaneAI: Content script injection failed or already exists:',
-        injectionError
-      );
       // Continue, script might already exist
     }
 
@@ -464,6 +496,11 @@ async function handleMessage(
 
       case 'extract-page-content':
         await handleExtractPageContent(sendResponse);
+        break;
+
+      case 'spa-url-changed':
+        await handleSPAUrlChange(message, sender);
+        sendResponse({ received: true });
         break;
 
       case 'page-content-extracted':

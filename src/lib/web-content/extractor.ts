@@ -114,11 +114,6 @@ export class WebContentExtractor {
       const clonedDoc = document.cloneNode(true) as Document;
 
       this.applyBlacklist(clonedDoc, options, false);
-      // 检查是否适合 Readability 处理
-      // if (!isProbablyReaderable(clonedDoc)) {
-      //   console.log('SlimPaneAI: Page not suitable for Readability');
-      //   return null;
-      // }
 
       // 尝试标准配置
       let article = this.tryReadabilityExtraction(clonedDoc, false);
@@ -167,52 +162,49 @@ export class WebContentExtractor {
     }
 
     try {
-      const config = lenient ? {
-        debug: false,
-        maxElemsToParse: 0,
-        nbTopCandidates: EXTRACTION_CONFIG.READABILITY_TOP_CANDIDATES_LENIENT,
-        charThreshold: EXTRACTION_CONFIG.READABILITY_CHAR_THRESHOLD_LENIENT,
-        keepClasses: true,
-        classesToPreserve: [
-          // 代码高亮 & Markdown
-          /^language-/,          // language-javascript, language-python …
-          /^highlight/,          // highlight, highlight-source-js …
-          /^prism-/,             // prism-token-* …
-
-          // 懒加载与媒体
-          /^lazy-/,              // lazyload, lazy-img
-          /^wp-/,                // wp-block-image, wp-block-gallery
-          /^zoomable/,           // zoomable-img
-          /^gallery/,            // gallery-item
-          /^figure/,             // figure, figure-img
-          /^video-/,             // video-player
-
-          // 论坛（可选：确实想保留评论时再开）
-          /^comment/, /^reply/, /^post-body/,
-
-          // 你项目里自定义的钩子
-          ///^ai-keep-/,           // e.g. ai-keep-main-text
-        ]
-      } : {
-        debug: false,
-        maxElemsToParse: 0,
-        nbTopCandidates: EXTRACTION_CONFIG.READABILITY_TOP_CANDIDATES,
-        charThreshold: EXTRACTION_CONFIG.READABILITY_CHAR_THRESHOLD,
-        keepClasses: true,
-        classesToPreserve: [
-          // 代码高亮 & Markdown
-          /^language-/,          // language-javascript, language-python …
-          /^highlight/,          // highlight, highlight-source-js …
-          /^prism-/,             // prism-token-* …
-        ]
-      };
-
+      const config = this.createReadabilityConfig(lenient);
       const reader = new Readability(doc, config);
       return reader.parse();
     } catch (error) {
-      console.error('SlimPaneAI: Readability extraction error:', error);
       return null;
     }
+  }
+
+  /**
+   * 创建Readability配置
+   */
+  private static createReadabilityConfig(lenient: boolean) {
+    const baseConfig = {
+      debug: false,
+      maxElemsToParse: 0,
+      keepClasses: true,
+    };
+
+    const codeClasses = [
+      /^language-/,
+      /^highlight/,
+      /^prism-/,
+    ];
+
+    if (lenient) {
+      return {
+        ...baseConfig,
+        nbTopCandidates: EXTRACTION_CONFIG.READABILITY_TOP_CANDIDATES_LENIENT,
+        charThreshold: EXTRACTION_CONFIG.READABILITY_CHAR_THRESHOLD_LENIENT,
+        classesToPreserve: [
+          ...codeClasses,
+          /^lazy-/, /^wp-/, /^zoomable/, /^gallery/, /^figure/, /^video-/,
+          /^comment/, /^reply/, /^post-body/
+        ]
+      };
+    }
+
+    return {
+      ...baseConfig,
+      nbTopCandidates: EXTRACTION_CONFIG.READABILITY_TOP_CANDIDATES,
+      charThreshold: EXTRACTION_CONFIG.READABILITY_CHAR_THRESHOLD,
+      classesToPreserve: codeClasses
+    };
   }
 
   /**
@@ -240,7 +232,7 @@ export class WebContentExtractor {
         }
       });
     } catch (error) {
-      console.warn('SlimPaneAI: Failed to apply blacklist:', error);
+      // 静默处理黑名单应用失败
     }
   }
 
@@ -286,8 +278,49 @@ export class WebContentExtractor {
     const bodyClasses = document.body.className.toLowerCase();
     const htmlClasses = document.documentElement.className.toLowerCase();
     const allClasses = bodyClasses + ' ' + htmlClasses;
-    
-    return SPA_INDICATORS.some(indicator => allClasses.includes(indicator));
+
+    // 检查通用SPA指示器
+    const hasGeneralSPA = SPA_INDICATORS.some(indicator => allClasses.includes(indicator));
+
+    // 检查Discourse特有标识
+    const isDiscourse = this.isDiscourseApplication();
+
+    // 检查其他常见SPA框架
+    const hasFrameworkIndicators = this.hasFrameworkIndicators();
+
+    return hasGeneralSPA || isDiscourse || hasFrameworkIndicators;
+  }
+
+  /**
+   * 检查是否为Discourse应用
+   */
+  private static isDiscourseApplication(): boolean {
+    const bodyClasses = document.body.className.toLowerCase();
+    const htmlClasses = document.documentElement.className.toLowerCase();
+
+    // Discourse特有的类名和元素
+    const hasDiscourseClass = bodyClasses.includes('discourse') || htmlClasses.includes('discourse');
+    const hasEmberApp = document.querySelector('.ember-application, #main-outlet');
+    const hasDiscourseElements = document.querySelector('.topic-list, .topic-post, .post-stream');
+    const hasDiscourseMetaTag = document.querySelector('meta[name="generator"][content*="Discourse"]');
+
+    return !!(hasDiscourseClass || hasEmberApp || hasDiscourseElements || hasDiscourseMetaTag);
+  }
+
+  /**
+   * 检查是否有其他框架指示器
+   */
+  private static hasFrameworkIndicators(): boolean {
+    // 检查常见的SPA框架标识
+    const frameworkSelectors = [
+      '[ng-app]', '[data-ng-app]', // Angular
+      '[data-reactroot]', '#root', '#app', // React
+      '[data-server-rendered]', // Vue.js
+      '.ember-application', // Ember.js
+      '[data-turbo-root]', // Turbo (Rails)
+    ];
+
+    return frameworkSelectors.some(selector => document.querySelector(selector));
   }
 
   /**
@@ -296,20 +329,114 @@ export class WebContentExtractor {
   private static async waitForSPAContent(): Promise<boolean> {
     return new Promise((resolve) => {
       const startTime = Date.now();
-      const checkInterval = 100;
-      
+      const isDiscourse = this.isDiscourseApplication();
+
+      // 根据应用类型调整参数
+      const timeout = isDiscourse ? 8000 : EXTRACTION_CONFIG.SPA_WAIT_TIMEOUT;
+      const threshold = isDiscourse ? 500 : EXTRACTION_CONFIG.SPA_CONTENT_THRESHOLD;
+
+      let observer: MutationObserver | null = null;
+      let timeoutId: NodeJS.Timeout | null = null;
+      let intervalId: NodeJS.Timeout | null = null;
+
+      const cleanup = () => {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      };
+
       const checkContent = () => {
         const currentLength = document.body.textContent?.length || 0;
         const elapsed = Date.now() - startTime;
-        
-        if (currentLength > EXTRACTION_CONFIG.SPA_CONTENT_THRESHOLD || elapsed > EXTRACTION_CONFIG.SPA_WAIT_TIMEOUT) {
-          resolve(currentLength > EXTRACTION_CONFIG.SPA_CONTENT_THRESHOLD);
-        } else {
-          setTimeout(checkContent, checkInterval);
+
+        if (currentLength > threshold) {
+          cleanup();
+          resolve(true);
+          return true;
         }
+
+        if (elapsed > timeout) {
+          cleanup();
+          resolve(false);
+          return true;
+        }
+
+        return false;
       };
-      
-      checkContent();
+
+      // 立即检查一次
+      if (checkContent()) return;
+
+      // 设置MutationObserver监听DOM变化
+      try {
+        const targetElement = isDiscourse ?
+          (document.querySelector('#main-outlet, .ember-application') || document.body) :
+          (document.querySelector('main, [role="main"], .content, .main-content') || document.body);
+
+        observer = new MutationObserver((mutations) => {
+          let hasSignificantChange = false;
+
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+              const addedNodes = Array.from(mutation.addedNodes);
+              hasSignificantChange = addedNodes.some(node => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  const element = node as Element;
+                  if (isDiscourse) {
+                    // Discourse特有的内容检查
+                    return element.matches('.topic-post, .post-stream, .cooked, .topic-body, .topic-list') ||
+                           element.querySelector('.topic-post, .post-stream, .cooked, .topic-body, .topic-list');
+                  } else {
+                    // 通用内容检查
+                    return element.matches('article, .content, .main-content, p, div') ||
+                           element.querySelector('article, .content, .main-content, p');
+                  }
+                }
+                return false;
+              });
+            }
+          });
+
+          if (hasSignificantChange) {
+            // 延迟检查，让内容完全渲染
+            setTimeout(() => {
+              checkContent();
+            }, 200);
+          }
+        });
+
+        observer.observe(targetElement, {
+          childList: true,
+          subtree: true,
+          attributes: false,
+          characterData: false
+        });
+      } catch (error) {
+        // 静默处理MutationObserver设置失败
+      }
+
+      // 设置超时兜底
+      timeoutId = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeout);
+
+      // 定期检查作为备用机制
+      intervalId = setInterval(() => {
+        if (checkContent()) {
+          clearInterval(intervalId!);
+          intervalId = null;
+        }
+      }, 300);
     });
   }
 

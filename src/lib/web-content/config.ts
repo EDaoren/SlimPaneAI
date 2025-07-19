@@ -39,6 +39,22 @@ export const LAYOUT_NOISE = [
 
 // 站点特定规则
 export const SITE_RULES: Record<string, string[]> = {
+  // Discourse论坛通用规则
+  'discourse.org': [
+    '.topic-list-header', '.topic-list-item .topic-statuses',
+    '.topic-map', '.topic-navigation', '.suggested-topics',
+    '.post-links-container', '.post-menu-area', '.topic-footer-buttons',
+    '.user-card', '.quote-controls', '.post-controls',
+    '.topic-category', '.topic-tags', '.topic-avatar'
+  ],
+
+  'meta.discourse.org': [
+    '.topic-list-header', '.topic-list-item .topic-statuses',
+    '.topic-map', '.topic-navigation', '.suggested-topics',
+    '.post-links-container', '.post-menu-area', '.topic-footer-buttons',
+    '.user-card', '.quote-controls', '.post-controls'
+  ],
+
   // 微博
   'weibo.com': [
     '.WB_footer', '.wb_feed_nav', '.WB_global_nav',
@@ -109,20 +125,22 @@ export const SITE_RULES: Record<string, string[]> = {
 export const CONTENT_SELECTORS = [
   // 标准语义化选择器
   'main', 'article', '[role="main"]',
-  
+
   // 通用内容选择器
   '.main-content', '.content', '.post-content',
   '.article-content', '.entry-content', '.post-body',
   '.article-body', '#content', '#main-content',
-  
+
   // 论坛特有选择器
   '.topic-post', '.post-stream', '.cooked', '.topic-body',
   '.post', '.message', '.discussion', '.thread',
   '.forum-post',
-  
-  // Discourse 特有选择器
+
+  // Discourse 特有选择器（优先级更高）
   '.topic-area', '.post-article', '.regular.contents',
-  
+  '.topic-post .cooked', '.post-stream .topic-post',
+  '#main-outlet .topic-body', '.ember-view .cooked',
+
   // 其他常见选择器
   '.summary', '.para', '.body-wrapper', '.content-wrapper'
 ] as const;
@@ -142,7 +160,8 @@ export const SPECIAL_PAGE_PATTERNS = [
 // SPA 应用检测
 export const SPA_INDICATORS = [
   'react', 'vue', 'angular', 'ember', 'backbone',
-  'spa', 'single-page', 'app-root', 'ng-app'
+  'spa', 'single-page', 'app-root', 'ng-app',
+  'discourse', 'ember-application', 'turbo-root'
 ] as const;
 
 // 保护的CSS类名（不会被移除）

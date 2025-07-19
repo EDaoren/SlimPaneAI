@@ -59,15 +59,19 @@
         }
         break;
       case 'page-navigated':
-        console.log('🧭 Page navigated, handling globally');
         await handlePageNavigation(message as PageNavigatedMessage);
+        if (chatPanel && chatPanel.handlePageContentMessage) {
+          chatPanel.handlePageContentMessage(message);
+        }
+        break;
+      case 'spa-page-navigated':
+        await handleSPAPageNavigation(message);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
         break;
       case 'page-content-extracted':
       case 'pdf-processing-status':
-        console.log('📄 Page content message, forwarding to ChatPanel');
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
@@ -89,44 +93,24 @@
 
   // Handle tab switch globally to ensure page chat store is updated
   async function handleTabSwitch(message: TabSwitchedMessage) {
-    console.log('SlimPaneAI: Global tab switch handler, URL:', message.payload.url);
-
-    // Get current page chat state
-    let currentState: any;
-    const unsubscribe = pageChatStore.subscribe(state => {
-      currentState = state;
-    });
-    unsubscribe();
-
-    if (currentState.enabled) {
-      console.log('SlimPaneAI: Page chat is enabled, refreshing content for new tab');
-      // Refresh page chat content for the new tab
-      await pageChatStore.refresh();
-    } else {
-      console.log('SlimPaneAI: Page chat is disabled, clearing old content to prepare for potential future use');
-      // Clear old content so that when user enables page chat, it will extract the current page
-      pageChatStore.setPageContent('', '', '', null, null);
-    }
+    // Use the new checkAndExtractIfNeeded method which handles enabled state checking
+    await pageChatStore.checkAndExtractIfNeeded(message.payload.url, message.payload.title);
   }
 
   // Handle page navigation globally
   async function handlePageNavigation(message: PageNavigatedMessage) {
-    console.log('SlimPaneAI: Global page navigation handler, URL:', message.payload.url);
+    // Use the new checkAndExtractIfNeeded method which handles enabled state checking
+    await pageChatStore.checkAndExtractIfNeeded(message.payload.url, message.payload.title);
+  }
 
-    // Get current page chat state
-    let currentState: any;
-    const unsubscribe = pageChatStore.subscribe(state => {
-      currentState = state;
+  // Handle SPA page navigation globally
+  async function handleSPAPageNavigation(message: any) {
+    // Use the new checkAndExtractIfNeeded method with SPA-specific handling
+    await pageChatStore.checkAndExtractIfNeeded(message.payload.url, message.payload.title, {
+      isSPA: true,
+      source: message.payload.source,
+      oldUrl: message.payload.oldUrl
     });
-    unsubscribe();
-
-    if (currentState.enabled) {
-      console.log('SlimPaneAI: Page chat is enabled, refreshing content for navigated page');
-      await pageChatStore.refresh();
-    } else {
-      console.log('SlimPaneAI: Page chat is disabled, clearing old content to prepare for potential future use');
-      pageChatStore.setPageContent('', '', '', null, null);
-    }
   }
 
   function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {

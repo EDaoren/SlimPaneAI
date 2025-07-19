@@ -340,18 +340,7 @@
 </div>
 
 <style>
-  .user-message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 1rem;
-    padding: 0.75rem 1rem;
-    width: fit-content;
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    overflow: visible;
-  }
+
 
   .assistant-message-bubble {
     background: var(--message-assistant-bg);
@@ -368,12 +357,7 @@
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
-  .message-time {
-    text-align: right;
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    opacity: 0.7;
-  }
+
 
   .message-content {
     font-size: var(--font-size-base);
@@ -393,9 +377,7 @@
     font-family: monospace;
   }
 
-  .user-message .message-content :global(code) {
-    background: rgba(255, 255, 255, 0.2);
-  }
+
 
   .message-content :global(pre) {
     background: rgba(0, 0, 0, 0.1);
@@ -430,20 +412,9 @@
     background: rgba(0, 0, 0, 0.5);
   }
 
-  .user-message .message-content :global(pre) {
-    background: rgba(255, 255, 255, 0.2);
-  }
 
-  .message-meta {
-    margin-top: 0.25rem;
-    text-align: right;
-    font-size: 0.75rem;
-    opacity: 0.7;
-  }
 
-  .assistant-message .message-meta {
-    text-align: left;
-  }
+
 
   /* Math formula styles */
   .message-content :global(.math-display) {
@@ -902,10 +873,7 @@
     background: rgba(255, 255, 255, 0.5);
   }
 
-  .user-message .message-content :global(pre:not(.hljs)) {
-    background: rgba(30, 41, 59, 0.9);
-    border-color: rgba(51, 65, 85, 0.8);
-  }
+
 
   .message-content :global(pre:not(.hljs) code) {
     background: none;

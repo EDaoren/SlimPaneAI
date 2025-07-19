@@ -1,6 +1,26 @@
 import { writable } from 'svelte/store';
 
 /**
+ * 页面元数据接口
+ */
+interface PageMetadata {
+  author?: string;
+  publishedTime?: string;
+  description?: string;
+  keywords?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * 内容块接口
+ */
+interface ContentBlock {
+  type: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * 网页聊天状态管理
  */
 interface PageChatState {
@@ -8,8 +28,8 @@ interface PageChatState {
   currentPageContent: string | null;
   currentPageTitle: string | null;
   currentPageUrl: string | null;
-  currentPageMetadata: any | null;
-  currentPageBlocks: any[] | null;
+  currentPageMetadata: PageMetadata | null;
+  currentPageBlocks: ContentBlock[] | null;
 
   // 提取状态
   status: 'idle' | 'extracting' | 'success' | 'failed';
@@ -19,6 +39,19 @@ interface PageChatState {
   // 重试相关
   lastAttempt: number | null;
   attemptCount: number;
+
+  // 防重复抓取
+  lastExtractedUrl: string | null;
+  lastExtractedTime: number | null;
+}
+
+/**
+ * SPA导航选项
+ */
+interface SPANavigationOptions {
+  isSPA?: boolean;
+  source?: string;
+  oldUrl?: string;
 }
 
 const initialState: PageChatState = {
@@ -34,8 +67,167 @@ const initialState: PageChatState = {
   error: null,
 
   lastAttempt: null,
-  attemptCount: 0
+  attemptCount: 0,
+
+  // 防重复抓取
+  lastExtractedUrl: null,
+  lastExtractedTime: null,
 };
+
+// 防重复抓取的时间窗口（毫秒）
+const EXTRACT_COOLDOWN = 2000;
+
+/**
+ * 页面聊天状态管理 Store
+ *
+ * 提供网页内容自动抓取功能，支持：
+ * - 开关启用时自动抓取
+ * - 插件重载后自动恢复
+ * - URL变化时自动抓取（包括SPA路由）
+ * - 发送消息前内容新鲜度检查
+ * - 防重复抓取机制
+ */
+
+/**
+ * 检查是否是特殊页面URL（不支持内容提取）
+ */
+function isSpecialPageUrl(url: string): boolean {
+  if (!url) return true;
+
+  // 浏览器内部页面
+  const browserProtocols = [
+    'chrome://',
+    'chrome-extension://',
+    'edge://',
+    'edge-extension://',
+    'moz://',
+    'moz-extension://',
+    'about:',
+    'view-source:',
+    'file://',
+    'devtools://',
+    'data:',
+  ];
+
+  if (browserProtocols.some((protocol) => url.startsWith(protocol))) {
+    return true;
+  }
+
+  // 特殊页面
+  const specialPages = [
+    'newtab',
+    'extensions',
+    'settings',
+    'history',
+    'downloads',
+    'bookmarks',
+    'flags',
+    'version',
+    'blank',
+    'home',
+    'config',
+  ];
+
+  // 检查URL是否包含特殊页面关键词
+  const urlLower = url.toLowerCase();
+  if (
+    specialPages.some(
+      (page) =>
+        urlLower.includes(`/${page}`) ||
+        urlLower.includes(`/${page}.html`) ||
+        urlLower.includes(`about:${page}`)
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 规范化URL用于比较
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    // 移除fragment和一些查询参数
+    urlObj.hash = '';
+    // 可以根据需要移除特定的查询参数
+    return urlObj.href;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * 提取响应接口
+ */
+interface ExtractionResponse {
+  success: boolean;
+  content?: string;
+  title?: string;
+  url?: string;
+  metadata?: PageMetadata;
+  blocks?: ContentBlock[];
+  error?: string;
+}
+
+/**
+ * 更新提取成功状态
+ */
+function updateExtractionSuccess(response: ExtractionResponse, timestamp: number): void {
+  const extractedUrl = normalizeUrl(response.url || '');
+  update(state => ({
+    ...state,
+    currentPageContent: response.content || null,
+    currentPageTitle: response.title || 'Unknown Page',
+    currentPageUrl: response.url || '',
+    currentPageMetadata: response.metadata || null,
+    currentPageBlocks: response.blocks || null,
+    status: 'success' as const,
+    isExtracting: false,
+    error: null,
+    lastExtractedUrl: extractedUrl,
+    lastExtractedTime: timestamp
+  }));
+}
+
+/**
+ * 更新提取失败状态
+ */
+function updateExtractionFailure(response: ExtractionResponse | null, errorMessage: string): void {
+  update(state => ({
+    ...state,
+    currentPageContent: null,
+    currentPageTitle: response?.title || 'Unknown Page',
+    currentPageUrl: response?.url || '',
+    status: 'failed' as const,
+    isExtracting: false,
+    error: errorMessage
+  }));
+}
+
+/**
+ * 获取用户友好的错误消息
+ */
+function getErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return '页面内容提取失败，请尝试刷新页面后重试';
+  }
+
+  const message = error.message;
+  if (message.includes('Could not establish connection')) {
+    return '无法连接到页面，请刷新页面后重试';
+  }
+  if (message.includes('chrome://') || message.includes('browser internal pages')) {
+    return '无法提取浏览器内部页面的内容';
+  }
+  if (message.includes('Extension context invalidated')) {
+    return '扩展已更新，请刷新页面后重试';
+  }
+
+  return '页面内容提取失败，请尝试刷新页面后重试';
+}
 
 function createPageChatStore() {
   const { subscribe, set, update } = writable<PageChatState>(initialState);
@@ -43,10 +235,24 @@ function createPageChatStore() {
   /**
    * 提取当前页面内容
    */
-  async function extractCurrentPageContent() {
-    console.log('SlimPaneAI: extractCurrentPageContent called');
-
+  async function extractCurrentPageContent(forceExtract = false) {
     const now = Date.now();
+
+    // 检查是否需要防重复抓取
+    let shouldSkip = false;
+    update(state => {
+      if (!forceExtract && state.lastExtractedTime && state.lastExtractedUrl) {
+        const timeSinceLastExtract = now - state.lastExtractedTime;
+        if (timeSinceLastExtract < EXTRACT_COOLDOWN) {
+          shouldSkip = true;
+        }
+      }
+      return state;
+    });
+
+    if (shouldSkip) {
+      return;
+    }
 
     try {
       // 更新状态：开始提取
@@ -58,42 +264,16 @@ function createPageChatStore() {
         lastAttempt: now,
         attemptCount: state.attemptCount + 1
       }));
-      console.log('SlimPaneAI: Extraction state set to extracting');
-
       // 通过background script获取当前活动标签页
-      console.log('SlimPaneAI: Requesting tab info from background...');
       const response = await chrome.runtime.sendMessage({
         type: 'extract-page-content'
       });
-      console.log('SlimPaneAI: Background response:', response);
 
       if (response?.success) {
         if (response.content) {
-          // 提取成功
-          update(state => ({
-            ...state,
-            currentPageContent: response.content,
-            currentPageTitle: response.title || 'Unknown Page',
-            currentPageUrl: response.url || '',
-            currentPageMetadata: response.metadata,
-            currentPageBlocks: response.blocks,
-            status: 'success',
-            isExtracting: false,
-            error: null
-          }));
-          console.log('SlimPaneAI: Content extraction successful');
+          updateExtractionSuccess(response, now);
         } else {
-          // 特殊页面或无内容
-          update(state => ({
-            ...state,
-            currentPageContent: null,
-            currentPageTitle: response.title || 'Unknown Page',
-            currentPageUrl: response.url || '',
-            status: 'failed',
-            isExtracting: false,
-            error: '当前页面不支持内容提取'
-          }));
-          console.log('SlimPaneAI: Special page or no content');
+          updateExtractionFailure(response, '当前页面不支持内容提取');
         }
       } else {
         throw new Error(response?.error || '页面内容提取失败');
@@ -101,26 +281,8 @@ function createPageChatStore() {
     } catch (error) {
       console.error('SlimPaneAI: Content extraction failed:', error);
 
-      // 提供用户友好的错误信息
-      let errorMessage = '页面内容提取失败，请尝试刷新页面后重试';
-
-      if (error instanceof Error) {
-        if (error.message.includes('Could not establish connection')) {
-          errorMessage = '无法连接到页面，请刷新页面后重试';
-        } else if (error.message.includes('chrome://') || error.message.includes('browser internal pages')) {
-          errorMessage = '无法提取浏览器内部页面的内容';
-        } else if (error.message.includes('Extension context invalidated')) {
-          errorMessage = '扩展已更新，请刷新页面后重试';
-        }
-      }
-
-      // 提取失败
-      update(state => ({
-        ...state,
-        status: 'failed',
-        isExtracting: false,
-        error: errorMessage
-      }));
+      const errorMessage = getErrorMessage(error);
+      updateExtractionFailure(null, errorMessage);
     }
   }
 
@@ -167,7 +329,13 @@ function createPageChatStore() {
           enabled: pageChatEnabled
         }));
 
-        console.log('SlimPaneAI: Page chat state initialized from storage:', pageChatEnabled);
+        // 如果页面聊天之前是开启的，自动抓取当前页面内容
+        if (pageChatEnabled) {
+          // 延迟一点时间确保页面完全加载
+          setTimeout(() => {
+            extractCurrentPageContent(false);
+          }, 1000);
+        }
       } catch (error) {
         console.error('SlimPaneAI: Failed to initialize page chat state:', error);
       }
@@ -177,7 +345,6 @@ function createPageChatStore() {
      * 切换网页聊天模式
      */
     toggle: async () => {
-      console.log('SlimPaneAI: Toggle called');
       let shouldExtract = false;
       let newEnabled = false;
 
@@ -185,7 +352,6 @@ function createPageChatStore() {
       update(state => {
         newEnabled = !state.enabled;
         shouldExtract = newEnabled;
-        console.log('SlimPaneAI: State updated, enabled:', newEnabled);
 
         return {
           ...state,
@@ -202,25 +368,19 @@ function createPageChatStore() {
             pageChatEnabled: newEnabled
           }
         });
-        console.log('SlimPaneAI: Page chat status saved to storage:', newEnabled);
-
         // 等待一小段时间确保存储操作完成
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (error) {
-        console.error('SlimPaneAI: Failed to save page chat status:', error);
-        // 如果保存失败，不要继续提取内容
-        return;
+        // 即使存储失败，也继续尝试提取内容（用户体验优先）
       }
 
-      // 如果需要启用，异步提取内容
+      // 如果需要启用，异步提取内容（即使存储失败也尝试）
       if (shouldExtract) {
-        console.log('SlimPaneAI: Starting content extraction after storage sync');
         try {
-          await extractCurrentPageContent();
-          console.log('SlimPaneAI: Content extraction completed');
+          await extractCurrentPageContent(true); // 强制提取
         } catch (error) {
-          console.error('SlimPaneAI: Content extraction failed:', error);
+          // 静默处理提取失败
         }
       }
     },
@@ -263,7 +423,7 @@ function createPageChatStore() {
 
       // 如果需要启用，异步提取内容
       if (shouldExtract) {
-        await extractCurrentPageContent();
+        await extractCurrentPageContent(true); // 强制提取
       }
     },
 
@@ -333,7 +493,96 @@ function createPageChatStore() {
     /**
      * 重试提取内容
      */
-    retryExtraction
+    retryExtraction,
+
+    /**
+     * 检查URL变化并自动抓取内容
+     */
+    checkAndExtractIfNeeded: async (
+      newUrl: string,
+      newTitle?: string,
+      options?: SPANavigationOptions
+    ): Promise<void> => {
+      // 检查是否启用了页面聊天
+      let shouldExtract = false;
+      let currentUrl = '';
+
+      update(state => {
+        if (!state.enabled) {
+          return state;
+        }
+
+        // 检查是否是特殊页面
+        if (isSpecialPageUrl(newUrl)) {
+          return {
+            ...state,
+            currentPageContent: null,
+            currentPageTitle: newTitle || 'Special Page',
+            currentPageUrl: newUrl,
+            status: 'failed',
+            error: '当前页面不支持内容提取'
+          };
+        }
+
+        const normalizedNewUrl = normalizeUrl(newUrl);
+        const normalizedCurrentUrl = state.lastExtractedUrl ? normalizeUrl(state.lastExtractedUrl) : '';
+
+        if (normalizedNewUrl !== normalizedCurrentUrl) {
+          shouldExtract = true;
+          currentUrl = newUrl;
+        }
+
+        return state;
+      });
+
+      if (shouldExtract) {
+        // SPA应用需要更长的延迟确保内容加载完成
+        const delay = options?.isSPA ?
+          (options.source === 'dom-mutation' ? 1000 : 800) : 500;
+
+        setTimeout(() => {
+          extractCurrentPageContent(true);
+        }, delay);
+      }
+    },
+
+    /**
+     * 检查内容是否需要更新（用于发送消息前检查）
+     */
+    checkContentFreshness: async (currentUrl: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        update(state => {
+          if (!state.enabled) {
+            resolve(true); // 未启用页面聊天，内容总是"新鲜"的
+            return state;
+          }
+
+          // 检查是否是特殊页面
+          if (isSpecialPageUrl(currentUrl)) {
+            resolve(false); // 特殊页面没有内容
+            return state;
+          }
+
+          const normalizedCurrentUrl = normalizeUrl(currentUrl);
+          const normalizedStoredUrl = state.lastExtractedUrl ? normalizeUrl(state.lastExtractedUrl) : '';
+
+          if (normalizedCurrentUrl !== normalizedStoredUrl) {
+            resolve(false); // 内容不新鲜
+          } else {
+            resolve(true); // 内容新鲜
+          }
+
+          return state;
+        });
+      });
+    },
+
+    /**
+     * 强制刷新内容（忽略防重复机制）
+     */
+    forceRefresh: async () => {
+      await extractCurrentPageContent(true);
+    }
   };
 }
 
