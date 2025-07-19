@@ -29,19 +29,13 @@ const initialState: SettingsState = {
 function createSettingsStore() {
   const { subscribe, set, update } = writable<SettingsState>(initialState);
 
-  // Storage change listener
+  // Storage change listener - DISABLED to prevent race conditions
+  // The automatic reloading was causing conflicts with manual updates
   let storageChangeListener: ((changes: any, areaName: string) => void) | null = null;
 
-  // Listen for storage changes to sync across different contexts
-  if (typeof chrome !== 'undefined' && chrome.storage) {
-    storageChangeListener = (changes, areaName) => {
-      if (areaName === 'local') {
-        // Reload settings when storage changes
-        loadSettingsInternal();
-      }
-    };
-    chrome.storage.onChanged.addListener(storageChangeListener);
-  }
+  // Note: We intentionally don't listen to chrome.storage.onChanged here
+  // because it creates race conditions with our manual state updates.
+  // Cross-context sync is handled by explicit forceRefresh() calls when needed.
 
   async function loadSettingsInternal() {
     update(state => ({ ...state, isLoading: true }));
@@ -84,13 +78,17 @@ function createSettingsStore() {
 
     async saveUserPreferences(userPreferences: UserPreferences) {
       try {
+        // 先更新本地状态，提供即时反馈
+        update(state => ({ ...state, userPreferences }));
+
+        // 然后保存到存储，但不再重复更新本地状态
         await chrome.runtime.sendMessage({
           type: 'set-storage',
           payload: { userPreferences },
         });
-
-        update(state => ({ ...state, userPreferences }));
       } catch (error) {
+        // 如果保存失败，回滚本地状态
+        loadSettingsInternal();
         throw error;
       }
     },
@@ -176,6 +174,30 @@ function createSettingsStore() {
       } catch (error) {
         throw error;
       }
+    },
+
+    /**
+     * Update userPreferences from external source (e.g., options page)
+     * This method only updates local state without saving to storage
+     */
+    updateUserPreferencesFromExternal(userPreferences: UserPreferences) {
+      update(state => ({ ...state, userPreferences }));
+    },
+
+    /**
+     * Update modelSettings from external source (e.g., options page)
+     * This method only updates local state without saving to storage
+     */
+    updateModelSettingsFromExternal(modelSettings: ModelSettings) {
+      update(state => ({ ...state, modelSettings }));
+    },
+
+    /**
+     * Update serviceProviders from external source (e.g., options page)
+     * This method only updates local state without saving to storage
+     */
+    updateServiceProvidersFromExternal(serviceProviders: ServiceProviderSettings) {
+      update(state => ({ ...state, serviceProviders }));
     },
 
     getDefaultModel() {

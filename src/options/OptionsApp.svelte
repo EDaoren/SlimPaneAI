@@ -21,19 +21,12 @@
   // 语言初始化状态
   let languageInitialized = false;
 
-  // 设置更新状态管理
+  // 简化的状态管理
   let isUpdatingSettings = false;
-  let pendingUpdates = new Map<string, any>();
-  let updateTimeout: number | null = null;
-  let settingsUpdateTimeout: number | null = null; // 设置更新超时保护
+  let currentUpdateOperation: string | null = null;
 
-  // UI状态隔离 - 用于防止跨设置UI状态污染
-  let localUIState = {
-    theme: '',
-    language: '',
-    fontSize: '',
-    messageDensity: ''
-  };
+  // 直接使用 userPreferences，移除本地状态缓存
+  // 这样可以避免状态不一致的问题
 
   // 导航菜单项
   let navigationItems: Array<{id: string, name: string, icon: string, title: string, description?: string}> = [];
@@ -84,16 +77,6 @@
   $: userPreferences = $settingsStore?.userPreferences;
   $: modelOptions = serviceProviders ? getModelDisplayOptions(serviceProviders) : [];
   $: hasModels = modelOptions.length > 0;
-
-  // 同步本地UI状态 - 只在非更新状态下同步，避免冲突
-  $: if (userPreferences && !isUpdatingSettings) {
-    localUIState = {
-      theme: userPreferences.theme || '',
-      language: userPreferences.language || '',
-      fontSize: userPreferences.fontSize || '',
-      messageDensity: userPreferences.messageDensity || ''
-    };
-  }
 
   // 统一的设置初始化逻辑 - 只在首次加载时执行
   $: if (userPreferences && !$settingsStore.isLoading && !languageInitialized && !isUpdatingSettings) {
@@ -150,15 +133,9 @@
 
     // 清理函数
     return () => {
-      // 清理待处理的更新
-      if (updateTimeout) {
-        clearTimeout(updateTimeout);
-      }
-      if (settingsUpdateTimeout) {
-        clearTimeout(settingsUpdateTimeout);
-      }
-      pendingUpdates.clear();
+      // 清理状态
       isUpdatingSettings = false;
+      currentUpdateOperation = null;
 
       // 移除消息监听器
       chrome.runtime.onMessage.removeListener(handleMessage);
@@ -172,67 +149,39 @@
 
     switch (message.type) {
       case 'storage-updated':
-        console.log('💾 Storage updated, refreshing settings...');
-        settingsStore.forceRefresh();
+        // DISABLED: This was causing race conditions with manual updates
+        console.log('💾 Storage updated message received, but ignoring to prevent race conditions');
         break;
       default:
         console.log('❓ Unknown message type:', message.type);
     }
   }
 
-  // 强制重置设置更新状态的函数
-  function forceResetSettingsState() {
-    console.log('🔄 [Options] Force resetting settings state');
-    isUpdatingSettings = false;
-    pendingUpdates.clear();
-    if (settingsUpdateTimeout) {
-      clearTimeout(settingsUpdateTimeout);
-      settingsUpdateTimeout = null;
-    }
-  }
-
-  // 统一的设置更新函数，实现防抖和原子性操作
+  // 简化的设置更新函数
   async function updateSetting(key: string, value: any, applyImmediately = false) {
+    // 防止重复操作
+    if (isUpdatingSettings) {
+      console.log('⏳ [Options] Settings update in progress, ignoring:', key);
+      return;
+    }
+
+    // 防护措施：确保userPreferences存在
+    if (!userPreferences) {
+      console.error('❌ [Options] Cannot update setting: userPreferences is null');
+      return;
+    }
+
     try {
-      // 清除之前的超时保护
-      if (settingsUpdateTimeout) {
-        clearTimeout(settingsUpdateTimeout);
-      }
-
-      if (isUpdatingSettings) {
-        console.log('⏳ [Options] Settings update in progress, queuing:', key);
-        pendingUpdates.set(key, value);
-        return;
-      }
-
       console.log(`🔧 [Options] Updating setting: ${key} =`, value);
       isUpdatingSettings = true;
-
-      // 设置超时保护，防止状态卡死
-      settingsUpdateTimeout = setTimeout(() => {
-        console.warn('⚠️ [Options] Settings update timeout, force resetting state');
-        forceResetSettingsState();
-      }, 5000);
-
-      // 立即更新本地UI状态，防止UI闪烁
-      localUIState = {
-        ...localUIState,
-        [key]: value
-      };
-
-      // 防护措施：确保userPreferences存在
-      if (!userPreferences) {
-        console.error('❌ [Options] Cannot update setting: userPreferences is null');
-        forceResetSettingsState();
-        return;
-      }
+      currentUpdateOperation = key;
 
       const newPreferences = {
         ...userPreferences,
         [key]: value
       };
 
-      // 保存到存储
+      // 保存到存储 - 这会触发 store 更新
       await settingsStore.saveUserPreferences(newPreferences);
 
       // 立即应用特定设置（如果需要）
@@ -253,30 +202,20 @@
 
       console.log(`✅ [Options] Setting ${key} updated successfully`);
 
-      // 清除超时保护
-      if (settingsUpdateTimeout) {
-        clearTimeout(settingsUpdateTimeout);
-        settingsUpdateTimeout = null;
-      }
-
-      // 处理待处理的更新
-      if (pendingUpdates.size > 0) {
-        const nextUpdate = Array.from(pendingUpdates.entries())[0];
-        pendingUpdates.delete(nextUpdate[0]);
-
-        // 延迟处理下一个更新，避免冲突
-        setTimeout(() => {
-          isUpdatingSettings = false;
-          updateSetting(nextUpdate[0], nextUpdate[1], applyImmediately);
-        }, 100);
-      } else {
-        isUpdatingSettings = false;
-      }
-
     } catch (error) {
       console.error(`❌ [Options] Failed to update setting ${key}:`, error);
-      forceResetSettingsState();
+    } finally {
+      // 确保状态重置
+      isUpdatingSettings = false;
+      currentUpdateOperation = null;
     }
+  }
+
+  // 强制重置状态的函数（用于调试）
+  function forceResetSettingsState() {
+    console.log('🔄 [Options] Force resetting settings state');
+    isUpdatingSettings = false;
+    currentUpdateOperation = null;
   }
 
   // 导航函数
@@ -515,10 +454,7 @@
             </div>
             <div class="setting-control">
               <div class="shortcut-list">
-                <div class="shortcut-item">
-                  <span class="shortcut-name">{$t('settings.toggleSidebar')}</span>
-                  <kbd class="shortcut-key">Ctrl + Shift + Y</kbd>
-                </div>
+                <!-- 移除打开/关闭侧边栏快捷键，因为没有生效 -->
                 <div class="shortcut-item">
                   <span class="shortcut-name">{$t('chat.sendMessage')}</span>
                   <kbd class="shortcut-key">Enter</kbd>
@@ -527,10 +463,6 @@
                   <span class="shortcut-name">{$t('settings.newLine')}</span>
                   <kbd class="shortcut-key">Shift + Enter</kbd>
                 </div>
-                <div class="shortcut-item">
-                  <span class="shortcut-name">{$t('chat.clearChat')}</span>
-                  <kbd class="shortcut-key">Ctrl + Shift + Delete</kbd>
-                </div>
               </div>
             </div>
           </div>
@@ -538,31 +470,7 @@
       {:else if currentPage === 'appearance'}
         <!-- 外观设置内容 -->
         <div class="settings-grid">
-          <!-- 调试信息和重置按钮 -->
-          {#if isUpdatingSettings || pendingUpdates.size > 0}
-            <div class="setting-item debug-panel">
-              <div class="setting-header">
-                <h3 class="setting-title">🔧 调试信息</h3>
-                <p class="setting-description">当前设置更新状态</p>
-              </div>
-              <div class="setting-control">
-                <div class="debug-info">
-                  <p>更新状态: {isUpdatingSettings ? '进行中' : '空闲'}</p>
-                  <p>待处理更新: {pendingUpdates.size}</p>
-                  {#if pendingUpdates.size > 0}
-                    <p>待处理项: {Array.from(pendingUpdates.keys()).join(', ')}</p>
-                  {/if}
-                </div>
-                <button
-                  class="reset-state-btn"
-                  on:click={forceResetSettingsState}
-                  title="强制重置设置状态"
-                >
-                  🔄 重置状态
-                </button>
-              </div>
-            </div>
-          {/if}
+          <!-- 调试面板已移除，避免红色按钮闪烁 -->
           <!-- 主题设置 -->
           <div class="setting-item">
             <div class="setting-header">
@@ -572,7 +480,7 @@
             <div class="setting-control">
               <div class="theme-options">
                 <button
-                  class="theme-option {localUIState.theme === 'light' ? 'theme-option-active' : ''}"
+                  class="theme-option {userPreferences?.theme === 'light' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('light')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -590,7 +498,7 @@
                 </button>
 
                 <button
-                  class="theme-option {localUIState.theme === 'dark' ? 'theme-option-active' : ''}"
+                  class="theme-option {userPreferences?.theme === 'dark' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('dark')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -608,7 +516,7 @@
                 </button>
 
                 <button
-                  class="theme-option {localUIState.theme === 'auto' ? 'theme-option-active' : ''}"
+                  class="theme-option {userPreferences?.theme === 'auto' ? 'theme-option-active' : ''}"
                   on:click={() => handleThemeChange('auto')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -638,7 +546,7 @@
               <div class="setting-control">
                 <div class="language-options">
                   <button
-                    class="language-option {localUIState.language === 'zh' ? 'language-option-active' : ''}"
+                    class="language-option {userPreferences?.language === 'zh' ? 'language-option-active' : ''}"
                     on:click={() => handleLanguageChange('zh')}
                     disabled={isUpdatingSettings || !userPreferences}
                   >
@@ -649,7 +557,7 @@
                     </div>
                   </button>
                   <button
-                    class="language-option {localUIState.language === 'en' ? 'language-option-active' : ''}"
+                    class="language-option {userPreferences?.language === 'en' ? 'language-option-active' : ''}"
                     on:click={() => handleLanguageChange('en')}
                     disabled={isUpdatingSettings || !userPreferences}
                   >
@@ -673,7 +581,7 @@
             <div class="setting-control">
               <div class="font-size-options">
                 <button
-                  class="font-size-option font-size-small {localUIState.fontSize === 'small' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-small {userPreferences?.fontSize === 'small' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('small')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -681,7 +589,7 @@
                   <span>{$t('settings.fontSizeSmall') || '小'}</span>
                 </button>
                 <button
-                  class="font-size-option font-size-medium {localUIState.fontSize === 'medium' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-medium {userPreferences?.fontSize === 'medium' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('medium')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -689,7 +597,7 @@
                   <span>{$t('settings.fontSizeMedium') || '中'}</span>
                 </button>
                 <button
-                  class="font-size-option font-size-large {localUIState.fontSize === 'large' ? 'font-size-active' : ''}"
+                  class="font-size-option font-size-large {userPreferences?.fontSize === 'large' ? 'font-size-active' : ''}"
                   on:click={() => handleFontSizeChange('large')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -709,7 +617,7 @@
             <div class="setting-control">
               <div class="density-options">
                 <button
-                  class="density-option {localUIState.messageDensity === 'compact' ? 'density-active' : ''}"
+                  class="density-option {userPreferences?.messageDensity === 'compact' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('compact')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -721,7 +629,7 @@
                   <span>{$t('settings.densityCompact') || '紧凑'}</span>
                 </button>
                 <button
-                  class="density-option {localUIState.messageDensity === 'normal' ? 'density-active' : ''}"
+                  class="density-option {userPreferences?.messageDensity === 'normal' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('normal')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -733,7 +641,7 @@
                   <span>{$t('settings.densityNormal') || '正常'}</span>
                 </button>
                 <button
-                  class="density-option {localUIState.messageDensity === 'relaxed' ? 'density-active' : ''}"
+                  class="density-option {userPreferences?.messageDensity === 'relaxed' ? 'density-active' : ''}"
                   on:click={() => handleMessageDensityChange('relaxed')}
                   disabled={isUpdatingSettings || !userPreferences}
                 >
@@ -760,24 +668,75 @@
               </svg>
             </div>
             <h3 class="about-title">SlimPaneAI</h3>
-            <p class="about-version">版本 0.0.1</p>
-            <p class="about-description">轻量级 AI 助手浏览器扩展</p>
+            <p class="about-version">{$t('about.version')} 0.0.1</p>
+            <p class="about-description">{$t('about.description')}</p>
           </div>
 
           <div class="about-info">
             <div class="info-item">
-              <h4>功能特性</h4>
+              <h4>{$t('about.features')}</h4>
               <ul>
-                <li>支持多种 AI 模型（OpenAI、Claude、Gemini）</li>
-                <li>侧边栏智能对话</li>
-                <li>文本选择增强功能</li>
-                <li>本地安全存储</li>
+                {#if $currentLanguage === 'zh'}
+                  <li>支持多种 AI 模型（OpenAI、Claude、Gemini、自定义）</li>
+                  <li>侧边栏智能对话界面</li>
+                  <li>网页内容智能问答与分析</li>
+                  <li>智能内容提取与处理</li>
+                  <li>多主题界面切换（浅色/深色/自动）</li>
+                  <li>多语言支持（中文/英文）</li>
+                  <li>对话历史管理与搜索</li>
+                  <li>自定义模型配置与管理</li>
+                  <li>数学公式渲染支持</li>
+                  <li>本地数据存储，保护隐私</li>
+                {:else}
+                  <li>Support for multiple AI models (OpenAI, Claude, Gemini, Custom)</li>
+                  <li>Sidebar intelligent chat interface</li>
+                  <li>Web content Q&A and analysis</li>
+                  <li>Intelligent content extraction and processing</li>
+                  <li>Multi-theme interface switching (Light/Dark/Auto)</li>
+                  <li>Multi-language support (Chinese/English)</li>
+                  <li>Chat history management and search</li>
+                  <li>Custom model configuration and management</li>
+                  <li>Math formula rendering support</li>
+                  <li>Local data storage for privacy protection</li>
+                {/if}
               </ul>
             </div>
+
             <div class="info-item">
-              <h4>开发信息</h4>
-              <p>基于 Svelte + TypeScript 开发</p>
-              <p>使用 Manifest V3 规范</p>
+              <h4>{$t('about.developer')}</h4>
+              <p><strong>SlimPaneAI Team</strong></p>
+              <p>{$t('about.version')}: 0.0.1</p>
+              <p>{$currentLanguage === 'zh' ? '更新时间' : 'Last Updated'}: 2024-12</p>
+              <p>{$currentLanguage === 'zh' ? '基于 Svelte + TypeScript 开发' : 'Built with Svelte + TypeScript'}</p>
+              <p>{$currentLanguage === 'zh' ? '使用 Manifest V3 规范' : 'Using Manifest V3 specification'}</p>
+            </div>
+
+            <div class="info-item">
+              <h4>{$t('about.license')}</h4>
+              <p>MIT License</p>
+              <p>{$currentLanguage === 'zh' ? '本项目采用 MIT 开源协议，允许自由使用和修改。' : 'This project is licensed under the MIT License, allowing free use and modification.'}</p>
+            </div>
+
+            <div class="info-item">
+              <h4>{$t('about.support')}</h4>
+              <p>{$currentLanguage === 'zh' ? '如有问题或建议，欢迎反馈：' : 'For questions or suggestions, please contact:'}</p>
+              <ul>
+                <li>{$currentLanguage === 'zh' ? '功能建议和问题反馈' : 'Feature requests and bug reports'}</li>
+                <li>{$currentLanguage === 'zh' ? '使用帮助和技术支持' : 'Usage help and technical support'}</li>
+                <li>{$currentLanguage === 'zh' ? '开源贡献和协作' : 'Open source contributions and collaboration'}</li>
+              </ul>
+            </div>
+
+            <div class="info-item">
+              <h4>{$t('about.acknowledgments')}</h4>
+              <p>{$currentLanguage === 'zh' ? '感谢以下技术和服务的支持：' : 'Thanks to the following technologies and services:'}</p>
+              <ul>
+                <li>Svelte & SvelteKit</li>
+                <li>Chrome Extensions API</li>
+                <li>OpenAI API</li>
+                <li>Anthropic Claude API</li>
+                <li>Google Gemini API</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -828,11 +787,19 @@
     height: 100vh;
     overflow-y: auto;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    /* 确保侧边栏高度与主内容区域一致 */
+    top: 0;
+    left: 0;
   }
 
   .sidebar-header {
-    padding: 1.5rem 1.5rem 1rem;
-    border-bottom: 1px solid var(--border-secondary);
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border-primary);
+    /* 确保侧边栏头部高度固定，适度缩小 */
+    height: 85px; /* 使用固定高度而不是最小高度 */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box; /* 确保边框包含在高度内 */
   }
 
   .sidebar-logo {
@@ -845,8 +812,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
     border-radius: 0.5rem;
@@ -909,8 +876,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 0.5rem;
     background: rgba(59, 130, 246, 0.1);
     flex-shrink: 0;
@@ -952,13 +919,22 @@
     flex-direction: column;
     background: var(--bg-primary);
     transition: background-color 0.2s ease;
+    /* 确保主内容区域高度与侧边栏一致 */
+    min-height: 100vh;
+    height: 100vh;
   }
 
   .content-header {
     background: var(--bg-primary);
     border-bottom: 1px solid var(--border-primary);
-    padding: 1.5rem 2rem 1rem;
+    padding: 1.25rem 2rem 1rem;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    /* 确保内容头部高度与侧边栏头部一致，适度缩小 */
+    height: 85px; /* 使用固定高度与侧边栏完全对齐 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box; /* 确保边框包含在高度内 */
   }
 
   .content-title {
@@ -996,6 +972,11 @@
     border-radius: 1rem;
     padding: 2rem;
     transition: all 0.2s ease;
+    /* 网格布局：固定标题区域宽度，减少语言切换时的跳动 */
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+    align-items: start;
   }
 
   .setting-item:hover {
@@ -1004,7 +985,14 @@
   }
 
   .setting-header {
-    margin-bottom: 1.5rem;
+    /* 移除 margin-bottom，因为现在使用网格布局 */
+    margin-bottom: 0;
+    /* 固定宽度和高度，防止文本长度变化导致布局跳动 */
+    min-width: 260px;
+    min-height: 80px; /* 固定最小高度 */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 
   .setting-title {
@@ -1012,18 +1000,34 @@
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 0.5rem 0;
+    /* 确保标题不会因为长度变化而换行 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* 固定标题高度 */
+    height: 1.75rem;
+    line-height: 1.75rem;
   }
 
   .setting-description {
     font-size: 0.875rem;
     color: var(--text-muted);
     margin: 0;
+    /* 固定描述文本高度，防止换行导致高度变化 */
+    height: 2.4em; /* 固定高度，约2行 */
+    line-height: 1.2;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .setting-control {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    /* 确保控制区域有足够的最小宽度 */
+    min-width: 300px;
   }
 
 
@@ -1065,7 +1069,7 @@
   /* 主题选项 */
   .theme-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
   }
 
@@ -1081,6 +1085,11 @@
     transition: all 0.2s ease;
     background: white;
     text-align: center;
+    /* 固定最小宽度和高度，减少语言切换时的跳动 */
+    min-width: 200px;
+    width: 100%;
+    min-height: 180px; /* 固定最小高度 */
+    justify-content: space-between;
   }
 
   .theme-option:hover {
@@ -1173,11 +1182,23 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: #111827;
+    /* 固定标题高度 */
+    height: 1.25rem;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .theme-description {
     font-size: 0.75rem;
     color: #6b7280;
+    /* 固定描述高度 */
+    height: 1rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 语言选项 */
@@ -1197,7 +1218,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     background: white;
-    min-width: 200px;
+    /* 增加最小宽度和高度，确保中英文切换时尺寸稳定 */
+    min-width: 240px;
+    flex: 1;
+    max-width: 300px;
+    min-height: 80px; /* 固定最小高度 */
   }
 
   .language-option:hover {
@@ -1220,17 +1245,33 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    /* 确保文本区域有固定的最小宽度 */
+    min-width: 120px;
+    flex: 1;
   }
 
   .language-name {
     font-size: 0.875rem;
     font-weight: 600;
     color: #111827;
+    /* 防止文本换行导致高度变化 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* 固定标题高度 */
+    height: 1.25rem;
+    line-height: 1.25rem;
   }
 
   .language-description {
     font-size: 0.75rem;
     color: #6b7280;
+    /* 固定描述高度 */
+    height: 1rem;
+    line-height: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 字体大小选项 */
@@ -1250,7 +1291,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
     background: white;
-    min-width: 4rem;
+    /* 增加最小宽度和高度，确保中英文切换时尺寸稳定 */
+    min-width: 80px;
+    flex: 1;
+    max-width: 120px;
+    min-height: 100px; /* 固定最小高度 */
+    justify-content: center;
   }
 
   .font-size-option:hover {
@@ -1296,7 +1342,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
     background: white;
-    min-width: 4rem;
+    /* 增加最小宽度和高度，确保中英文切换时尺寸稳定 */
+    min-width: 80px;
+    flex: 1;
+    max-width: 120px;
+    min-height: 100px; /* 固定最小高度 */
+    justify-content: center;
   }
 
   .density-option:hover {
@@ -1539,10 +1590,34 @@
 
     .setting-item {
       padding: 1.5rem;
+      /* 移动端改为单列布局 */
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .setting-header {
+      /* 移动端标题区域不需要固定宽度 */
+      min-width: unset;
+    }
+
+    .setting-title {
+      /* 移动端允许标题换行 */
+      white-space: normal;
+    }
+
+    .setting-control {
+      /* 移动端控制区域不需要最小宽度 */
+      min-width: unset;
     }
 
     .theme-options {
       flex-direction: column;
+    }
+
+    .language-option {
+      /* 移动端语言选项占满宽度 */
+      min-width: unset;
+      max-width: unset;
     }
 
     .modal-content {
@@ -1609,51 +1684,30 @@
     }
   }
 
-  /* 调试面板样式 */
-  .debug-panel {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+  /* 平滑过渡效果 */
+  :global(html) {
+    transition: background-color 0.2s ease, color 0.2s ease !important;
   }
 
-  .debug-info {
-    background: #f8f9fa;
-    padding: 0.75rem;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
-    font-family: monospace;
-    font-size: 0.875rem;
+  :global(body) {
+    transition: background-color 0.2s ease, color 0.2s ease !important;
   }
 
-  .debug-info p {
-    margin: 0.25rem 0;
+  /* 所有主要元素的平滑过渡 */
+  :global(.settings-container),
+  :global(.setting-item),
+  :global(.theme-option),
+  :global(.language-option),
+  :global(.font-size-option),
+  :global(.density-option),
+  :global(button),
+  :global(input),
+  :global(select),
+  :global(textarea) {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
   }
 
-  .reset-state-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: background-color 0.2s ease;
-  }
-
-  .reset-state-btn:hover {
-    background: #c82333;
-  }
-
-  :global(.dark) .debug-panel {
-    background: #2d1b0e;
-    border-color: #8b6914;
-  }
-
-  :global(.dark) .debug-info {
-    background: #1a1a1a;
-    color: #e9ecef;
-  }
+  /* 调试面板样式已移除 */
 
 
 </style>

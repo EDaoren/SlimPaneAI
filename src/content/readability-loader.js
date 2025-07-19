@@ -6,7 +6,6 @@
 (function() {
   // 检查是否已加载
   if (window.Readability && window.isProbablyReaderable) {
-    console.log('SlimPaneAI: Readability already loaded');
     return;
   }
 
@@ -17,13 +16,13 @@
     const readabilityScript = document.createElement('script');
     readabilityScript.src = chrome.runtime.getURL('readability.js');
     readabilityScript.onload = function() {
-      console.log('SlimPaneAI: Readability library loaded successfully');
+      // Readability library loaded successfully
     };
     readabilityScript.onerror = function(error) {
-      console.error('SlimPaneAI: Failed to load Readability library:', error);
+      // Failed to load Readability library
     };
     document.head.appendChild(readabilityScript);
   } catch (error) {
-    console.error('SlimPaneAI: Error loading Readability:', error);
+    // Error loading Readability
   }
 })();

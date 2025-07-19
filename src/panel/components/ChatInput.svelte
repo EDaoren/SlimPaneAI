@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import { settingsStore } from '../stores/settings';
+  import { chatStore } from '../stores/chat';
   import { pageChatStore } from '../stores/page-chat';
   import { toolbarConfigStore } from '../stores/toolbar-config';
   import { getModelDisplayOptions, getDefaultModelSelection, parseModelSelection } from '@/lib/service-providers';
@@ -28,23 +29,59 @@
   let selectedModel = '';
   let textArea: HTMLTextAreaElement;
   let showToolbarConfig = false;
+  let isNewChatRequested = false; // 标记是否是用户主动创建的新对话
 
   $: serviceProviders = $settingsStore.serviceProviders;
   $: userPreferences = $settingsStore.userPreferences;
   $: toolbarConfig = $toolbarConfigStore;
+  $: currentSession = $chatStore.currentSession;
   $: modelOptions = getModelDisplayOptions(serviceProviders);
   $: hasModels = modelOptions.length > 0;
 
-  // Set model selection priority: last selected > default > first available
+  // 监听会话变化，检测新对话创建
+  let previousSessionId: string | null = null;
+  $: {
+    const currentSessionId = currentSession?.id || null;
+    if (currentSessionId !== previousSessionId) {
+      // 会话发生了变化
+      if (currentSession && currentSession.messages.length === 0) {
+        // 这是一个新的空会话，标记为新对话
+        isNewChatRequested = true;
+        selectedModel = ''; // 重置模型选择，触发重新选择
+      }
+      previousSessionId = currentSessionId;
+    }
+  }
+
+  // Set model selection priority based on context
   $: if (!selectedModel && hasModels) {
-    // Try to use last selected model first
-    const lastSelected = userPreferences.lastSelectedModel;
-    if (lastSelected && modelOptions.some(option => option.id === lastSelected)) {
-      selectedModel = lastSelected;
+    if (isNewChatRequested) {
+      // User explicitly created new chat: use default model
+      const userDefaultModel = userPreferences.defaultModel;
+      if (userDefaultModel && modelOptions.some(option => option.id === userDefaultModel)) {
+        selectedModel = userDefaultModel;
+      } else {
+        // Fallback to first available model
+        const defaultSelection = getDefaultModelSelection(serviceProviders);
+        selectedModel = defaultSelection || '';
+      }
+      // Reset the flag after setting the model
+      isNewChatRequested = false;
     } else {
-      // Fallback to default model selection
-      const defaultSelection = getDefaultModelSelection(serviceProviders);
-      selectedModel = defaultSelection || '';
+      // Sidebar reopened or session switched: use last selected model
+      const lastSelected = userPreferences.lastSelectedModel;
+      if (lastSelected && modelOptions.some(option => option.id === lastSelected)) {
+        selectedModel = lastSelected;
+      } else {
+        // Fallback to user configured default model
+        const userDefaultModel = userPreferences.defaultModel;
+        if (userDefaultModel && modelOptions.some(option => option.id === userDefaultModel)) {
+          selectedModel = userDefaultModel;
+        } else {
+          const defaultSelection = getDefaultModelSelection(serviceProviders);
+          selectedModel = defaultSelection || '';
+        }
+      }
     }
   }
   
@@ -152,9 +189,14 @@ ${pageState.currentPageContent}`;
   }
 
   // Handle model selection from dropdown
-  function handleModelSelect(event: CustomEvent) {
-    selectedModel = event.detail.value;
-    handleModelChange();
+  async function handleModelSelect(event: CustomEvent) {
+    const newModel = event.detail.value;
+    selectedModel = newModel;
+
+    // Save the selected model as last selected
+    if (newModel) {
+      await settingsStore.saveLastSelectedModel(newModel);
+    }
   }
 
   // Handle clear chat action

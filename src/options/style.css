@@ -1,8 +1,10 @@
 /* Modern Options Page Styles with Theme Support */
 
-/* CSS Variables for theming - fallback values */
-:root {
-  /* Light theme defaults */
+/* CSS Variables for theming - 强制默认为浅色主题，避免无主题状态 */
+:root,
+html:not(.dark):not(.light),
+html.light {
+  /* Light theme defaults - 确保始终有主题 */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
@@ -87,7 +89,24 @@
 
 * {
   box-sizing: border-box;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* 分层过渡：只对关键元素应用过渡，避免全局过渡冲突 */
+html, body {
+  transition: background-color 0.15s ease-out, color 0.15s ease-out;
+}
+
+.settings-container,
+.setting-item,
+.theme-option,
+.language-option,
+.font-size-option,
+.density-option,
+button,
+input,
+select,
+textarea {
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
 }
 
 /* Font size classes */

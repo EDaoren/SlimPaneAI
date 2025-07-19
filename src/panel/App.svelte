@@ -12,10 +12,26 @@
   let unsubscribeSettings: (() => void) | null = null;
   let chatPanel: ChatPanel;
 
-  // 响应式应用主题变化和语言初始化
+  // 响应式应用主题变化和语言初始化 - 添加防抖机制
+  let lastPreferencesHash = '';
   $: if ($settingsStore.userPreferences) {
-    applyTheme($settingsStore.userPreferences);
-    initializeLanguage($settingsStore.userPreferences);
+    // 创建偏好设置的简单哈希来避免重复应用
+    const currentHash = JSON.stringify({
+      theme: $settingsStore.userPreferences.theme,
+      language: $settingsStore.userPreferences.language,
+      fontSize: $settingsStore.userPreferences.fontSize,
+      messageDensity: $settingsStore.userPreferences.messageDensity
+    });
+
+    if (currentHash !== lastPreferencesHash) {
+      lastPreferencesHash = currentHash;
+
+      // 使用 setTimeout 来避免同步更新导致的闪烁
+      setTimeout(() => {
+        applyTheme($settingsStore.userPreferences);
+        initializeLanguage($settingsStore.userPreferences);
+      }, 0);
+    }
   }
 
   onMount(async () => {
@@ -38,8 +54,6 @@
   });
 
   async function handleMessage(message: ExtensionMessage, sender: any, sendResponse: (response?: any) => void) {
-    console.log('🎯 [Panel] Received message:', message);
-
     switch (message.type) {
       case 'text-selected':
         handleTextSelection(message as TextSelectionMessage);
@@ -50,7 +64,26 @@
         chatStore.handleMessage(message);
         break;
       case 'storage-updated':
-        settingsStore.forceRefresh();
+        // DISABLED: This was causing race conditions with manual updates
+        break;
+      case 'user-preferences-updated':
+        // Handle userPreferences updates from options page for theme/language sync
+        if (message.payload.userPreferences) {
+          // Update only userPreferences in the store to trigger theme/language changes
+          settingsStore.updateUserPreferencesFromExternal(message.payload.userPreferences);
+        }
+        break;
+      case 'model-settings-updated':
+        // Handle modelSettings updates from options page for model list sync
+        if (message.payload.modelSettings) {
+          settingsStore.updateModelSettingsFromExternal(message.payload.modelSettings);
+        }
+        break;
+      case 'service-providers-updated':
+        // Handle serviceProviders updates from options page
+        if (message.payload.serviceProviders) {
+          settingsStore.updateServiceProvidersFromExternal(message.payload.serviceProviders);
+        }
         break;
       case 'tab-switched':
         await handleTabSwitch(message as TabSwitchedMessage);
@@ -68,7 +101,8 @@
         await handleSPAPageNavigation(message);
         break;
       default:
-        console.log('❓ Unknown message type:', message.type);
+        // Unknown message type
+        break;
     }
 
     // Always send a response to prevent port closure
@@ -105,12 +139,13 @@
   }
 
   function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {
+    // DISABLED: This was causing race conditions with manual updates
     // Check if userPreferences changed
     if (changes.userPreferences) {
       const newPreferences = changes.userPreferences.newValue;
       if (newPreferences) {
-        // Force refresh settings store to get latest data
-        settingsStore.forceRefresh();
+        // DISABLED: Force refresh settings store to get latest data
+        // settingsStore.forceRefresh();
       }
     }
   }

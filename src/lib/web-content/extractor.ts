@@ -33,7 +33,6 @@ async function loadReadability() {
     isProbablyReaderable = readabilityModule.isProbablyReaderable;
     return true;
   } catch (error) {
-    console.warn('SlimPaneAI: Failed to load Readability:', error);
     return false;
   }
 }

@@ -1,25 +1,57 @@
 import type { UserPreferences } from '@/types';
 import { setLanguage } from './i18n';
 
+// 防止重复应用主题的锁
+let isApplyingTheme = false;
+
 /**
- * Apply theme to the document
+ * Apply theme to the document with smooth transitions
+ * 使用双缓冲技术减少闪烁
  */
 export function applyTheme(preferences: UserPreferences) {
+  // 防止重复调用
+  if (isApplyingTheme) {
+    console.log('🎨 [Theme] Theme application already in progress, skipping');
+    return;
+  }
   const { theme } = preferences;
 
-  // Remove existing theme classes
-  document.documentElement.classList.remove('light', 'dark');
-
+  // Determine target theme
+  let targetTheme: 'light' | 'dark';
   if (theme === 'auto') {
-    // Use system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+    targetTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   } else {
-    // Use explicit theme
-    document.documentElement.classList.add(theme);
+    targetTheme = theme;
   }
 
-  // Apply other preferences
+  // Get current theme
+  const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+
+  // Only update if theme actually changed
+  if (currentTheme !== targetTheme) {
+    isApplyingTheme = true;
+
+    // 简单直接的切换：先添加新主题，再移除旧主题
+    // 这样确保始终有一个主题类存在，避免无主题状态
+    const root = document.documentElement;
+
+    if (targetTheme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+
+    // 短暂延迟后重置锁
+    setTimeout(() => {
+      isApplyingTheme = false;
+    }, 100);
+  } else {
+    isApplyingTheme = false;
+  }
+
+  // Apply other preferences (these are less likely to cause flicker)
   applyFontSize(preferences.fontSize);
   applyMessageDensity(preferences.messageDensity);
 
@@ -45,29 +77,39 @@ export function watchSystemTheme(callback: () => void): () => void {
 }
 
 /**
- * Apply font size preference
+ * Apply font size preference with smooth transition
  */
 function applyFontSize(fontSize: 'small' | 'medium' | 'large') {
   const root = document.documentElement;
+  const targetClass = `font-${fontSize}`;
 
-  // Remove existing font size classes
-  root.classList.remove('font-small', 'font-medium', 'font-large');
-
-  // Add new font size class
-  root.classList.add(`font-${fontSize}`);
+  // Only update if font size actually changed
+  if (!root.classList.contains(targetClass)) {
+    requestAnimationFrame(() => {
+      // Remove existing font size classes
+      root.classList.remove('font-small', 'font-medium', 'font-large');
+      // Add new font size class
+      root.classList.add(targetClass);
+    });
+  }
 }
 
 /**
- * Apply message density preference
+ * Apply message density preference with smooth transition
  */
 function applyMessageDensity(density: 'compact' | 'normal' | 'relaxed') {
   const root = document.documentElement;
+  const targetClass = `density-${density}`;
 
-  // Remove existing density classes
-  root.classList.remove('density-compact', 'density-normal', 'density-relaxed');
-
-  // Add new density class
-  root.classList.add(`density-${density}`);
+  // Only update if density actually changed
+  if (!root.classList.contains(targetClass)) {
+    requestAnimationFrame(() => {
+      // Remove existing density classes
+      root.classList.remove('density-compact', 'density-normal', 'density-relaxed');
+      // Add new density class
+      root.classList.add(targetClass);
+    });
+  }
 }
 
 /**

@@ -26,7 +26,6 @@ async function sendMessageToSidePanel(message: any, retries = 3) {
       return response;
     } catch (error) {
       if (attempt === retries) {
-        console.warn('SlimPaneAI: All message send attempts failed, side panel may not be open');
         return null;
       }
 
@@ -130,8 +129,6 @@ let lastActiveTabId: number | null = null;
 
 // Handle tab activation (tab switching)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  console.log('SlimPaneAI: Tab activated:', activeInfo.tabId);
-
   // Check if this is actually a different tab
   if (lastActiveTabId !== activeInfo.tabId) {
     lastActiveTabId = activeInfo.tabId;
@@ -142,7 +139,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
       // Only notify if tab has a valid URL and is not a special page
       if (tab.url && !isSpecialPageUrl(tab.url)) {
-        console.log('SlimPaneAI: Notifying side panel of tab switch to:', tab.url);
 
         // Add a small delay to ensure side panel is ready
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -158,7 +154,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         });
       }
     } catch (error) {
-      console.warn('SlimPaneAI: Failed to handle tab activation:', error);
+      // Silently handle tab activation errors
     }
   }
 });
@@ -167,11 +163,8 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only handle when page loading is complete and URL has changed
   if (changeInfo.status === 'complete' && changeInfo.url && tab.active) {
-    console.log('SlimPaneAI: Tab updated with new URL:', changeInfo.url);
-
     // Only notify if it's not a special page
     if (!isSpecialPageUrl(changeInfo.url)) {
-      console.log('SlimPaneAI: Notifying side panel of page navigation to:', changeInfo.url);
 
       // Add a small delay to ensure side panel is ready
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -400,12 +393,6 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
     }
 
     if (response?.success) {
-      // 验证接收到的内容
-      if (response.content) {
-        console.log(`SlimPaneAI: 后台接收到内容:`, response);
-      } else {
-        console.log(`SlimPaneAI: 后台接收到空内容 - 可能是特殊页面或提取失败`);
-      }
 
       sendResponse({
         success: true,
@@ -434,7 +421,6 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
       throw new Error(response?.error || 'Content extraction failed');
     }
   } catch (error) {
-    console.error('SlimPaneAI: Background content extraction failed:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Content extraction failed',
@@ -461,32 +447,46 @@ async function handleMessage(
       case 'set-storage':
         await setStorageData(message.payload);
 
-        // Notify all contexts about storage update
+        // Notify side panel about relevant changes to avoid race conditions
         try {
-          // Send message to all tabs with the extension
-          const tabs = await chrome.tabs.query({});
-          for (const tab of tabs) {
-            if (tab.id) {
-              chrome.tabs
-                .sendMessage(tab.id, {
-                  type: 'storage-updated',
-                  payload: message.payload,
-                })
-                .catch(() => {
-                  // Ignore errors for tabs without content script
-                });
-            }
+          // Check if this is a userPreferences update
+          if (message.payload.userPreferences) {
+            // Send to side panel for theme/language sync
+            chrome.runtime
+              .sendMessage({
+                type: 'user-preferences-updated',
+                payload: { userPreferences: message.payload.userPreferences },
+              })
+              .catch(() => {
+                // Ignore if no listeners
+              });
           }
 
-          // Also send to side panel if it's open
-          chrome.runtime
-            .sendMessage({
-              type: 'storage-updated',
-              payload: message.payload,
-            })
-            .catch(() => {
-              // Ignore if no listeners
-            });
+          // Check if this is a modelSettings update
+          if (message.payload.modelSettings) {
+            // Send to side panel for model list sync
+            chrome.runtime
+              .sendMessage({
+                type: 'model-settings-updated',
+                payload: { modelSettings: message.payload.modelSettings },
+              })
+              .catch(() => {
+                // Ignore if no listeners
+              });
+          }
+
+          // Check if this is a serviceProviders update
+          if (message.payload.serviceProviders) {
+            // Send to side panel for service provider sync
+            chrome.runtime
+              .sendMessage({
+                type: 'service-providers-updated',
+                payload: { serviceProviders: message.payload.serviceProviders },
+              })
+              .catch(() => {
+                // Ignore if no listeners
+              });
+          }
         } catch (error) {
           // Silently handle notification errors
         }

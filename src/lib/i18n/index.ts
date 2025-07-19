@@ -128,7 +128,6 @@ export interface Translations {
     // 快捷键设置
     shortcuts: string;
     shortcutsDesc: string;
-    toggleSidebar: string;
     newLine: string;
     
     // 偏好设置
@@ -289,6 +288,19 @@ export interface Translations {
     importSuccess: string;
   };
 
+  // 关于页面
+  about: {
+    version: string;
+    description: string;
+    features: string;
+    developer: string;
+    contact: string;
+    license: string;
+    acknowledgments: string;
+    changelog: string;
+    support: string;
+  };
+
   // 页面内容
   pageContent: {
     title: string;
@@ -403,7 +415,12 @@ export const t = derived(
 export function setLanguage(language: Language) {
   try {
     console.log('🌍 [i18n] Setting language to:', language);
-    currentLanguage.set(language);
+
+    // 使用 requestAnimationFrame 来平滑更新语言
+    requestAnimationFrame(() => {
+      currentLanguage.set(language);
+    });
+
     console.log('✅ [i18n] Language set successfully');
   } catch (error) {
     console.error('❌ [i18n] Failed to set language:', error);
@@ -567,8 +584,7 @@ const chineseTranslations: Translations = {
     densityRelaxed: '宽松',
 
     shortcuts: '快捷键',
-    shortcutsDesc: '自定义常用操作的快捷键',
-    toggleSidebar: '打开/关闭侧边栏',
+    shortcutsDesc: '查看常用操作的快捷键',
     newLine: '换行',
     
     preferences: '偏好设置',
@@ -726,6 +742,18 @@ const chineseTranslations: Translations = {
     importSuccess: '导入成功',
   },
 
+  about: {
+    version: '版本',
+    description: '轻量级 AI 助手浏览器扩展，为您提供智能对话体验',
+    features: '功能特性',
+    developer: '开发者',
+    contact: '联系方式',
+    license: '开源协议',
+    acknowledgments: '致谢',
+    changelog: '更新日志',
+    support: '技术支持'
+  },
+
   pageContent: {
     title: '页面内容',
     disabled: '此域名的内容提取已禁用',
@@ -777,10 +805,11 @@ const chineseTranslations: Translations = {
     toggle: '切换网页聊天模式',
     description: '基于当前页面内容进行对话',
     noPageContent: '暂无页面内容',
-
+    extractFirst: '先提取内容',
     usePageContent: '使用页面内容',
     pageContentUsed: '正在使用页面内容',
     clearPageContent: '清除页面内容',
+    refreshPageContent: '刷新页面内容',
 
     autoMode: '自动模式',
     manualMode: '手动模式',
@@ -912,8 +941,7 @@ const englishTranslations: Translations = {
     densityRelaxed: 'Relaxed',
 
     shortcuts: 'Shortcuts',
-    shortcutsDesc: 'Customize shortcuts for common operations',
-    toggleSidebar: 'Toggle Sidebar',
+    shortcutsDesc: 'View shortcuts for common operations',
     newLine: 'New Line',
     
     preferences: 'Preferences',
@@ -1071,6 +1099,18 @@ const englishTranslations: Translations = {
     importSuccess: 'Import successful',
   },
 
+  about: {
+    version: 'Version',
+    description: 'A lightweight AI assistant browser extension that provides intelligent conversation experience',
+    features: 'Features',
+    developer: 'Developer',
+    contact: 'Contact',
+    license: 'License',
+    acknowledgments: 'Acknowledgments',
+    changelog: 'Changelog',
+    support: 'Support'
+  },
+
   pageContent: {
     title: 'Page Content',
     disabled: 'Content extraction is disabled for this domain',
@@ -1122,10 +1162,11 @@ const englishTranslations: Translations = {
     toggle: 'Toggle page chat mode',
     description: 'Chat based on current page content',
     noPageContent: 'No page content available',
-
+    extractFirst: 'Extract content first',
     usePageContent: 'Use page content',
     pageContentUsed: 'Using page content',
     clearPageContent: 'Clear page content',
+    refreshPageContent: 'Refresh page content',
 
     autoMode: 'Auto Mode',
     manualMode: 'Manual Mode',
