@@ -295,11 +295,7 @@ export interface Translations {
     disabled: string;
     enable: string;
     noContent: string;
-    extract: string;
-    extracting: string;
-    extracted: string;
-    failed: string;
-    retry: string;
+
     settings: string;
     autoExtract: string;
     includeImages: string;
@@ -315,10 +311,7 @@ export interface Translations {
     tokenCount: string;
     wordCount: string;
     lastExtracted: string;
-    refreshContent: string;
-    selectContent: string;
-    copyContent: string;
-    downloadContent: string;
+
     contentTooLarge: string;
     contentEmpty: string;
     extractionError: string;
@@ -328,7 +321,7 @@ export interface Translations {
     pdfComplete: string;
     pdfError: string;
     useContent: string;
-    refresh: string;
+
     tokenWarning: string;
     tokenError: string;
     extractionFailed: string;
@@ -720,11 +713,7 @@ const chineseTranslations: Translations = {
     disabled: '此域名的内容提取已禁用',
     enable: '启用内容提取',
     noContent: '暂无页面内容',
-    extract: '提取内容',
-    extracting: '正在提取...',
-    extracted: '提取完成',
-    failed: '提取失败',
-    retry: '重试',
+
     settings: '设置',
     autoExtract: '自动提取',
     includeImages: '包含图片',
@@ -740,10 +729,7 @@ const chineseTranslations: Translations = {
     tokenCount: 'Token数量',
     wordCount: '字数',
     lastExtracted: '最后提取时间',
-    refreshContent: '刷新内容',
-    selectContent: '选择内容',
-    copyContent: '复制内容',
-    downloadContent: '下载内容',
+
     contentTooLarge: '内容过大',
     contentEmpty: '内容为空',
     extractionError: '提取错误',
@@ -753,7 +739,7 @@ const chineseTranslations: Translations = {
     pdfComplete: 'PDF处理完成',
     pdfError: 'PDF处理错误',
     useContent: '使用此内容',
-    refresh: '刷新内容',
+
     tokenWarning: '内容较长，可能需要分块处理',
     tokenError: '内容过长，建议缩减或分块',
     extractionFailed: '内容提取失败',
@@ -773,11 +759,11 @@ const chineseTranslations: Translations = {
     toggle: '切换网页聊天模式',
     description: '基于当前页面内容进行对话',
     noPageContent: '暂无页面内容',
-    extractFirst: '请先提取页面内容',
+
     usePageContent: '使用页面内容',
     pageContentUsed: '正在使用页面内容',
     clearPageContent: '清除页面内容',
-    refreshPageContent: '刷新内容',
+
     autoMode: '自动模式',
     manualMode: '手动模式',
     smartMode: '智能模式',
@@ -1072,11 +1058,7 @@ const englishTranslations: Translations = {
     disabled: 'Content extraction is disabled for this domain',
     enable: 'Enable Content Extraction',
     noContent: 'No page content available',
-    extract: 'Extract Content',
-    extracting: 'Extracting...',
-    extracted: 'Extraction Complete',
-    failed: 'Extraction Failed',
-    retry: 'Retry',
+
     settings: 'Settings',
     autoExtract: 'Auto Extract',
     includeImages: 'Include Images',
@@ -1092,10 +1074,7 @@ const englishTranslations: Translations = {
     tokenCount: 'Token Count',
     wordCount: 'Word Count',
     lastExtracted: 'Last Extracted',
-    refreshContent: 'Refresh Content',
-    selectContent: 'Select Content',
-    copyContent: 'Copy Content',
-    downloadContent: 'Download Content',
+
     contentTooLarge: 'Content Too Large',
     contentEmpty: 'Content Empty',
     extractionError: 'Extraction Error',
@@ -1105,7 +1084,7 @@ const englishTranslations: Translations = {
     pdfComplete: 'PDF Processing Complete',
     pdfError: 'PDF Processing Error',
     useContent: 'Use This Content',
-    refresh: 'Refresh Content',
+
     tokenWarning: 'Content is long, may need chunking',
     tokenError: 'Content too long, consider reducing or chunking',
     extractionFailed: 'Content extraction failed',
@@ -1125,11 +1104,11 @@ const englishTranslations: Translations = {
     toggle: 'Toggle page chat mode',
     description: 'Chat based on current page content',
     noPageContent: 'No page content available',
-    extractFirst: 'Please extract page content first',
+
     usePageContent: 'Use page content',
     pageContentUsed: 'Using page content',
     clearPageContent: 'Clear page content',
-    refreshPageContent: 'Refresh Content',
+
     autoMode: 'Auto Mode',
     manualMode: 'Manual Mode',
     smartMode: 'Smart Mode',

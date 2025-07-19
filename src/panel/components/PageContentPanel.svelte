@@ -86,9 +86,7 @@
       const settings = await domainSettingsManager.getDomainSettings(currentDomain);
       domainSettings.set(settings);
 
-      // For tab switches, directly use background script extraction
-      // This is more reliable than trying content script first
-      await extractPageContent();
+      // 页面内容现在通过自动抓取机制处理，这里不需要手动提取
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load page content';
@@ -99,35 +97,7 @@
     }
   }
 
-  async function extractPageContent() {
-    isLoading.set(true);
-    error.set(null);
 
-    try {
-      // Send message to background script to extract content
-      const response = await chrome.runtime.sendMessage({
-        type: 'extract-page-content'
-      });
-
-      if (response?.success) {
-        if (response.content) {
-          pageContent.set(response.content);
-        } else {
-          // Special page or no content
-          pageContent.set(null);
-          throw new Error(response.error || '当前页面不支持内容提取');
-        }
-      } else {
-        throw new Error(response?.error || 'Failed to extract content');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to extract page content';
-      console.error('SlimPaneAI: Content extraction failed:', errorMessage);
-      error.set(errorMessage);
-    } finally {
-      isLoading.set(false);
-    }
-  }
 
   async function toggleDomainEnabled() {
     if (!currentDomain) return;
@@ -208,9 +178,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p class="error-message">{$error}</p>
-          <button class="retry-button" on:click={extractPageContent}>
-            {$t('common.retry')}
-          </button>
+          <p class="text-sm text-gray-500 mt-2">
+            请刷新页面或重新开启页面聊天功能
+          </p>
         </div>
       {:else if !$domainSettings?.enabled}
         <div class="disabled-state">
@@ -277,12 +247,7 @@
               {$t('pageContent.useContent')}
             </button>
             
-            <button class="action-button secondary" on:click={extractPageContent}>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {$t('pageContent.refresh')}
-            </button>
+
           </div>
         </div>
       {:else}
@@ -291,9 +256,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <p>{$t('pageContent.noContent')}</p>
-          <button class="extract-button" on:click={extractPageContent}>
-            {$t('pageContent.extract')}
-          </button>
+          <p class="text-sm text-gray-500 mt-2">
+            内容将在启用页面聊天时自动抓取
+          </p>
         </div>
       {/if}
     </div>
@@ -420,9 +385,7 @@
     margin: 0;
   }
 
-  .retry-button,
-  .enable-button,
-  .extract-button {
+  .enable-button {
     padding: 0.5rem 1rem;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
@@ -431,9 +394,7 @@
     transition: all 0.2s;
   }
 
-  .retry-button:hover,
-  .enable-button:hover,
-  .extract-button:hover {
+  .enable-button:hover {
     background: var(--bg-secondary);
   }
 
@@ -581,12 +542,5 @@
     border-color: #2563eb;
   }
 
-  .action-button.secondary {
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-  }
 
-  .action-button.secondary:hover {
-    background: var(--bg-secondary);
-  }
 </style>

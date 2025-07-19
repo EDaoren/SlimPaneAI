@@ -57,7 +57,8 @@
 
     if (!isContentFresh) {
       await pageChatStore.forceRefresh();
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 减少等待时间，提高响应速度
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
 
@@ -87,10 +88,28 @@ ${pageState.currentPageContent}`;
     const userMessage = message.trim();
     const pageChatState = $pageChatStore;
 
+    // 立即清空输入框，提供即时反馈
+    message = '';
+    adjustTextAreaHeight();
+
     let systemPrompt = '';
     let pageContent = '';
 
-    if (pageChatState.enabled) {
+    // 如果没有启用页面聊天，立即发送消息
+    if (!pageChatState.enabled) {
+      dispatch('send', {
+        message: userMessage,
+        systemPrompt: systemPrompt,
+        pageContent: pageContent,
+        modelId: parsedModel?.modelId || selectedModel,
+        providerId: parsedModel?.providerId,
+        isPageChat: false
+      });
+      return;
+    }
+
+    // 页面聊天启用时，异步处理内容检查
+    try {
       await ensureContentFreshness();
       const updatedPageChatState = $pageChatStore;
 
@@ -99,19 +118,26 @@ ${pageState.currentPageContent}`;
           '你是一个专业的网页内容分析助手。请基于提供的网页内容回答用户问题。';
         pageContent = buildPageContext(updatedPageChatState);
       }
+
+      dispatch('send', {
+        message: userMessage,
+        systemPrompt: systemPrompt,
+        pageContent: pageContent,
+        modelId: parsedModel?.modelId || selectedModel,
+        providerId: parsedModel?.providerId,
+        isPageChat: pageChatState.enabled && !!pageContent
+      });
+    } catch (error) {
+      // 如果内容检查失败，仍然发送消息但不包含页面内容
+      dispatch('send', {
+        message: userMessage,
+        systemPrompt: '',
+        pageContent: '',
+        modelId: parsedModel?.modelId || selectedModel,
+        providerId: parsedModel?.providerId,
+        isPageChat: false
+      });
     }
-
-    dispatch('send', {
-      message: userMessage,
-      systemPrompt: systemPrompt,
-      pageContent: pageContent,
-      modelId: parsedModel?.modelId || selectedModel,
-      providerId: parsedModel?.providerId,
-      isPageChat: pageChatState.enabled && !!pageContent
-    });
-
-    message = '';
-    adjustTextAreaHeight();
   }
 
   // Handle model selection change

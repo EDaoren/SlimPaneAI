@@ -172,65 +172,65 @@ interface ExtractionResponse {
   error?: string;
 }
 
-/**
- * 更新提取成功状态
- */
-function updateExtractionSuccess(response: ExtractionResponse, timestamp: number): void {
-  const extractedUrl = normalizeUrl(response.url || '');
-  update(state => ({
-    ...state,
-    currentPageContent: response.content || null,
-    currentPageTitle: response.title || 'Unknown Page',
-    currentPageUrl: response.url || '',
-    currentPageMetadata: response.metadata || null,
-    currentPageBlocks: response.blocks || null,
-    status: 'success' as const,
-    isExtracting: false,
-    error: null,
-    lastExtractedUrl: extractedUrl,
-    lastExtractedTime: timestamp
-  }));
-}
+function createPageChatStore() {
+  const { subscribe, set, update } = writable<PageChatState>(initialState);
 
-/**
- * 更新提取失败状态
- */
-function updateExtractionFailure(response: ExtractionResponse | null, errorMessage: string): void {
-  update(state => ({
-    ...state,
-    currentPageContent: null,
-    currentPageTitle: response?.title || 'Unknown Page',
-    currentPageUrl: response?.url || '',
-    status: 'failed' as const,
-    isExtracting: false,
-    error: errorMessage
-  }));
-}
+  /**
+   * 获取用户友好的错误消息
+   */
+  function getErrorMessage(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return '页面内容提取失败，请尝试刷新页面后重试';
+    }
 
-/**
- * 获取用户友好的错误消息
- */
-function getErrorMessage(error: unknown): string {
-  if (!(error instanceof Error)) {
+    const message = error.message;
+    if (message.includes('Could not establish connection')) {
+      return '无法连接到页面，请刷新页面后重试';
+    }
+    if (message.includes('chrome://') || message.includes('browser internal pages')) {
+      return '无法提取浏览器内部页面的内容';
+    }
+    if (message.includes('Extension context invalidated')) {
+      return '扩展已更新，请刷新页面后重试';
+    }
+
     return '页面内容提取失败，请尝试刷新页面后重试';
   }
 
-  const message = error.message;
-  if (message.includes('Could not establish connection')) {
-    return '无法连接到页面，请刷新页面后重试';
-  }
-  if (message.includes('chrome://') || message.includes('browser internal pages')) {
-    return '无法提取浏览器内部页面的内容';
-  }
-  if (message.includes('Extension context invalidated')) {
-    return '扩展已更新，请刷新页面后重试';
+  /**
+   * 更新提取成功状态
+   */
+  function updateExtractionSuccess(response: ExtractionResponse, timestamp: number): void {
+    const extractedUrl = normalizeUrl(response.url || '');
+    update(state => ({
+      ...state,
+      currentPageContent: response.content || null,
+      currentPageTitle: response.title || 'Unknown Page',
+      currentPageUrl: response.url || '',
+      currentPageMetadata: response.metadata || null,
+      currentPageBlocks: response.blocks || null,
+      status: 'success' as const,
+      isExtracting: false,
+      error: null,
+      lastExtractedUrl: extractedUrl,
+      lastExtractedTime: timestamp
+    }));
   }
 
-  return '页面内容提取失败，请尝试刷新页面后重试';
-}
-
-function createPageChatStore() {
-  const { subscribe, set, update } = writable<PageChatState>(initialState);
+  /**
+   * 更新提取失败状态
+   */
+  function updateExtractionFailure(response: ExtractionResponse | null, errorMessage: string): void {
+    update(state => ({
+      ...state,
+      currentPageContent: null,
+      currentPageTitle: response?.title || 'Unknown Page',
+      currentPageUrl: response?.url || '',
+      status: 'failed' as const,
+      isExtracting: false,
+      error: errorMessage
+    }));
+  }
 
   /**
    * 提取当前页面内容
@@ -279,8 +279,6 @@ function createPageChatStore() {
         throw new Error(response?.error || '页面内容提取失败');
       }
     } catch (error) {
-      console.error('SlimPaneAI: Content extraction failed:', error);
-
       const errorMessage = getErrorMessage(error);
       updateExtractionFailure(null, errorMessage);
     }
@@ -297,7 +295,6 @@ function createPageChatStore() {
     update(state => {
       // 如果最后一次尝试在3秒内，不允许重试
       if (state.lastAttempt && now - state.lastAttempt < 3000) {
-        console.log('SlimPaneAI: Retry too frequent, ignoring');
         canRetry = false;
       } else {
         canRetry = true;
