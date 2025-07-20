@@ -193,7 +193,7 @@ function isSpecialPageUrl(url: string): boolean {
     return false; // 支持的文档类型不是特殊页面
   }
 
-  // 浏览器内部页面
+  // 浏览器内部页面 (excluding file:// for PDF support)
   const browserProtocols = [
     'chrome://',
     'chrome-extension://',
@@ -203,13 +203,17 @@ function isSpecialPageUrl(url: string): boolean {
     'moz-extension://',
     'about:',
     'view-source:',
-    'file://',
     'devtools://',
     'data:',
   ];
 
   if (browserProtocols.some((protocol) => url.startsWith(protocol))) {
     return true;
+  }
+
+  // Special handling for file:// URLs - only block non-PDF files
+  if (url.startsWith('file://')) {
+    return !isSupportedDocumentType(url);
   }
 
   // 特殊页面
@@ -452,6 +456,99 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
   }
 }
 
+/**
+ * Handle PDF content extraction request from content script
+ */
+async function handleExtractPDFContent(
+  message: any,
+  sendResponse: (response?: any) => void
+) {
+  try {
+    const { url } = message.payload;
+
+    if (!url) {
+      throw new Error('PDF URL is required');
+    }
+
+    console.log('🔄 SlimPaneAI Background: Extracting PDF content for:', url);
+
+    // Validate that this is a PDF URL
+    if (!url.toLowerCase().includes('.pdf')) {
+      throw new Error('URL does not appear to be a PDF file');
+    }
+
+    // For local files, we need to fetch the file data
+    if (url.startsWith('file://')) {
+      console.log('📁 SlimPaneAI Background: Fetching local PDF file...');
+
+      try {
+        // Fetch the local PDF file
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+        }
+
+        // Get the PDF data as array buffer
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        console.log('✅ SlimPaneAI Background: PDF data fetched successfully, size:', uint8Array.length, 'bytes');
+
+        // Convert Uint8Array to regular array for message passing
+        const pdfDataArray = Array.from(uint8Array);
+
+        sendResponse({
+          success: true,
+          pdfData: pdfDataArray,
+          requestId: message.requestId
+        });
+
+      } catch (fetchError) {
+        console.error('❌ SlimPaneAI Background: Failed to fetch local PDF:', fetchError);
+
+        // Provide helpful error message for file access issues
+        let errorMessage = 'Failed to access local PDF file. ';
+
+        if (fetchError instanceof Error) {
+          if (fetchError.message.includes('Failed to fetch') ||
+              fetchError.message.includes('NetworkError') ||
+              fetchError.message.includes('Not allowed')) {
+            errorMessage += 'Please ensure:\n' +
+              '1. The extension has "Allow access to file URLs" permission enabled\n' +
+              '2. The PDF file exists and is not corrupted\n' +
+              '3. The file is not currently open in another application';
+          } else {
+            errorMessage += fetchError.message;
+          }
+        }
+
+        sendResponse({
+          success: false,
+          error: errorMessage,
+          requestId: message.requestId
+        });
+      }
+    } else {
+      // For online PDFs, we can also handle them here if needed
+      console.log('🌐 SlimPaneAI Background: Online PDF detected, delegating to content script');
+      sendResponse({
+        success: false,
+        error: 'Online PDFs should be handled by content script directly',
+        requestId: message.requestId
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ SlimPaneAI Background: PDF extraction failed:', error);
+    sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      requestId: message.requestId
+    });
+  }
+}
+
 async function handleMessage(
   message: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
@@ -520,6 +617,10 @@ async function handleMessage(
 
       case 'extract-page-content':
         await handleExtractPageContent(sendResponse);
+        break;
+
+      case 'extract-pdf-content':
+        await handleExtractPDFContent(message, sendResponse);
         break;
 
       case 'spa-url-changed':

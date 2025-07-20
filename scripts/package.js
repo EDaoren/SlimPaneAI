@@ -17,6 +17,47 @@ async function copyManifest() {
   }
 }
 
+async function copyPDFFiles() {
+  const pdfContentDir = path.join(distDir, 'lib', 'pdf-content');
+
+  if (!fs.existsSync(pdfContentDir)) {
+    fs.mkdirSync(pdfContentDir, { recursive: true });
+  }
+
+  // Try to copy from node_modules first
+  const nodeModulesPdfSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.min.mjs');
+  const nodeModulesWorkerSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs');
+
+  // Copy PDF.js main library
+  const pdfDest = path.join(pdfContentDir, 'pdf.mjs');
+  if (fs.existsSync(nodeModulesPdfSrc)) {
+    fs.copyFileSync(nodeModulesPdfSrc, pdfDest);
+    console.log('✓ Copied PDF.js library from node_modules');
+  } else {
+    // Fallback: create a simple message file
+    const fallbackContent = `// PDF.js library not found in node_modules
+// Please install pdfjs-dist: npm install pdfjs-dist
+console.error('PDF.js library not available. Please install pdfjs-dist package.');
+export default null;`;
+    fs.writeFileSync(pdfDest, fallbackContent);
+    console.warn('⚠ PDF.js library not found, created fallback file');
+  }
+
+  // Copy PDF.js worker
+  const workerDest = path.join(pdfContentDir, 'pdf.worker.js');
+  if (fs.existsSync(nodeModulesWorkerSrc)) {
+    fs.copyFileSync(nodeModulesWorkerSrc, workerDest);
+    console.log('✓ Copied PDF.js worker from node_modules');
+  } else {
+    // Fallback: create a simple message file
+    const fallbackContent = `// PDF.js worker not found in node_modules
+// Please install pdfjs-dist: npm install pdfjs-dist
+console.error('PDF.js worker not available. Please install pdfjs-dist package.');`;
+    fs.writeFileSync(workerDest, fallbackContent);
+    console.warn('⚠ PDF.js worker not found, created fallback file');
+  }
+}
+
 async function copyIcons() {
   const iconsDir = path.join(rootDir, 'icons');
   const distIconsDir = path.join(distDir, 'icons');
@@ -138,6 +179,7 @@ async function main() {
 
   try {
     await copyManifest();
+    await copyPDFFiles();
     await copyIcons();
     await moveHtmlFiles();
     await updateVersion();

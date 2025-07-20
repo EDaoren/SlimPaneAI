@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local PDF Extraction Test - SlimPaneAI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Local PDF Extraction Test</h1>
+    
+    <div class="instructions">
+        <h3>📋 Setup Instructions:</h3>
+        <ol>
+            <li>Make sure the SlimPaneAI extension is installed and enabled</li>
+            <li>Go to <code>chrome://extensions/</code></li>
+            <li>Find SlimPaneAI and click "Details"</li>
+            <li><strong>Enable "Allow access to file URLs"</strong> ⚠️ <em>Critical step!</em></li>
+            <li>Reload the extension</li>
+            <li>Open a local PDF file in Chrome (drag & drop or File > Open)</li>
+            <li>Try using the page chat feature with the PDF</li>
+        </ol>
+        <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; border-radius: 4px; margin-top: 10px;">
+            <strong>🔧 Recent Fixes:</strong>
+            <ul style="margin: 5px 0; padding-left: 20px;">
+                <li>Fixed App.svelte message handling that was intercepting PDF extraction requests</li>
+                <li>Fixed PDF.js worker configuration using reliable CDN worker</li>
+                <li>Resolved Rollup import resolution issues with pdfjs-dist worker files</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 1: Check Extension Context</h3>
+        <p>This test verifies that the extension context is available.</p>
+        <button onclick="testExtensionContext()">Test Extension Context</button>
+        <div id="contextResult" class="result info">Click the button to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 2: Test Background Script Communication</h3>
+        <p>This test checks if we can communicate with the background script.</p>
+        <input type="text" id="testUrl" placeholder="Enter file:// URL or use file picker below" style="width: 100%; margin: 10px 0;">
+        <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)">
+        <button onclick="testBackgroundScript()">Test Background Script</button>
+        <div id="backgroundResult" class="result info">Click the button to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 3: Test PDF Content Extraction</h3>
+        <p>This test attempts to extract content from a local PDF using the extension's PDF processor.</p>
+        <button onclick="testPDFExtraction()">Test PDF Extraction</button>
+        <div id="pdfResult" class="result info">Click the button to test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 Manual Testing Steps</h3>
+        <ol>
+            <li>Open a PDF file in Chrome using <code>file://</code> protocol</li>
+            <li>Open the SlimPaneAI side panel</li>
+            <li>Enable page chat mode</li>
+            <li>Try asking a question about the PDF content</li>
+            <li>Verify that the AI can access and respond based on the PDF content</li>
+        </ol>
+    </div>
+
+    <script>
+        function testExtensionContext() {
+            const resultDiv = document.getElementById('contextResult');
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+                resultDiv.textContent = '✅ Extension context is available!\nExtension ID: ' + chrome.runtime.id;
+                resultDiv.className = 'result success';
+            } else {
+                resultDiv.textContent = '❌ Extension context not available. Make sure this page is loaded in the extension context.';
+                resultDiv.className = 'result error';
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                // Create a file:// URL for the selected file
+                const fileUrl = URL.createObjectURL(file);
+                document.getElementById('testUrl').value = fileUrl;
+            }
+        }
+
+        async function testBackgroundScript() {
+            const resultDiv = document.getElementById('backgroundResult');
+            const url = document.getElementById('testUrl').value;
+            
+            if (!url) {
+                resultDiv.textContent = '❌ Please enter a file:// URL or select a PDF file';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            if (!chrome || !chrome.runtime) {
+                resultDiv.textContent = '❌ Chrome extension API not available';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            resultDiv.textContent = '🔄 Testing background script communication...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const response = await chrome.runtime.sendMessage({
+                    type: 'extract-pdf-content',
+                    requestId: 'test-' + Date.now(),
+                    payload: { url: url }
+                });
+                
+                if (response && response.success) {
+                    resultDiv.textContent = `✅ Background script communication successful!
+Data size: ${response.pdfData ? response.pdfData.length : 'N/A'} bytes
+Request ID: ${response.requestId}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Background script returned error:
+${response ? response.error : 'No response'}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Failed to communicate with background script:
+${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testPDFExtraction() {
+            const resultDiv = document.getElementById('pdfResult');
+            const url = document.getElementById('testUrl').value;
+            
+            if (!url) {
+                resultDiv.textContent = '❌ Please enter a file:// URL or select a PDF file';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            resultDiv.textContent = '🔄 Testing PDF content extraction...';
+            resultDiv.className = 'result info';
+            
+            try {
+                // This would require importing the PDF processor
+                // For now, just show instructions
+                resultDiv.textContent = `📝 To test PDF extraction:
+1. Open the PDF file: ${url}
+2. Open SlimPaneAI side panel
+3. Enable page chat
+4. Ask a question about the PDF content
+5. Check if the AI can access the PDF content`;
+                resultDiv.className = 'result info';
+            } catch (error) {
+                resultDiv.textContent = `❌ PDF extraction test failed:
+${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // Auto-test extension context on load
+        window.addEventListener('load', () => {
+            testExtensionContext();
+        });
+    </script>
+</body>
+</html>

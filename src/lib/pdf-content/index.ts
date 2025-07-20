@@ -22,17 +22,18 @@ export class PDFProcessor {
 
     this.loadingPromise = new Promise(async (resolve, reject) => {
       try {
-        // 使用本地安装的PDF.js
+        // 使用本地PDF.js文件
         if (typeof window !== 'undefined') {
-          // 动态导入pdfjs-dist
-          const pdfjsModule = await import('pdfjs-dist');
+          // 使用本地PDF.js文件而不是node_modules中的版本
+          const pdfjsUrl = chrome.runtime.getURL('lib/pdf-content/pdf.mjs');
+          const pdfjsModule = await import(pdfjsUrl);
           this.pdfjsLib = pdfjsModule;
+          // 配置PDF.js worker
+          // 使用本地worker文件，这是在浏览器扩展中的最佳实践
+          const PDFJS_WORKER_PATH = chrome.runtime.getURL('lib/pdf-content/pdf.worker.js');
+          this.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_PATH;
+          console.log('SlimPaneAI: PDF.js initialized with local worker:', PDFJS_WORKER_PATH);
 
-          // 禁用worker以避免CSP问题
-          // 在浏览器扩展环境中，worker可能会有CSP限制
-          this.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-
-          console.log('SlimPaneAI: PDF.js initialized successfully (worker disabled for CSP compatibility)');
           resolve();
         } else {
           reject(new Error('PDF.js requires browser environment'));
@@ -50,7 +51,7 @@ export class PDFProcessor {
    * 从PDF URL提取内容
    */
   async extractFromPDF(
-    url: string, 
+    url: string,
     onProgress?: (status: PDFProcessingStatus) => void
   ): Promise<PageContent> {
     await this.initializePDFJS();
@@ -69,14 +70,22 @@ export class PDFProcessor {
       // 通知开始加载
       onProgress?.(status);
 
-      // 加载PDF文档
-      const loadingTask = this.pdfjsLib.getDocument({
-        url,
-        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-        cMapPacked: true,
-      });
+      let pdf: any;
 
-      const pdf = await loadingTask.promise;
+      // 检查是否是本地文件
+      if (url.startsWith('file://')) {
+        console.log('📁 SlimPaneAI: Local PDF detected, using background script');
+        pdf = await this.loadLocalPDF(url, onProgress);
+      } else {
+        console.log('🌐 SlimPaneAI: Online PDF detected, loading directly');
+        // 加载在线PDF文档
+        const loadingTask = this.pdfjsLib.getDocument({
+          url,
+          cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+          cMapPacked: true,
+        });
+        pdf = await loadingTask.promise;
+      }
       
       status.status = 'processing';
       status.totalPages = pdf.numPages;
@@ -119,7 +128,7 @@ export class PDFProcessor {
       return {
         url,
         title,
-        domain: new URL(url).hostname,
+        domain: url.startsWith('file://') ? 'localhost' : new URL(url).hostname,
         content,
         extractedAt: Date.now(),
         contentType: 'pdf',
@@ -138,11 +147,85 @@ export class PDFProcessor {
   }
 
   /**
+   * 通过背景脚本加载本地PDF文件
+   */
+  private async loadLocalPDF(url: string, onProgress?: (status: PDFProcessingStatus) => void): Promise<any> {
+    console.log('📡 SlimPaneAI: Requesting PDF data from background script...');
+
+    const status: PDFProcessingStatus = {
+      url,
+      status: 'loading',
+      progress: 25
+    };
+    onProgress?.(status);
+
+    try {
+      // 生成唯一请求ID
+      const requestId = `pdf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // 请求背景脚本获取PDF数据
+      const response = await chrome.runtime.sendMessage({
+        type: 'extract-pdf-content',
+        requestId: requestId,
+        payload: { url }
+      });
+
+      console.log('📡 SlimPaneAI: Background script response:', {
+        success: response?.success,
+        hasData: !!response?.pdfData,
+        dataSize: response?.pdfData?.length,
+        error: response?.error
+      });
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Failed to get PDF data from background script');
+      }
+
+      if (!response.pdfData || !Array.isArray(response.pdfData)) {
+        throw new Error('Invalid PDF data received from background script');
+      }
+
+      // 转换数组数据为Uint8Array
+      const uint8Array = new Uint8Array(response.pdfData);
+      console.log('✅ SlimPaneAI: PDF data converted, size:', uint8Array.length, 'bytes');
+
+      onProgress?.({ ...status, status: 'processing', progress: 50 });
+
+      // 使用PDF.js加载PDF数据
+      const loadingTask = this.pdfjsLib.getDocument({
+        data: uint8Array,
+        cMapUrl: null, // 禁用cMap以简化
+        cMapPacked: false,
+        verbosity: 0
+      });
+
+      const pdf = await loadingTask.promise;
+      console.log('✅ SlimPaneAI: PDF loaded successfully, pages:', pdf.numPages);
+
+      return pdf;
+
+    } catch (error) {
+      console.error('❌ SlimPaneAI: Local PDF loading failed:', error);
+
+      if (error instanceof Error && error.message.includes('background script')) {
+        throw new Error(`无法获取本地PDF文件数据。请确保：
+1. 在 chrome://extensions/ 中为 SlimPaneAI 启用"允许访问文件网址"权限
+2. 重新加载扩展
+3. 确保PDF文件路径正确且文件未被占用
+
+原始错误: ${error.message}`);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * 检查是否是PDF文件
    */
   static isPDFUrl(url: string): boolean {
     const urlLower = url.toLowerCase();
-    return urlLower.includes('.pdf') || 
+    return urlLower.includes('.pdf') ||
            urlLower.includes('application/pdf') ||
            urlLower.includes('content-type=application/pdf');
   }
@@ -160,17 +243,29 @@ export class PDFProcessor {
    */
   private extractPDFTitle(url: string): string {
     try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const filename = pathname.split('/').pop() || '';
-      
+      let pathname: string;
+
+      if (url.startsWith('file://')) {
+        // 处理本地文件路径
+        pathname = url.replace('file://', '');
+        // 处理Windows路径
+        if (pathname.startsWith('/') && pathname.includes(':')) {
+          pathname = pathname.substring(1);
+        }
+      } else {
+        const urlObj = new URL(url);
+        pathname = urlObj.pathname;
+      }
+
+      const filename = pathname.split(/[/\\]/).pop() || '';
+
       if (filename.endsWith('.pdf')) {
         return filename
           .replace('.pdf', '')
           .replace(/[-_]/g, ' ')
           .replace(/\b\w/g, l => l.toUpperCase());
       }
-      
+
       return filename || 'PDF Document';
     } catch {
       return 'PDF Document';
@@ -199,8 +294,19 @@ export class PDFProcessor {
       throw new Error('PDF.js library not loaded');
     }
 
-    const loadingTask = this.pdfjsLib.getDocument(url);
-    const pdf = await loadingTask.promise;
+    let pdf: any;
+
+    // 检查是否是本地文件
+    if (url.startsWith('file://')) {
+      pdf = await this.loadLocalPDF(url, onProgress);
+    } else {
+      const loadingTask = this.pdfjsLib.getDocument({
+        url,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+      });
+      pdf = await loadingTask.promise;
+    }
     
     const chunks: PageContent[] = [];
     const totalPages = pdf.numPages;
@@ -222,7 +328,7 @@ export class PDFProcessor {
       chunks.push({
         url: `${url}#page=${startPage}-${endPage}`,
         title: `${this.extractPDFTitle(url)} (Pages ${startPage}-${endPage})`,
-        domain: new URL(url).hostname,
+        domain: url.startsWith('file://') ? 'localhost' : new URL(url).hostname,
         content: chunkContent,
         extractedAt: Date.now(),
         contentType: 'pdf',
@@ -291,8 +397,19 @@ export class PDFProcessor {
       throw new Error('PDF.js library not loaded');
     }
 
-    const loadingTask = this.pdfjsLib.getDocument(url);
-    const pdf = await loadingTask.promise;
+    let pdf: any;
+
+    // 检查是否是本地文件
+    if (url.startsWith('file://')) {
+      pdf = await this.loadLocalPDF(url);
+    } else {
+      const loadingTask = this.pdfjsLib.getDocument({
+        url,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+      });
+      pdf = await loadingTask.promise;
+    }
     const metadata = await pdf.getMetadata();
 
     return {

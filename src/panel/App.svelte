@@ -54,17 +54,22 @@
   });
 
   async function handleMessage(message: ExtensionMessage, sender: any, sendResponse: (response?: any) => void) {
+    let shouldRespond = false;
+
     switch (message.type) {
       case 'text-selected':
         handleTextSelection(message as TextSelectionMessage);
+        shouldRespond = true;
         break;
       case 'llm-chunk':
       case 'llm-response':
       case 'llm-error':
         chatStore.handleMessage(message);
+        shouldRespond = true;
         break;
       case 'storage-updated':
         // DISABLED: This was causing race conditions with manual updates
+        shouldRespond = true;
         break;
       case 'user-preferences-updated':
         // Handle userPreferences updates from options page for theme/language sync
@@ -72,41 +77,47 @@
           // Update only userPreferences in the store to trigger theme/language changes
           settingsStore.updateUserPreferencesFromExternal(message.payload.userPreferences);
         }
+        shouldRespond = true;
         break;
       case 'model-settings-updated':
         // Handle modelSettings updates from options page for model list sync
         if (message.payload.modelSettings) {
           settingsStore.updateModelSettingsFromExternal(message.payload.modelSettings);
         }
+        shouldRespond = true;
         break;
       case 'service-providers-updated':
         // Handle serviceProviders updates from options page
         if (message.payload.serviceProviders) {
           settingsStore.updateServiceProvidersFromExternal(message.payload.serviceProviders);
         }
+        shouldRespond = true;
         break;
       case 'tab-switched':
         await handleTabSwitch(message as TabSwitchedMessage);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
+        shouldRespond = true;
         break;
       case 'page-navigated':
         await handlePageNavigation(message as PageNavigatedMessage);
         if (chatPanel && chatPanel.handlePageContentMessage) {
           chatPanel.handlePageContentMessage(message);
         }
+        shouldRespond = true;
         break;
       case 'spa-page-navigated':
         await handleSPAPageNavigation(message);
+        shouldRespond = true;
         break;
       default:
-        // Unknown message type
+        // Unknown message type - don't respond to avoid interfering with other handlers
         break;
     }
 
-    // Always send a response to prevent port closure
-    if (sendResponse) {
+    // Only send a response for messages we actually handle
+    if (shouldRespond && sendResponse) {
       sendResponse({ received: true });
     }
   }
