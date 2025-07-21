@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线PDF测试 - SlimPaneAI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .test-url {
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .content-preview {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        .progress {
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            background: #1976d2;
+            height: 20px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 SlimPaneAI 在线PDF测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试说明</h2>
+        <p>此页面用于测试SlimPaneAI扩展的在线PDF内容提取功能。</p>
+        <ol>
+            <li>确保已安装并启用SlimPaneAI扩展</li>
+            <li>点击下方的测试按钮</li>
+            <li>观察PDF内容提取结果</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🌐 在线PDF测试</h2>
+        <p>测试URL（示例PDF文档）：</p>
+        <div class="test-url" id="testUrl">
+            https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
+        </div>
+        
+        <button onclick="testOnlinePDF()" id="testBtn">开始测试在线PDF</button>
+        <button onclick="testCustomURL()" id="customBtn">测试自定义URL</button>
+        
+        <div id="progress" class="progress" style="display: none;">
+            <div id="progressBar" class="progress-bar" style="width: 0%;">0%</div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div id="result" style="display: none;">
+            <h3>📄 提取结果</h3>
+            <div id="contentPreview" class="content-preview"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 调试信息</h2>
+        <p>如果测试失败，请检查：</p>
+        <ul>
+            <li>扩展是否正确安装和启用</li>
+            <li>浏览器控制台是否有错误信息</li>
+            <li>网络连接是否正常</li>
+            <li>PDF URL是否可访问</li>
+        </ul>
+        <button onclick="checkExtension()">检查扩展状态</button>
+        <div id="extensionStatus" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 测试在线PDF提取
+        async function testOnlinePDF() {
+            const testUrl = document.getElementById('testUrl').textContent.trim();
+            await extractPDFContent(testUrl);
+        }
+
+        // 测试自定义URL
+        async function testCustomURL() {
+            const url = prompt('请输入PDF URL:', 'https://example.com/document.pdf');
+            if (url) {
+                document.getElementById('testUrl').textContent = url;
+                await extractPDFContent(url);
+            }
+        }
+
+        // 提取PDF内容
+        async function extractPDFContent(url) {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            const progressDiv = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            const contentPreview = document.getElementById('contentPreview');
+            const testBtn = document.getElementById('testBtn');
+            const customBtn = document.getElementById('customBtn');
+
+            // 重置UI
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '正在初始化PDF处理器...';
+            resultDiv.style.display = 'none';
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            testBtn.disabled = true;
+            customBtn.disabled = true;
+
+            try {
+                // 动态导入PDF处理器
+                const { pdfProcessor } = await import('./dist/content.js');
+                
+                statusDiv.textContent = '正在提取PDF内容...';
+                
+                // 提取PDF内容
+                const result = await pdfProcessor.extractFromPDF(url, (status) => {
+                    // 更新进度
+                    const progress = Math.round(status.progress || 0);
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                    
+                    if (status.currentPage && status.totalPages) {
+                        statusDiv.textContent = `正在处理第 ${status.currentPage}/${status.totalPages} 页...`;
+                    }
+                });
+
+                // 显示成功结果
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✅ PDF内容提取成功！共 ${result.tokenCount} 个token`;
+                
+                resultDiv.style.display = 'block';
+                contentPreview.textContent = result.content.substring(0, 2000) + 
+                    (result.content.length > 2000 ? '\n\n... (内容已截断)' : '');
+                
+                progressBar.style.width = '100%';
+                progressBar.textContent = '完成';
+
+            } catch (error) {
+                console.error('PDF提取失败:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ PDF提取失败: ${error.message}`;
+                progressDiv.style.display = 'none';
+            } finally {
+                testBtn.disabled = false;
+                customBtn.disabled = false;
+            }
+        }
+
+        // 检查扩展状态
+        async function checkExtension() {
+            const statusDiv = document.getElementById('extensionStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '正在检查扩展状态...';
+
+            try {
+                // 检查chrome.runtime是否可用
+                if (typeof chrome === 'undefined' || !chrome.runtime) {
+                    throw new Error('Chrome扩展API不可用');
+                }
+
+                // 尝试加载PDF处理器
+                const { pdfProcessor } = await import('./dist/content.js');
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ SlimPaneAI扩展运行正常';
+                
+            } catch (error) {
+                console.error('扩展检查失败:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ 扩展检查失败: ${error.message}`;
+            }
+        }
+
+        // 页面加载时自动检查扩展
+        window.addEventListener('load', () => {
+            setTimeout(checkExtension, 1000);
+        });
+    </script>
+</body>
+</html>

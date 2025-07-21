@@ -81,7 +81,7 @@ export class PDFProcessor {
         // 加载在线PDF文档
         const loadingTask = this.pdfjsLib.getDocument({
           url,
-          cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+          cMapUrl: chrome.runtime.getURL('cmaps/'),
           cMapPacked: true,
         });
         pdf = await loadingTask.promise;
@@ -302,7 +302,7 @@ export class PDFProcessor {
     } else {
       const loadingTask = this.pdfjsLib.getDocument({
         url,
-        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapUrl: chrome.runtime.getURL('cmaps/'),
         cMapPacked: true,
       });
       pdf = await loadingTask.promise;
@@ -405,7 +405,7 @@ export class PDFProcessor {
     } else {
       const loadingTask = this.pdfjsLib.getDocument({
         url,
-        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapUrl: chrome.runtime.getURL('cmaps/'),
         cMapPacked: true,
       });
       pdf = await loadingTask.promise;

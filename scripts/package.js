@@ -21,6 +21,7 @@ async function copyPDFFiles() {
   // Try to copy from node_modules first
   const nodeModulesPdfSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.min.mjs');
   const nodeModulesWorkerSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs');
+  const nodeModulesCmapsSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'cmaps');
 
   // Copy PDF.js main library directly to dist root
   const pdfDest = path.join(distDir, 'pdf.mjs');
@@ -49,6 +50,20 @@ export default null;`;
 console.error('PDF.js worker not available. Please install pdfjs-dist package.');`;
     fs.writeFileSync(workerDest, fallbackContent);
     console.warn('⚠ PDF.js worker not found, created fallback file');
+  }
+
+  // Copy PDF.js cmaps directory directly to dist root
+  const cmapsDest = path.join(distDir, 'cmaps');
+  if (fs.existsSync(nodeModulesCmapsSrc)) {
+    // Remove existing cmaps directory if it exists
+    if (fs.existsSync(cmapsDest)) {
+      fs.rmSync(cmapsDest, { recursive: true, force: true });
+    }
+    // Copy the entire cmaps directory
+    fs.cpSync(nodeModulesCmapsSrc, cmapsDest, { recursive: true });
+    console.log('✓ Copied PDF.js cmaps from node_modules');
+  } else {
+    console.warn('⚠ PDF.js cmaps not found, PDF processing may be limited for some fonts');
   }
 }
 
