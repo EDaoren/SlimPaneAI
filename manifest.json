@@ -41,12 +41,11 @@
     "sidePanel"
   ],
   "host_permissions": [
-    "*://*/*",
     "file:///*"
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "lib/pdf-content/pdf.mjs", "lib/pdf-content/pdf.worker.js"],
+      "resources": ["icons/*", "pdf.mjs", "pdf.worker.js"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -18,18 +18,12 @@ async function copyManifest() {
 }
 
 async function copyPDFFiles() {
-  const pdfContentDir = path.join(distDir, 'lib', 'pdf-content');
-
-  if (!fs.existsSync(pdfContentDir)) {
-    fs.mkdirSync(pdfContentDir, { recursive: true });
-  }
-
   // Try to copy from node_modules first
   const nodeModulesPdfSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.min.mjs');
   const nodeModulesWorkerSrc = path.join(rootDir, 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.mjs');
 
-  // Copy PDF.js main library
-  const pdfDest = path.join(pdfContentDir, 'pdf.mjs');
+  // Copy PDF.js main library directly to dist root
+  const pdfDest = path.join(distDir, 'pdf.mjs');
   if (fs.existsSync(nodeModulesPdfSrc)) {
     fs.copyFileSync(nodeModulesPdfSrc, pdfDest);
     console.log('✓ Copied PDF.js library from node_modules');
@@ -43,8 +37,8 @@ export default null;`;
     console.warn('⚠ PDF.js library not found, created fallback file');
   }
 
-  // Copy PDF.js worker
-  const workerDest = path.join(pdfContentDir, 'pdf.worker.js');
+  // Copy PDF.js worker directly to dist root
+  const workerDest = path.join(distDir, 'pdf.worker.js');
   if (fs.existsSync(nodeModulesWorkerSrc)) {
     fs.copyFileSync(nodeModulesWorkerSrc, workerDest);
     console.log('✓ Copied PDF.js worker from node_modules');

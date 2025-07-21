@@ -25,12 +25,12 @@ export class PDFProcessor {
         // 使用本地PDF.js文件
         if (typeof window !== 'undefined') {
           // 使用本地PDF.js文件而不是node_modules中的版本
-          const pdfjsUrl = chrome.runtime.getURL('lib/pdf-content/pdf.mjs');
+          const pdfjsUrl = chrome.runtime.getURL('pdf.mjs');
           const pdfjsModule = await import(pdfjsUrl);
           this.pdfjsLib = pdfjsModule;
           // 配置PDF.js worker
           // 使用本地worker文件，这是在浏览器扩展中的最佳实践
-          const PDFJS_WORKER_PATH = chrome.runtime.getURL('lib/pdf-content/pdf.worker.js');
+          const PDFJS_WORKER_PATH = chrome.runtime.getURL('pdf.worker.js');
           this.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_PATH;
           console.log('SlimPaneAI: PDF.js initialized with local worker:', PDFJS_WORKER_PATH);
 
