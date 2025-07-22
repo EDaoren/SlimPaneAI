@@ -85,6 +85,8 @@ export interface Translations {
     models: string;
     advanced: string;
     about: string;
+    webChat: string;
+    webChatDescription: string;
     
     // 模型设置
     modelSettings: string;
@@ -545,6 +547,8 @@ const chineseTranslations: Translations = {
     models: '模型',
     advanced: '高级',
     about: '关于',
+    webChat: '网页聊天',
+    webChatDescription: '配置网页内容提取和处理规则',
     
     modelSettings: '模型设置',
     addModel: '添加模型',
@@ -902,6 +906,8 @@ const englishTranslations: Translations = {
     models: 'Models',
     advanced: 'Advanced',
     about: 'About',
+    webChat: 'Web Chat',
+    webChatDescription: 'Configure web content extraction and processing rules',
     
     modelSettings: 'Model Settings',
     addModel: 'Add Model',

@@ -181,6 +181,8 @@ export interface UserPreferences {
   showContentPanel: boolean;
   // Page chat custom system prompt
   pageChatSystemPrompt: string;
+  // Web chat content extraction mode
+  webChatExtractionMode: import('./web-content-config').WebChatExtractionMode;
 }
 
 // Prompt templates
@@ -268,6 +270,9 @@ export const DEFAULT_PROMPTS: PromptTemplate[] = [
     userPromptTemplate: 'Please explain the following text in detail:\n\n{text}'
   }
 ];
+
+// Web Content Configuration Types
+export * from './web-content-config';
 
 // Global type declarations for content script
 declare global {

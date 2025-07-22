@@ -8,6 +8,7 @@
   import { getModelDisplayOptions } from '../lib/service-providers';
   import { t, initializeLanguage, setLanguage, currentLanguage } from '@/lib/i18n';
   import type { ModelConfig, ServiceProviderSettings } from '../types';
+  import WebChatConfigSettings from './components/WebChatConfigSettings.svelte';
 
   // 导航状态
   let currentPage = 'ai-models'; // 当前页面
@@ -49,6 +50,13 @@
           title: $t('settings.preferences'),
           icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
           description: $t('settings.general')
+        },
+        {
+          id: 'web-chat',
+          name: $t('settings.webChat'),
+          title: $t('settings.webChat'),
+          icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+          description: $t('settings.webChatDescription')
         },
         {
           id: 'appearance',
@@ -383,6 +391,11 @@
           <h2 class="content-title">{$t('settings.preferences')}</h2>
           <p class="content-subtitle">{$t('settings.general')}</p>
         </div>
+      {:else if currentPage === 'web-chat'}
+        <div>
+          <h2 class="content-title">{$t('settings.webChat')}</h2>
+          <p class="content-subtitle">{$t('settings.webChatDescription')}</p>
+        </div>
       {:else if currentPage === 'appearance'}
         <div>
           <h2 class="content-title">{$t('settings.appearance')}</h2>
@@ -467,6 +480,9 @@
             </div>
           </div>
         </div>
+      {:else if currentPage === 'web-chat'}
+        <!-- 网页聊天配置内容 -->
+        <WebChatConfigSettings />
       {:else if currentPage === 'appearance'}
         <!-- 外观设置内容 -->
         <div class="settings-grid">

@@ -10,13 +10,21 @@ import type { ExtractionOptions, ExtractionResult, ProcessedContent, ExtractedCo
 
 /**
  * 提取并处理当前页面内容
+ * 使用新的配置驱动的提取系统
  */
 export async function extractAndProcessCurrentPage(options: ExtractionOptions = {}): Promise<ProcessingResult> {
+  const startTime = Date.now();
+  console.log('🚀 SlimPaneAI: 开始提取和处理页面内容');
+  console.log('🚀 SlimPaneAI: 当前页面URL:', window.location.href);
+  console.log('🚀 SlimPaneAI: 提取选项:', options);
+
   try {
-    // 第一步：提取原始内容
+    // 使用新的配置驱动提取系统
     const extractionResult = await WebContentExtractor.extractCurrentPage(options);
 
     if (!extractionResult.success || !extractionResult.content) {
+      console.log('❌ SlimPaneAI: 内容提取失败');
+      console.log('❌ SlimPaneAI: 错误信息:', extractionResult.error);
       return {
         success: extractionResult.success,
         content: null,
@@ -25,8 +33,26 @@ export async function extractAndProcessCurrentPage(options: ExtractionOptions = 
       };
     }
 
+    console.log('✅ SlimPaneAI: 内容提取成功，开始处理内容');
+    console.log('📊 SlimPaneAI: 提取统计:', {
+      method: extractionResult.method,
+      title: extractionResult.content.title,
+      length: extractionResult.content.length,
+      siteName: extractionResult.content.siteName
+    });
+
     // 第二步：处理内容
     const processedContent = WebContentProcessor.processExtractedContent(extractionResult.content);
+
+    const totalTime = Date.now() - startTime;
+    console.log('🎉 SlimPaneAI: 内容提取和处理完成');
+    console.log('⏱️ SlimPaneAI: 总耗时:', totalTime + 'ms');
+    console.log('📄 SlimPaneAI: 最终结果:', {
+      success: true,
+      method: extractionResult.method,
+      contentLength: processedContent.content.length,
+      wordCount: processedContent.wordCount
+    });
 
     return {
       success: true,
@@ -35,7 +61,9 @@ export async function extractAndProcessCurrentPage(options: ExtractionOptions = 
     };
 
   } catch (error) {
-    console.error('SlimPaneAI: Content extraction and processing failed:', error);
+    const totalTime = Date.now() - startTime;
+    console.error('❌ SlimPaneAI: Content extraction and processing failed:', error);
+    console.log('⏱️ SlimPaneAI: 失败耗时:', totalTime + 'ms');
     return {
       success: false,
       content: null,
