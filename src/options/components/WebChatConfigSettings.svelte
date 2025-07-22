@@ -7,13 +7,16 @@
   } from '@/lib/web-content-config';
   import { t } from '@/lib/i18n';
   import MetadataFieldsManager from './MetadataFieldsManager.svelte';
+  import MetadataConfigSection from './MetadataConfigSection.svelte';
+  import DomainRuleEditor from './DomainRuleEditor.svelte';
   import type {
     WebChatExtractionConfig,
     WebChatExtractionMode,
     WebChatConfigUIState,
     WebChatConfigFormData,
     WebChatMetadataConfig,
-    WebChatMetadataField
+    WebChatMetadataField,
+    WebChatDomainRule
   } from '@/types/web-content-config';
 
   // 状态管理
@@ -48,6 +51,12 @@
   // v2.0版本数据
   let domainRules: Record<string, any> = {};
   let previewResult: any = null;
+
+  // 域名规则编辑器状态
+  let showDomainRuleEditor = false;
+  let editingDomainRule: WebChatDomainRule | null = null;
+  let editingDomainName = '';
+  let isDomainRuleEditing = false;
 
   onMount(async () => {
     await loadConfig();
@@ -506,11 +515,13 @@
 
   // 域名规则管理函数
   async function editDomainRule(domain: string) {
-    // TODO: 实现编辑域名规则的功能
-    // 可以打开一个模态框或跳转到编辑页面
-    const modeText = formData.mode === 'text' ? 'Text模式' : 'Readability模式';
-    alert(`编辑${modeText}域名规则功能开发中: ${domain}`);
-    console.log('编辑域名规则:', domain, domainRules[domain]);
+    const rule = domainRules[domain];
+    if (rule) {
+      editingDomainRule = rule;
+      editingDomainName = domain;
+      isDomainRuleEditing = true;
+      showDomainRuleEditor = true;
+    }
   }
 
   async function deleteDomainRule(domain: string) {
@@ -532,11 +543,31 @@
   }
 
   async function addNewDomainRule() {
-    // TODO: 实现添加新域名规则的功能
-    // 可以打开一个模态框或跳转到添加页面
-    const modeText = formData.mode === 'text' ? 'Text模式' : 'Readability模式';
-    alert(`添加新${modeText}域名规则功能开发中`);
-    console.log('添加新域名规则，当前模式:', formData.mode);
+    editingDomainRule = null;
+    editingDomainName = '';
+    isDomainRuleEditing = false;
+    showDomainRuleEditor = true;
+  }
+
+  // 处理域名规则保存
+  async function handleDomainRuleSave(event: CustomEvent<{ domain: string; rule: WebChatDomainRule }>) {
+    const { domain, rule } = event.detail;
+    try {
+      // 重新加载域名规则列表
+      domainRules = await WebContentDomainManager.getAllDomainRules();
+      showDomainRuleEditor = false;
+      alert(isDomainRuleEditing ? '域名规则更新成功！' : '域名规则添加成功！');
+    } catch (error) {
+      console.error('Failed to refresh domain rules:', error);
+    }
+  }
+
+  // 处理域名规则取消
+  function handleDomainRuleCancel() {
+    showDomainRuleEditor = false;
+    editingDomainRule = null;
+    editingDomainName = '';
+    isDomainRuleEditing = false;
   }
 </script>
 
@@ -669,87 +700,11 @@
 
             <!-- 元信息提取配置 -->
             <div class="advanced-section">
-              <div class="feature-toggle-header">
-                <div class="feature-info">
-                  <h4 class="subsection-title">🏷️ 元信息提取配置</h4>
-                  <div class="feature-description">提取作者、时间、标签等结构化信息，增强GPT理解</div>
-                </div>
-                <label class="toggle-switch">
-                  <input type="checkbox" bind:checked={formData.metadataEnabled} />
-                  <span class="toggle-slider"></span>
-                  <span class="toggle-label">{formData.metadataEnabled ? '已启用' : '已禁用'}</span>
-                </label>
-              </div>
-
-              {#if formData.metadataEnabled}
-                <div class="metadata-config">
-                  <!-- 现代化的字段概览卡片 -->
-                  <div class="fields-overview-card">
-                    <div class="overview-header">
-                      <div class="overview-title">
-                        <h4>📋 字段配置</h4>
-                        <div class="overview-badges">
-                          <span class="badge badge-total">{formData.metadataFields.length} 个字段</span>
-                          <span class="badge badge-enabled">{formData.metadataFields.filter(f => f.enabled).length} 个启用</span>
-                        </div>
-                      </div>
-                      <button type="button" class="btn-manage" on:click={openFieldManager}>
-                        <span class="btn-icon">⚙️</span>
-                        <span>管理字段</span>
-                      </button>
-                    </div>
-
-                    {#if formData.metadataFields.filter(field => field.enabled).length > 0}
-                      <div class="enabled-fields-preview">
-                        <div class="preview-label">已启用字段:</div>
-                        <div class="fields-tags">
-                          {#each formData.metadataFields.filter(field => field.enabled) as field}
-                            <span class="field-tag">
-                              <span class="tag-icon">🏷️</span>
-                              {field.name}
-                            </span>
-                          {/each}
-                        </div>
-                      </div>
-                    {:else}
-                      <div class="no-fields-message">
-                        <span class="message-icon">⚠️</span>
-                        <span>暂无启用的字段，点击"管理字段"开始配置</span>
-                      </div>
-                    {/if}
-                  </div>
-
-                  <!-- 优化的模板配置区域 -->
-                  <div class="template-config-section">
-                    <div class="section-header">
-                      <h4>📝 输出模板</h4>
-                      <button type="button" class="btn-auto-generate" on:click={updateTemplate}>
-                        <span class="btn-icon">🔄</span>
-                        <span>自动生成</span>
-                      </button>
-                    </div>
-
-                    <div class="template-editor">
-                      <textarea
-                        bind:value={formData.metadataTemplate}
-                        placeholder="作者: &#123;author&#125;&#10;发布时间: &#123;date&#125;&#10;标签: &#123;tags&#125;"
-                        class="template-textarea"
-                        rows="5"
-                      ></textarea>
-                      <div class="template-help">
-                        <div class="help-item">
-                          <span class="help-icon">💡</span>
-                          <span>使用 <code>&#123;字段键名&#125;</code> 作为占位符</span>
-                        </div>
-                        <div class="help-item">
-                          <span class="help-icon">📋</span>
-                          <span>支持多行格式，每行一个字段</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              {/if}
+              <MetadataConfigSection
+                bind:enabled={formData.metadataEnabled}
+                bind:fields={formData.metadataFields}
+                bind:template={formData.metadataTemplate}
+              />
             </div>
           {/if}
 
@@ -868,6 +823,29 @@
     </form>
   {/if}
 </div>
+
+<!-- 域名规则编辑器模态框 -->
+{#if showDomainRuleEditor}
+  <div class="modal-overlay" on:click={handleDomainRuleCancel}>
+    <div class="modal-content large-modal" on:click|stopPropagation>
+      <div class="modal-header">
+        <h3>{isDomainRuleEditing ? '编辑域名规则' : '添加域名规则'}</h3>
+        <button class="modal-close" on:click={handleDomainRuleCancel}>×</button>
+      </div>
+
+      <div class="modal-body">
+        <DomainRuleEditor
+          mode={formData.mode}
+          editingRule={editingDomainRule}
+          editingDomain={editingDomainName}
+          isEditing={isDomainRuleEditing}
+          on:save={handleDomainRuleSave}
+          on:cancel={handleDomainRuleCancel}
+        />
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .web-chat-config {
