@@ -50,8 +50,8 @@ export async function extractAndProcessCurrentPage(options: ExtractionOptions = 
     console.log('📄 SlimPaneAI: 最终结果:', {
       success: true,
       method: extractionResult.method,
-      contentLength: processedContent.content.length,
-      wordCount: processedContent.wordCount
+      contentLength: processedContent.rawText.length,
+      wordCount: processedContent.metadata.wordCount
     });
 
     return {

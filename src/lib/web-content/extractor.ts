@@ -146,12 +146,16 @@ export class WebContentExtractor {
         return null;
       }
 
+      // 安全检查：确保所有字段都有有效值
+      const safeTextContent = textContent || '';
+      const safeContent = clone.innerHTML || '';
+
       const result = {
         title: document.title || '',
-        content: clone.innerHTML,
-        textContent,
-        length: textContent.length,
-        excerpt: this.generateExcerpt(textContent),
+        content: safeContent,
+        textContent: safeTextContent,
+        length: safeTextContent.length,
+        excerpt: this.generateExcerpt(safeTextContent),
         siteName: this.extractSiteName(),
         lang: this.detectLanguage()
       };
@@ -231,6 +235,14 @@ export class WebContentExtractor {
       let finalContent = article.content || '';
       let finalTextContent = article.textContent || '';
 
+      // 安全检查：确保 finalTextContent 不为空
+      if (!finalTextContent && finalContent) {
+        // 如果 textContent 为空但 content 不为空，从 HTML 内容中提取文本
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = finalContent;
+        finalTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      }
+
       if (extractedMetadata) {
         // 将元信息以纯文本格式添加到内容开头
         const metadataText = `${extractedMetadata}\n---\n\n`;
@@ -238,6 +250,10 @@ export class WebContentExtractor {
         finalTextContent = metadataText + finalTextContent;
         console.log('🏷️ SlimPaneAI: 元信息已添加到内容中（纯文本格式）');
       }
+
+      // 最终安全检查
+      finalContent = finalContent || '';
+      finalTextContent = finalTextContent || '';
 
       const result = {
         title: article.title || document.title || '',
@@ -531,9 +547,18 @@ export class WebContentExtractor {
    * 检查是否为SPA应用
    */
   static isSPAApplication(): boolean {
-    return SPA_INDICATORS.some(check => {
+    return SPA_INDICATORS.some(indicator => {
       try {
-        return check();
+        // 检查是否存在相关的DOM元素或属性
+        return (
+          document.querySelector(`[data-${indicator}]`) !== null ||
+          document.querySelector(`[${indicator}]`) !== null ||
+          document.querySelector(`#${indicator}`) !== null ||
+          document.querySelector(`.${indicator}`) !== null ||
+          document.documentElement.getAttribute('data-framework') === indicator ||
+          document.body.classList.contains(indicator) ||
+          window.location.pathname.includes(indicator)
+        );
       } catch {
         return false;
       }

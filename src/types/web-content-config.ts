@@ -39,8 +39,8 @@ export interface WebChatMetadataField {
   isPredefined: boolean;          // 是否为预定义字段
 }
 
-// 元信息选择器配置（重构为字段数组）
-export type WebChatMetadataSelectors = WebChatMetadataField[];
+// 元信息选择器配置（支持新旧格式兼容）
+export type WebChatMetadataSelectors = WebChatMetadataField[] | Record<string, string>;
 
 // 预定义字段模板
 export const PREDEFINED_METADATA_FIELDS: Omit<WebChatMetadataField, 'selector' | 'enabled'>[] = [
@@ -102,6 +102,7 @@ export interface WebChatExtractionConfig {
     remove: string[];                                 // 全局移除选择器
     metadata?: WebChatMetadataConfig;                 // 元信息配置（仅Readability模式）
     readabilityOptions: WebChatReadabilityOptions;   // 全局Readability配置
+    domainRulesEnabled?: boolean;                     // 域名规则开关
   };
   domains: Record<string, WebChatDomainRule>;        // 域名特定规则
   templates: {
@@ -189,11 +190,8 @@ export interface WebChatConfigUIState {
   showAdvanced: boolean;
   showDomainEditor: boolean;
   showTemplateManager: boolean;
-  showPreview: boolean;
-  showTestExtraction: boolean;
   editingDomain: string | null;
   selectedTemplate: string | null;
-  previewUrl: string;
 }
 
 // 表单数据 v2.0（重构元信息字段）
@@ -210,6 +208,8 @@ export interface WebChatConfigFormData {
   metadataTemplate: string;
   metadataSeparator: string;
   metadataIncludeEmpty: boolean;
+  // 域名规则开关
+  domainRulesEnabled: boolean;
 }
 
 // 域名规则表单数据 v2.0

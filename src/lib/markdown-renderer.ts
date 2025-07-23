@@ -12,12 +12,12 @@ hljs.addPlugin(new CopyButtonPlugin({
 }));
 
 // 创建markdown-it实例
-const md = new MarkdownIt({
+const md: MarkdownIt = new MarkdownIt({
   html: true,        // 允许HTML标签
   breaks: false,     // 不将换行符转换为<br>
   linkify: true,     // 启用自动链接识别
   typographer: true, // 启用typographer
-  highlight: function (str, lang) {
+  highlight: function (str: string, lang: string): string {
     // 使用highlight.js进行代码高亮
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -26,7 +26,7 @@ const md = new MarkdownIt({
       } catch (__) {}
     }
     // 当无法高亮时，返回转义后的HTML以确保安全
-    return md.utils.escapeHtml(str);
+    return MarkdownIt().utils.escapeHtml(str);
   }
 });
 

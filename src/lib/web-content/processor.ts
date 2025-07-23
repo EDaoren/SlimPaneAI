@@ -11,26 +11,34 @@ export class WebContentProcessor {
    * 处理提取的内容
    */
   static processExtractedContent(extracted: ExtractedContent): ProcessedContent {
+    // 安全检查：确保 extracted 对象存在且有必要的属性
+    if (!extracted) {
+      throw new Error('提取的内容对象为空');
+    }
+
     // 构建元数据
     const metadata = this.buildMetadata(extracted);
-    
+
+    // 安全获取文本内容，防止 undefined
+    const textContent = extracted.textContent || extracted.content || '';
+
     // 清理文本内容
-    const cleanedText = this.cleanTextContent(extracted.textContent);
-    
+    const cleanedText = this.cleanTextContent(textContent);
+
     // 分割成内容块
     const blocks = this.segmentIntoBlocks(cleanedText);
-    
+
     // 生成摘要
     const excerpt = this.generateExcerpt(cleanedText);
-    
+
     // 更新字数统计
     metadata.wordCount = this.countWords(cleanedText);
-    
+
     return {
       metadata,
       blocks,
       rawText: cleanedText,
-      htmlContent: extracted.content,
+      htmlContent: extracted.content || '',
       excerpt
     };
   }
@@ -41,13 +49,13 @@ export class WebContentProcessor {
   private static buildMetadata(extracted: ExtractedContent): ContentMetadata {
     return {
       url: window.location.href,
-      title: extracted.title || document.title || 'Untitled',
-      author: extracted.byline || this.extractAuthor(),
+      title: (extracted && extracted.title) || document.title || 'Untitled',
+      author: (extracted && extracted.byline) || this.extractAuthor(),
       publishedTime: this.extractPublishedTime(),
       capturedAt: new Date().toISOString(),
-      language: extracted.lang || this.detectLanguage(),
+      language: (extracted && extracted.lang) || this.detectLanguage(),
       wordCount: 0, // 将在后面更新
-      siteName: extracted.siteName || this.extractSiteName()
+      siteName: (extracted && extracted.siteName) || this.extractSiteName()
     };
   }
 

@@ -456,6 +456,8 @@ async function handleExtractPageContent(sendResponse: (response?: any) => void) 
   }
 }
 
+
+
 /**
  * Handle PDF content extraction request from content script
  */
@@ -618,6 +620,8 @@ async function handleMessage(
       case 'extract-page-content':
         await handleExtractPageContent(sendResponse);
         break;
+
+
 
       case 'extract-pdf-content':
         await handleExtractPDFContent(message, sendResponse);
@@ -843,6 +847,7 @@ async function initializeDefaultSettings() {
       showContentPanel: false,
       pageChatSystemPrompt:
         '你是一个专业的网页内容分析助手。请基于提供的网页内容回答用户问题。要求：1. 仔细阅读和理解网页内容；2. 基于内容事实进行回答，不要编造信息；3. 如果问题无法从内容中找到答案，请明确说明；4. 回答要准确、简洁、有条理。',
+      webChatExtractionMode: 'readability',
       ...existingData.userPreferences,
     },
   };

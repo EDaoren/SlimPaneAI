@@ -6,7 +6,8 @@
 import type {
   WebChatConfigTemplate,
   TemplateApplyResult,
-  WebChatExtractionConfig
+  WebChatExtractionConfig,
+  WebChatMetadataConfig
 } from '@/types/web-content-config';
 import { WebContentConfigManager } from './config-manager';
 
@@ -73,7 +74,7 @@ export class WebContentTemplateManager {
       return {
         success: false,
         appliedTemplate: templateKey,
-        changes: { globalRemove: [], globalPreserve: [] }
+        changes: { globalRemove: [] }
       };
     }
   }
@@ -102,7 +103,7 @@ export class WebContentTemplateManager {
       }
 
       // 确定模板分类
-      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode';
+      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode' as const;
 
       // 检查模板键是否已存在
       if (config.templates[modeKey] && config.templates[modeKey][key]) {
@@ -156,7 +157,7 @@ export class WebContentTemplateManager {
       const configManager = WebContentConfigManager.getInstance();
       const config = await configManager.getConfig();
 
-      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode';
+      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode' as const;
 
       // 检查模板是否存在
       if (!config.templates[modeKey] || !config.templates[modeKey][templateKey]) {
@@ -193,14 +194,17 @@ export class WebContentTemplateManager {
     key: string,
     name: string,
     description: string,
-    globalConfig: { remove: string[]; preserve: string[] }
+    mode: 'text' | 'readability',
+    globalConfig: { remove: string[]; metadata?: WebChatMetadataConfig }
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const configManager = WebContentConfigManager.getInstance();
       const config = await configManager.getConfig();
 
+      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode' as const;
+
       // 检查模板是否存在
-      if (!config.templates[key]) {
+      if (!config.templates[modeKey] || !config.templates[modeKey][key]) {
         return { success: false, error: '模板不存在' };
       }
 
@@ -213,9 +217,10 @@ export class WebContentTemplateManager {
       const updatedTemplate: WebChatConfigTemplate = {
         name: name.trim(),
         description: description.trim(),
+        mode: mode,
         global: {
           remove: [...globalConfig.remove],
-          preserve: [...globalConfig.preserve]
+          ...(globalConfig.metadata && { metadata: globalConfig.metadata })
         }
       };
 
@@ -223,7 +228,10 @@ export class WebContentTemplateManager {
         ...config,
         templates: {
           ...config.templates,
-          [key]: updatedTemplate
+          [modeKey]: {
+            ...config.templates[modeKey],
+            [key]: updatedTemplate
+          }
         }
       };
 
@@ -266,7 +274,7 @@ export class WebContentTemplateManager {
     try {
       const configManager = WebContentConfigManager.getInstance();
       const config = await configManager.getConfig();
-      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode';
+      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode' as const;
       return config.templates[modeKey] || {};
     } catch (error) {
       console.error('Failed to get templates by mode:', error);
@@ -284,7 +292,7 @@ export class WebContentTemplateManager {
     try {
       const configManager = WebContentConfigManager.getInstance();
       const config = await configManager.getConfig();
-      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode';
+      const modeKey = mode === 'text' ? 'text-mode' : 'readability-mode' as const;
       return config.templates[modeKey]?.[templateKey] || null;
     } catch (error) {
       console.error('Failed to get template:', error);
@@ -293,7 +301,7 @@ export class WebContentTemplateManager {
   }
 
   /**
-   * 导入模板
+   * 导入模板 v2.0
    */
   static async importTemplates(templates: Record<string, WebChatConfigTemplate>): Promise<{
     success: boolean;
@@ -317,19 +325,26 @@ export class WebContentTemplateManager {
           // 验证模板
           const validationResult = this.validateTemplate(template);
           if (!validationResult.isValid) {
-            results.failed.push({ 
-              key, 
-              error: `模板验证失败: ${validationResult.errors.join(', ')}` 
+            results.failed.push({
+              key,
+              error: `模板验证失败: ${validationResult.errors.join(', ')}`
             });
             continue;
           }
 
-          updatedTemplates[key] = template;
+          // 根据模板的模式确定存储位置
+          const modeKey = template.mode === 'text' ? 'text-mode' : 'readability-mode' as const;
+
+          if (!updatedTemplates[modeKey]) {
+            updatedTemplates[modeKey] = {};
+          }
+
+          updatedTemplates[modeKey][key] = template;
           results.imported++;
         } catch (error) {
-          results.failed.push({ 
-            key, 
-            error: error instanceof Error ? error.message : '未知错误' 
+          results.failed.push({
+            key,
+            error: error instanceof Error ? error.message : '未知错误'
           });
         }
       }
@@ -355,11 +370,23 @@ export class WebContentTemplateManager {
   }
 
   /**
-   * 导出模板
+   * 导出模板 v2.0（扁平化所有模板）
    */
   static async exportTemplates(): Promise<Record<string, WebChatConfigTemplate> | null> {
     try {
-      return await this.getAllTemplates();
+      const allTemplates = await this.getAllTemplates();
+      const flatTemplates: Record<string, WebChatConfigTemplate> = {};
+
+      // 合并两个模式的模板到一个扁平对象中
+      Object.entries(allTemplates["text-mode"]).forEach(([key, template]) => {
+        flatTemplates[`text-${key}`] = template;
+      });
+
+      Object.entries(allTemplates["readability-mode"]).forEach(([key, template]) => {
+        flatTemplates[`readability-${key}`] = template;
+      });
+
+      return flatTemplates;
     } catch (error) {
       console.error('Failed to export templates:', error);
       return null;
@@ -400,15 +427,29 @@ export class WebContentTemplateManager {
         });
       }
 
-      // 验证保留选择器
-      if (!Array.isArray(template.global.preserve)) {
-        errors.push('全局保留选择器必须是数组');
-      } else {
-        template.global.preserve.forEach((selector, index) => {
-          if (typeof selector !== 'string' || selector.trim().length === 0) {
-            errors.push(`全局保留选择器 ${index + 1} 无效`);
+      // 验证元信息配置（如果存在）
+      if (template.global.metadata) {
+        if (typeof template.global.metadata !== 'object') {
+          errors.push('元信息配置必须是对象');
+        } else {
+          // 验证元信息选择器
+          if (template.global.metadata.selectors) {
+            if (Array.isArray(template.global.metadata.selectors)) {
+              template.global.metadata.selectors.forEach((field, index) => {
+                if (!field.key || !field.name || !field.selector) {
+                  errors.push(`元信息字段 ${index + 1} 缺少必需属性`);
+                }
+              });
+            } else if (typeof template.global.metadata.selectors === 'object') {
+              // 支持旧格式的Record<string, string>
+              Object.entries(template.global.metadata.selectors).forEach(([key, selector]) => {
+                if (typeof selector !== 'string' || selector.trim().length === 0) {
+                  errors.push(`元信息选择器 ${key} 无效`);
+                }
+              });
+            }
           }
-        });
+        }
       }
     }
 

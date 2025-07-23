@@ -11,7 +11,8 @@ import type {
   WebChatDomainRule,
   WebChatConfigTemplate,
   WebChatMetadataConfig,
-  WebChatMetadataField
+  WebChatMetadataField,
+  WebChatMetadataSelectors
 } from '@/types/web-content-config';
 
 import {
@@ -500,16 +501,21 @@ export class WebContentConfigManager {
     if (!metadata || typeof metadata !== 'object') return undefined;
 
     // 验证选择器，如果无效则使用默认字段
-    let selectors = this.validateMetadataSelectors(metadata.selectors);
-    if (selectors === null) {
+    let validatedSelectors = this.validateMetadataSelectors(metadata.selectors);
+    let selectors: WebChatMetadataSelectors;
+
+    if (validatedSelectors === null) {
       console.log('🔧 元信息选择器无效，使用默认字段');
       selectors = WebContentConfigManager.createDefaultMetadataFields();
-    } else if (Array.isArray(selectors) && selectors.length === 0) {
+    } else if (Array.isArray(validatedSelectors) && validatedSelectors.length === 0) {
       // 允许空的字段数组（用户可能暂时不需要任何字段）
       console.log('🔧 元信息字段数组为空，保持空配置');
-    } else if (typeof selectors === 'object' && Object.keys(selectors).length === 0) {
+      selectors = validatedSelectors;
+    } else if (typeof validatedSelectors === 'object' && !Array.isArray(validatedSelectors) && Object.keys(validatedSelectors).length === 0) {
       console.log('🔧 元信息选择器对象为空，使用默认字段');
       selectors = WebContentConfigManager.createDefaultMetadataFields();
+    } else {
+      selectors = validatedSelectors;
     }
 
     return {
@@ -526,7 +532,7 @@ export class WebContentConfigManager {
   /**
    * 验证元信息选择器（支持新的字段数组格式）
    */
-  private validateMetadataSelectors(selectors: any): WebChatMetadataField[] | Record<string, string> | null {
+  private validateMetadataSelectors(selectors: any): WebChatMetadataSelectors | null {
     if (!selectors) return null;
 
     // 如果是数组格式（新格式）
@@ -675,7 +681,7 @@ export class WebContentConfigManager {
    * 验证元信息选择器配置（支持新旧格式）
    */
   private validateMetadataSelectorsInConfig(
-    selectors: WebChatMetadataField[] | Record<string, string>,
+    selectors: WebChatMetadataSelectors,
     context: string,
     warnings: string[]
   ): void {

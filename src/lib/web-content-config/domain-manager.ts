@@ -6,7 +6,8 @@
 import type {
   WebChatDomainRule,
   DomainRuleOperationResult,
-  WebChatExtractionConfig
+  WebChatExtractionConfig,
+  WebChatMetadataField
 } from '@/types/web-content-config';
 import { WebContentConfigManager } from './config-manager';
 
@@ -381,7 +382,6 @@ export class WebContentDomainManager {
       
       // 分析页面结构，提供建议
       const suggestedRemove: string[] = [];
-      const suggestedPreserve: string[] = [];
 
       // 常见的广告和导航元素
       const commonAdSelectors = ['.ad', '.ads', '.advertisement', 'nav', 'header', 'footer', '.sidebar'];
@@ -391,11 +391,18 @@ export class WebContentDomainManager {
         }
       });
 
-      // 常见的内容元素
-      const commonContentSelectors = ['.author', '.date', '.time', '.tags', '.category'];
-      commonContentSelectors.forEach(selector => {
-        if (document.querySelector(selector)) {
-          suggestedPreserve.push(selector);
+      // 分析常见的元信息元素，生成元信息配置建议
+      const metadataFields: { key: string; name: string; selector: string }[] = [];
+      const commonMetadataSelectors = [
+        { key: 'author', name: '作者信息', selectors: ['.author', '.username', '.nick-name', '.AuthorInfo-name'] },
+        { key: 'date', name: '发布时间', selectors: ['.date', '.time', '.publish-time', '.ContentItem-time'] },
+        { key: 'tags', name: '标签分类', selectors: ['.tags', '.tag', '.category', '.Tag'] }
+      ];
+
+      commonMetadataSelectors.forEach(({ key, name, selectors }) => {
+        const foundSelector = selectors.find(selector => document.querySelector(selector));
+        if (foundSelector) {
+          metadataFields.push({ key, name, selector: foundSelector });
         }
       });
 
@@ -404,7 +411,22 @@ export class WebContentDomainManager {
         suggestedRule: {
           name: domain,
           remove: suggestedRemove,
-          preserve: suggestedPreserve
+          // 如果找到了元信息元素，生成元信息配置建议
+          ...(metadataFields.length > 0 && {
+            metadata: {
+              enabled: true,
+              selectors: metadataFields.map(field => ({
+                ...field,
+                enabled: true,
+                isPredefined: true
+              })),
+              format: {
+                template: metadataFields.map(field => `${field.name}: {${field.key}}`).join('\n'),
+                separator: '\n',
+                includeEmpty: false
+              }
+            }
+          })
         }
       };
     } catch (error) {

@@ -2,8 +2,7 @@
   import { onMount } from 'svelte';
   import {
     WebContentConfigManager,
-    WebContentDomainManager,
-    WebContentPreviewManager
+    WebContentDomainManager
   } from '@/lib/web-content-config';
   import { t } from '@/lib/i18n';
   import MetadataFieldsManager from './MetadataFieldsManager.svelte';
@@ -27,11 +26,8 @@
     showAdvanced: false,
     showDomainEditor: false,
     showTemplateManager: false,
-    showPreview: false,
-    showTestExtraction: false,
     editingDomain: null,
-    selectedTemplate: null,
-    previewUrl: ''
+    selectedTemplate: null
   };
 
   // 表单数据 v2.0（支持多元信息字段）
@@ -39,24 +35,23 @@
     mode: 'readability',
     globalRemove: '',
     charThreshold: 50,
+    keepClasses: true,
+    preserveLinks: false,
     maxElemsToDivide: 5,
-    // keepClasses 和 preserveLinks 使用固定默认值，不需要在表单中配置
     // 重构后的元信息配置
     metadataEnabled: true,
     metadataFields: [],  // 将从配置中加载
     metadataTemplate: '作者: {author}\n发布时间: {date}\n标签: {tags}',
-    // 分隔符和空值控制不再需要用户配置，使用固定值
-    domainRulesEnabled: true // 域名规则开关
+    metadataSeparator: '\n',
+    metadataIncludeEmpty: false,
+    // 域名规则开关
+    domainRulesEnabled: true
   };
 
   // v2.0版本数据
-  let domainRules: Record<string, any> = {};
-  let previewResult: any = null;
+  let domainRules: Record<string, WebChatDomainRule> = {};
 
-  // 测试提取相关状态
-  let testUrl: string = '';
-  let testResult: any = null;
-  let isTestingExtraction: boolean = false;
+
 
   // 域名规则编辑器状态
   let showDomainRuleEditor = false;
@@ -502,111 +497,11 @@
 
 
 
-  async function previewCurrentPage() {
-    uiState.showPreview = true;
-    try {
-      previewResult = await WebContentPreviewManager.previewCurrentPage();
-    } catch (error) {
-      console.error('Preview failed:', error);
-      previewResult = {
-        success: false,
-        error: '预览失败'
-      };
-    }
-  }
 
-  // 打开测试提取模态框
-  function openTestExtraction() {
-    uiState.showTestExtraction = true;
-    testUrl = '';
-    testResult = null;
-    isTestingExtraction = false;
-  }
 
-  // 关闭测试提取模态框
-  function closeTestExtraction() {
-    uiState.showTestExtraction = false;
-    testUrl = '';
-    testResult = null;
-    isTestingExtraction = false;
-  }
 
-  // 执行URL测试提取
-  async function testUrlExtraction() {
-    if (!testUrl.trim()) {
-      alert('请输入要测试的URL');
-      return;
-    }
 
-    // 验证URL格式
-    try {
-      new URL(testUrl);
-    } catch {
-      alert('请输入有效的URL格式');
-      return;
-    }
 
-    isTestingExtraction = true;
-    testResult = null;
-
-    try {
-      // 使用当前配置创建测试配置
-      const testConfig = {
-        mode: formData.mode,
-        global: {
-          remove: formData.globalRemove.split('\n').map(s => s.trim()).filter(s => s.length > 0),
-          metadata: formData.mode === 'readability' ? {
-            enabled: formData.metadataEnabled,
-            selectors: formData.metadataFields.length > 0 ? formData.metadataFields : generateDefaultFields(),
-            format: {
-              template: formData.metadataTemplate,
-              separator: "\n",
-              includeEmpty: false
-            }
-          } : undefined,
-          readabilityOptions: {
-            charThreshold: formData.charThreshold,
-            keepClasses: true,
-            preserveLinks: false,
-            maxElemsToDivide: formData.maxElemsToDivide
-          }
-        },
-        domains: domainRules
-      };
-
-      // 模拟提取结果（实际实现中需要调用后端API或使用iframe）
-      testResult = await simulateUrlExtraction(testUrl, testConfig);
-    } catch (error) {
-      console.error('Test extraction failed:', error);
-      testResult = {
-        success: false,
-        error: error instanceof Error ? error.message : '测试提取失败'
-      };
-    } finally {
-      isTestingExtraction = false;
-    }
-  }
-
-  // 模拟URL提取（实际实现中需要替换为真实的提取逻辑）
-  async function simulateUrlExtraction(url: string, config: any) {
-    // 这里应该调用实际的提取API或使用iframe加载页面进行提取
-    // 目前先返回模拟数据
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 模拟网络延迟
-
-    return {
-      success: true,
-      content: {
-        title: `测试页面标题 - ${new URL(url).hostname}`,
-        content: `这是从 ${url} 提取的内容示例。\n\n使用的提取模式：${config.mode}\n\n实际实现中，这里会显示真实的页面内容提取结果。`,
-        textContent: `测试页面标题 - ${new URL(url).hostname} 这是从 ${url} 提取的内容示例。使用的提取模式：${config.mode} 实际实现中，这里会显示真实的页面内容提取结果。`,
-        length: 150,
-        excerpt: `这是从 ${url} 提取的内容示例...`,
-        siteName: new URL(url).hostname,
-        method: config.mode
-      },
-      configUsed: config
-    };
-  }
 
   function toggleAdvanced() {
     uiState.showAdvanced = !uiState.showAdvanced;
@@ -824,41 +719,7 @@
             {/if}
           </div>
 
-          <!-- 测试提取效果 -->
-          <div class="advanced-section">
-            <h4 class="subsection-title">🔍 测试提取效果</h4>
 
-            <div class="preview-controls">
-              <button type="button" class="btn btn-secondary" on:click={previewCurrentPage}>
-                测试当前页面
-              </button>
-              <button type="button" class="btn btn-primary" on:click={openTestExtraction}>
-                测试任意URL
-              </button>
-            </div>
-
-            {#if previewResult}
-              <div class="preview-result">
-                {#if previewResult.success}
-                  <div class="preview-success">
-                    <h5>提取结果预览:</h5>
-                    <div class="preview-content">
-                      <div><strong>标题:</strong> {previewResult.content.title}</div>
-                      <div><strong>长度:</strong> {previewResult.content.length} 字符</div>
-                      <div><strong>方法:</strong> {previewResult.content.method}</div>
-                      <div class="preview-excerpt">
-                        {previewResult.content.excerpt}
-                      </div>
-                    </div>
-                  </div>
-                {:else}
-                  <div class="preview-error">
-                    <strong>提取失败:</strong> {previewResult.error}
-                  </div>
-                {/if}
-              </div>
-            {/if}
-          </div>
         {/if}
       </div>
 
@@ -1690,160 +1551,7 @@
     gap: 0.75rem;
   }
 
-  /* 测试提取模态框样式 */
-  .test-url-section {
-    margin-bottom: 2rem;
-  }
 
-  .url-input-group {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-  }
-
-  .url-input {
-    flex: 1;
-  }
-
-  .extract-btn {
-    white-space: nowrap;
-    min-width: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-
-  .loading-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .test-result-section {
-    border-top: 1px solid var(--border-secondary);
-    padding-top: 1.5rem;
-  }
-
-  .result-title {
-    margin: 0 0 1rem 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .result-success {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .result-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 0.5rem;
-    border: 1px solid #e2e8f0;
-  }
-
-  .meta-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .meta-label {
-    font-weight: 500;
-    color: var(--text-secondary);
-  }
-
-  .meta-value {
-    color: var(--text-primary);
-    font-weight: 600;
-  }
-
-  .result-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .section-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .content-box {
-    padding: 1rem;
-    border: 1px solid var(--border-secondary);
-    border-radius: 0.5rem;
-    background: white;
-  }
-
-  .title-content {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .excerpt-content {
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .main-content {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .content-text {
-    margin: 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: inherit;
-    font-size: 0.875rem;
-    line-height: 1.6;
-    color: var(--text-primary);
-  }
-
-  .result-error {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 0.5rem;
-  }
-
-  .error-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-  }
-
-  .error-message h5 {
-    margin: 0 0 0.5rem 0;
-    color: #dc2626;
-    font-weight: 600;
-  }
-
-  .error-message p {
-    margin: 0;
-    color: #7f1d1d;
-  }
 
   .preview-result {
     padding: 1rem;
@@ -2544,115 +2252,4 @@
   </div>
 {/if}
 
-<!-- 测试提取模态框 -->
-{#if uiState.showTestExtraction}
-  <div class="modal-overlay" on:click={closeTestExtraction}>
-    <div class="modal-content large-modal" on:click|stopPropagation>
-      <div class="modal-header">
-        <h3>🔍 测试提取效果</h3>
-        <button type="button" class="btn-close" on:click={closeTestExtraction}>×</button>
-      </div>
 
-      <div class="modal-body">
-        <!-- URL输入区域 -->
-        <div class="test-url-section">
-          <div class="form-group">
-            <label class="form-label">测试URL</label>
-            <div class="url-input-group">
-              <input
-                type="url"
-                bind:value={testUrl}
-                placeholder="https://example.com/article"
-                class="form-input url-input"
-                disabled={isTestingExtraction}
-              />
-              <button
-                type="button"
-                class="btn btn-primary extract-btn"
-                on:click={testUrlExtraction}
-                disabled={isTestingExtraction || !testUrl.trim()}
-              >
-                {#if isTestingExtraction}
-                  <span class="loading-spinner"></span>
-                  提取中...
-                {:else}
-                  提取内容
-                {/if}
-              </button>
-            </div>
-            <div class="form-help">
-              输入要测试的网页URL，系统将使用当前配置进行内容提取
-            </div>
-          </div>
-        </div>
-
-        <!-- 提取结果展示区域 -->
-        {#if testResult}
-          <div class="test-result-section">
-            <h4 class="result-title">提取结果</h4>
-
-            {#if testResult.success}
-              <div class="result-success">
-                <!-- 基本信息 -->
-                <div class="result-meta">
-                  <div class="meta-item">
-                    <span class="meta-label">提取方式:</span>
-                    <span class="meta-value">{testResult.content.method}</span>
-                  </div>
-                  <div class="meta-item">
-                    <span class="meta-label">内容长度:</span>
-                    <span class="meta-value">{testResult.content.length} 字符</span>
-                  </div>
-                  <div class="meta-item">
-                    <span class="meta-label">网站名称:</span>
-                    <span class="meta-value">{testResult.content.siteName || '未知'}</span>
-                  </div>
-                </div>
-
-                <!-- 标题 -->
-                {#if testResult.content.title}
-                  <div class="result-section">
-                    <h5 class="section-title">📄 页面标题</h5>
-                    <div class="content-box title-content">
-                      {testResult.content.title}
-                    </div>
-                  </div>
-                {/if}
-
-                <!-- 摘要 -->
-                {#if testResult.content.excerpt}
-                  <div class="result-section">
-                    <h5 class="section-title">📝 内容摘要</h5>
-                    <div class="content-box excerpt-content">
-                      {testResult.content.excerpt}
-                    </div>
-                  </div>
-                {/if}
-
-                <!-- 提取的内容 -->
-                <div class="result-section">
-                  <h5 class="section-title">📖 提取内容</h5>
-                  <div class="content-box main-content">
-                    <pre class="content-text">{testResult.content.content}</pre>
-                  </div>
-                </div>
-              </div>
-            {:else}
-              <div class="result-error">
-                <div class="error-icon">❌</div>
-                <div class="error-message">
-                  <h5>提取失败</h5>
-                  <p>{testResult.error || '未知错误'}</p>
-                </div>
-              </div>
-            {/if}
-          </div>
-        {/if}
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn-cancel" on:click={closeTestExtraction}>关闭</button>
-      </div>
-    </div>
-  </div>
-{/if}

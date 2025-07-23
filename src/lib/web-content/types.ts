@@ -54,14 +54,14 @@ export interface ExtractionResult {
   success: boolean;
   content: ExtractedContent | null;
   error?: string;
-  method?: 'readability' | 'fallback';
+  method?: 'readability' | 'text' | 'fallback';
 }
 
 export interface ProcessingResult {
   success: boolean;
   content: ProcessedContent | null;
   error?: string;
-  method?: 'readability' | 'fallback';
+  method?: 'readability' | 'text' | 'fallback';
 }
 
 export interface ExtractionStats {
