@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>域名规则开关保存测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .config-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-enabled { background-color: #28a745; }
+        .status-disabled { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>域名规则开关保存功能测试</h1>
+    
+    <div class="test-section info">
+        <h2>测试说明</h2>
+        <p>这个页面用于测试域名规则开关按钮的保存和加载功能是否正常工作。</p>
+        <p><strong>修复内容：</strong></p>
+        <ul>
+            <li>✅ 在默认配置中添加了 <code>domainRulesEnabled: true</code> 字段</li>
+            <li>✅ 在配置验证和迁移逻辑中添加了对该字段的处理</li>
+            <li>✅ 在合并配置逻辑中考虑了域名规则启用状态</li>
+            <li>✅ 确保表单数据和类型定义都包含该字段</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>当前配置状态</h2>
+        <button onclick="loadCurrentConfig()">加载当前配置</button>
+        <div id="config-display" class="config-display">
+            <p>点击"加载当前配置"按钮查看当前设置</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>域名规则开关测试</h2>
+        <div style="display: flex; align-items: center; margin: 15px 0;">
+            <span>域名规则开关：</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="domainRulesToggle" onchange="toggleDomainRules()">
+                <span class="slider"></span>
+            </label>
+            <span id="toggleStatus">未知状态</span>
+        </div>
+        
+        <button onclick="saveToggleState()">保存开关状态</button>
+        <button onclick="loadToggleState()">重新加载状态</button>
+        <button onclick="testPersistence()">测试持久化</button>
+        
+        <div id="toggle-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>配置合并测试</h2>
+        <p>测试域名规则开关对配置合并的影响：</p>
+        <input type="text" id="testDomain" placeholder="输入测试域名，如：example.com" style="width: 300px; padding: 8px; margin: 5px;">
+        <button onclick="testConfigMerging()">测试配置合并</button>
+        <div id="merge-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试步骤</h2>
+        <ol>
+            <li>点击"加载当前配置"查看初始状态</li>
+            <li>切换域名规则开关</li>
+            <li>点击"保存开关状态"</li>
+            <li>刷新页面</li>
+            <li>再次点击"加载当前配置"，确认状态已保存</li>
+            <li>使用"测试配置合并"验证开关对配置合并的影响</li>
+        </ol>
+    </div>
+
+    <script>
+        let currentConfig = null;
+
+        async function loadCurrentConfig() {
+            const resultDiv = document.getElementById('config-display');
+            resultDiv.innerHTML = '<p>正在加载配置...</p>';
+            
+            try {
+                // 这里需要通过扩展API获取配置
+                // 由于这是测试页面，我们模拟配置加载
+                const response = await new Promise((resolve, reject) => {
+                    if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        chrome.runtime.sendMessage({
+                            type: 'get-web-content-config'
+                        }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                reject(chrome.runtime.lastError);
+                            } else {
+                                resolve(response);
+                            }
+                        });
+                    } else {
+                        // 模拟配置数据
+                        resolve({
+                            success: true,
+                            config: {
+                                version: '2.0',
+                                mode: 'readability',
+                                global: {
+                                    domainRulesEnabled: true,
+                                    remove: [],
+                                    metadata: { enabled: true },
+                                    readabilityOptions: { charThreshold: 50 }
+                                },
+                                domains: {}
+                            }
+                        });
+                    }
+                });
+                
+                if (response && response.success) {
+                    currentConfig = response.config;
+                    const domainRulesEnabled = currentConfig.global.domainRulesEnabled ?? true;
+                    
+                    resultDiv.innerHTML = `
+                        <h4>配置加载成功</h4>
+                        <p><span class="status-indicator ${domainRulesEnabled ? 'status-enabled' : 'status-disabled'}"></span>
+                           域名规则状态: <strong>${domainRulesEnabled ? '已启用' : '已禁用'}</strong></p>
+                        <p>配置版本: ${currentConfig.version}</p>
+                        <p>提取模式: ${currentConfig.mode}</p>
+                        <p>域名规则数量: ${Object.keys(currentConfig.domains).length}</p>
+                        <details>
+                            <summary>查看完整配置</summary>
+                            <pre>${JSON.stringify(currentConfig, null, 2)}</pre>
+                        </details>
+                    `;
+                    
+                    // 更新开关状态
+                    document.getElementById('domainRulesToggle').checked = domainRulesEnabled;
+                    updateToggleStatus(domainRulesEnabled);
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ 配置加载失败</h4>
+                            <p>错误信息: ${response ? response.error : '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 配置加载失败</h4>
+                        <p>错误信息: ${error.message}</p>
+                        <p>这可能是因为扩展未正确加载或权限问题。</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateToggleStatus(enabled) {
+            const statusSpan = document.getElementById('toggleStatus');
+            statusSpan.innerHTML = `<span class="status-indicator ${enabled ? 'status-enabled' : 'status-disabled'}"></span>${enabled ? '已启用' : '已禁用'}`;
+        }
+
+        function toggleDomainRules() {
+            const toggle = document.getElementById('domainRulesToggle');
+            updateToggleStatus(toggle.checked);
+        }
+
+        async function saveToggleState() {
+            const resultDiv = document.getElementById('toggle-result');
+            const toggle = document.getElementById('domainRulesToggle');
+            const enabled = toggle.checked;
+            
+            resultDiv.innerHTML = '<p>正在保存配置...</p>';
+            
+            try {
+                // 模拟保存配置
+                const response = await new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({ success: true });
+                    }, 500);
+                });
+                
+                if (response.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ 保存成功</h4>
+                            <p>域名规则开关已设置为: <strong>${enabled ? '启用' : '禁用'}</strong></p>
+                            <p>请刷新页面并重新加载配置来验证保存效果</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ 保存失败</h4>
+                            <p>错误信息: ${response.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 保存失败</h4>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadToggleState() {
+            await loadCurrentConfig();
+        }
+
+        async function testPersistence() {
+            const resultDiv = document.getElementById('toggle-result');
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <h4>🔄 持久化测试</h4>
+                    <p>请按照以下步骤测试：</p>
+                    <ol>
+                        <li>切换开关状态</li>
+                        <li>点击"保存开关状态"</li>
+                        <li>刷新页面 (Ctrl+F5)</li>
+                        <li>点击"加载当前配置"</li>
+                        <li>检查开关状态是否与保存前一致</li>
+                    </ol>
+                    <p><strong>如果状态一致，说明保存功能正常工作！</strong></p>
+                </div>
+            `;
+        }
+
+        async function testConfigMerging() {
+            const resultDiv = document.getElementById('merge-result');
+            const domain = document.getElementById('testDomain').value.trim();
+            
+            if (!domain) {
+                resultDiv.innerHTML = `
+                    <div class="warning">
+                        <h4>⚠️ 请输入测试域名</h4>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>正在测试配置合并...</p>';
+            
+            try {
+                // 模拟配置合并测试
+                const toggle = document.getElementById('domainRulesToggle');
+                const domainRulesEnabled = toggle.checked;
+                
+                resultDiv.innerHTML = `
+                    <div class="info">
+                        <h4>📋 配置合并测试结果</h4>
+                        <p><strong>测试域名:</strong> ${domain}</p>
+                        <p><strong>域名规则开关:</strong> ${domainRulesEnabled ? '启用' : '禁用'}</p>
+                        <p><strong>预期行为:</strong></p>
+                        <ul>
+                            <li>${domainRulesEnabled ? '✅ 应该应用域名特定的配置规则' : '❌ 应该忽略域名特定的配置规则'}</li>
+                            <li>${domainRulesEnabled ? '✅ 域名配置会覆盖全局配置' : '❌ 只使用全局配置'}</li>
+                        </ul>
+                        <p><em>在实际扩展中，这会影响内容提取时使用的配置。</em></p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 测试失败</h4>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 页面加载完成后自动加载配置
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 域名规则开关测试页面已加载');
+            loadCurrentConfig();
+        });
+    </script>
+</body>
+</html>

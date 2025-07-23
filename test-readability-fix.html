@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readability修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>SlimPaneAI Readability修复测试</h1>
+    
+    <div class="test-section info">
+        <h2>测试说明</h2>
+        <p>这个页面用于测试Readability库的加载和内容提取功能是否正常工作。</p>
+        <p>修复内容：</p>
+        <ul>
+            <li>✅ 修复了Readability.js文件不存在的问题</li>
+            <li>✅ 使用npm包@mozilla/readability替代外部文件</li>
+            <li>✅ 更新了manifest.json中的web_accessible_resources</li>
+            <li>✅ 移除了无效的readability-loader.js文件</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>测试内容提取</h2>
+        <button onclick="testContentExtraction()">测试内容提取</button>
+        <div id="extraction-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>测试Readability库加载</h2>
+        <button onclick="testReadabilityLoading()">测试Readability加载</button>
+        <div id="readability-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>控制台日志</h2>
+        <p>打开浏览器开发者工具查看控制台，应该不再有以下错误：</p>
+        <ul>
+            <li>❌ <code>Denying load of chrome-extension://*/lib/readability/Readability.js</code></li>
+            <li>❌ <code>GET chrome-extension://invalid/ net::ERR_FAILED</code></li>
+        </ul>
+    </div>
+
+    <!-- 测试内容 -->
+    <article class="test-content">
+        <h2>测试文章内容</h2>
+        <p class="author">作者：测试作者</p>
+        <p class="date">发布时间：2024-01-01</p>
+        <div class="tags">
+            <span class="tag">技术</span>
+            <span class="tag">测试</span>
+        </div>
+        
+        <h3>文章正文</h3>
+        <p>这是一段测试内容，用于验证Readability库是否能够正确提取页面的主要内容。</p>
+        <p>Readability库应该能够识别这些段落作为主要内容，并过滤掉页面中的噪音元素。</p>
+        
+        <h4>子标题</h4>
+        <p>这里是更多的测试内容，包含了不同的HTML结构来测试提取的准确性。</p>
+        
+        <ul>
+            <li>列表项目1</li>
+            <li>列表项目2</li>
+            <li>列表项目3</li>
+        </ul>
+        
+        <blockquote>
+            这是一个引用块，应该被正确识别和提取。
+        </blockquote>
+    </article>
+
+    <!-- 噪音内容 -->
+    <div class="ad">这是广告内容，应该被过滤掉</div>
+    <nav>这是导航内容，应该被过滤掉</nav>
+    <footer>这是页脚内容，应该被过滤掉</footer>
+
+    <script>
+        async function testContentExtraction() {
+            const resultDiv = document.getElementById('extraction-result');
+            resultDiv.innerHTML = '<p>正在测试内容提取...</p>';
+            
+            try {
+                // 发送消息给content script进行内容提取
+                const response = await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({
+                        type: 'extract-content'
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
+                    });
+                });
+                
+                if (response && response.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ 内容提取成功</h4>
+                            <p><strong>标题:</strong> ${response.title || '无标题'}</p>
+                            <p><strong>内容长度:</strong> ${response.content ? response.content.length : 0} 字符</p>
+                            <details>
+                                <summary>查看提取的内容</summary>
+                                <pre>${response.content ? response.content.substring(0, 500) + '...' : '无内容'}</pre>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ 内容提取失败</h4>
+                            <p>错误信息: ${response ? response.error : '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 测试失败</h4>
+                        <p>错误信息: ${error.message}</p>
+                        <p>这可能是因为扩展未正确加载或权限问题。</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testReadabilityLoading() {
+            const resultDiv = document.getElementById('readability-result');
+            resultDiv.innerHTML = '<p>正在测试Readability库加载...</p>';
+            
+            try {
+                // 检查window.Readability是否存在
+                if (typeof window.Readability !== 'undefined') {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Readability库已加载</h4>
+                            <p>window.Readability 存在且可用</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            <h4>ℹ️ Readability库未在全局作用域</h4>
+                            <p>这是正常的，因为库是在content script中动态加载的</p>
+                            <p>请使用"测试内容提取"按钮来验证功能是否正常</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ 测试失败</h4>
+                        <p>错误信息: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载完成后自动运行一些检查
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 SlimPaneAI测试页面已加载');
+            console.log('📋 请检查控制台是否有Readability相关的错误信息');
+            
+            // 检查是否有chrome扩展环境
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                console.log('✅ Chrome扩展环境检测成功');
+            } else {
+                console.log('❌ 未检测到Chrome扩展环境，某些测试可能无法运行');
+            }
+        });
+    </script>
+</body>
+</html>

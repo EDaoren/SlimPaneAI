@@ -46,7 +46,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "pdf.mjs", "pdf.worker.js", "cmaps/*"],
+      "resources": ["icons/*", "pdf.mjs", "pdf.worker.js", "cmaps/*", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ]

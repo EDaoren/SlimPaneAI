@@ -472,8 +472,6 @@ async function handleExtractPDFContent(
       throw new Error('PDF URL is required');
     }
 
-    console.log('🔄 SlimPaneAI Background: Extracting PDF content for:', url);
-
     // Validate that this is a PDF URL
     if (!url.toLowerCase().includes('.pdf')) {
       throw new Error('URL does not appear to be a PDF file');
@@ -481,8 +479,6 @@ async function handleExtractPDFContent(
 
     // For local files, we need to fetch the file data
     if (url.startsWith('file://')) {
-      console.log('📁 SlimPaneAI Background: Fetching local PDF file...');
-
       try {
         // Fetch the local PDF file
         const response = await fetch(url);
@@ -495,8 +491,6 @@ async function handleExtractPDFContent(
         const arrayBuffer = await response.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
-        console.log('✅ SlimPaneAI Background: PDF data fetched successfully, size:', uint8Array.length, 'bytes');
-
         // Convert Uint8Array to regular array for message passing
         const pdfDataArray = Array.from(uint8Array);
 
@@ -507,7 +501,7 @@ async function handleExtractPDFContent(
         });
 
       } catch (fetchError) {
-        console.error('❌ SlimPaneAI Background: Failed to fetch local PDF:', fetchError);
+        console.error('SlimPaneAI Background: Failed to fetch local PDF:', fetchError);
 
         // Provide helpful error message for file access issues
         let errorMessage = 'Failed to access local PDF file. ';
@@ -533,7 +527,6 @@ async function handleExtractPDFContent(
       }
     } else {
       // For online PDFs, we can also handle them here if needed
-      console.log('🌐 SlimPaneAI Background: Online PDF detected, delegating to content script');
       sendResponse({
         success: false,
         error: 'Online PDFs should be handled by content script directly',
@@ -542,7 +535,7 @@ async function handleExtractPDFContent(
     }
 
   } catch (error) {
-    console.error('❌ SlimPaneAI Background: PDF extraction failed:', error);
+    console.error('SlimPaneAI Background: PDF extraction failed:', error);
     sendResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

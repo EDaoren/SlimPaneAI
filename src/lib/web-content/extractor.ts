@@ -17,13 +17,12 @@ import type {
   WebChatMetadataField
 } from '@/types/web-content-config';
 
-// 声明全局变量
-declare global {
-  var Readability: any;
-  var isProbablyReaderable: any;
-}
+// 类型定义
+type ReadabilityClass = typeof import('@mozilla/readability').Readability;
 
 export class WebContentExtractor {
+  // 缓存Readability类，避免重复加载和全局污染
+  private static readabilityClass: ReadabilityClass | null = null;
   
   /**
    * 提取当前页面内容 - 基于配置驱动
@@ -51,52 +50,24 @@ export class WebContentExtractor {
       const config = await WebContentConfigManager.getInstance().getMergedConfig(domain);
 
       // 根据配置模式选择提取方法
-      console.log('🔧 SlimPaneAI: 使用配置模式:', config.mode);
-      console.log('🔧 SlimPaneAI: 域名配置:', domain);
-      console.log('🔧 SlimPaneAI: 合并后的配置:', config);
-
       if (config.mode === 'text') {
         const textResult = this.extractWithTextMode(config);
         if (textResult) {
-          console.log('✅ SlimPaneAI: 纯文本提取成功');
-          console.log('📄 SlimPaneAI: 提取结果:', {
-            title: textResult.title,
-            length: textResult.length,
-            excerpt: textResult.excerpt.substring(0, 100) + '...',
-            siteName: textResult.siteName,
-            lang: textResult.lang
-          });
-          console.log('📝 SlimPaneAI: 完整文本内容 (前500字符):', textResult.textContent.substring(0, 500));
-
           return {
             success: true,
             content: textResult,
             method: 'text'
           };
-        } else {
-          console.log('❌ SlimPaneAI: 纯文本提取失败');
         }
       } else {
         // Readability 智能提取模式
         const readabilityResult = await this.extractWithReadabilityMode(config);
         if (readabilityResult) {
-          console.log('✅ SlimPaneAI: Readability提取成功');
-          console.log('📄 SlimPaneAI: 提取结果:', {
-            title: readabilityResult.title,
-            length: readabilityResult.length,
-            excerpt: readabilityResult.excerpt.substring(0, 100) + '...',
-            siteName: readabilityResult.siteName,
-            lang: readabilityResult.lang
-          });
-          console.log('📝 SlimPaneAI: 完整文本内容 (前500字符):', readabilityResult.textContent.substring(0, 500));
-
           return {
             success: true,
             content: readabilityResult,
             method: 'readability'
           };
-        } else {
-          console.log('❌ SlimPaneAI: Readability提取失败');
         }
       }
 
@@ -121,28 +92,18 @@ export class WebContentExtractor {
    */
   private static extractWithTextMode(config: MergedExtractionConfig): ExtractedContent | null {
     try {
-      console.log('🔤 SlimPaneAI: 开始纯文本提取 v2.0');
-      console.log('🔤 SlimPaneAI: 配置的移除规则:', config.remove);
-      console.log('🔤 SlimPaneAI: 注意：script和style元素会被硬编码移除');
-      console.log('🔤 SlimPaneAI: Text模式不支持元信息提取');
-
       const clone = document.body.cloneNode(true) as HTMLElement;
 
       // 移除基础元素
       this.removeBasicElements(clone);
-      console.log('🔤 SlimPaneAI: 已移除基础元素 (script, style等)');
 
       // 应用配置的移除规则
       this.applyConfiguredRemoveRules(clone, config.remove);
-      console.log('🔤 SlimPaneAI: 已应用移除规则');
 
       const textContent = clone.textContent || '';
-      console.log('🔤 SlimPaneAI: 提取的文本长度:', textContent.length);
-      console.log('🔤 SlimPaneAI: 字符阈值:', config.readabilityOptions.charThreshold);
 
       // 检查内容长度
       if (textContent.length < config.readabilityOptions.charThreshold) {
-        console.log('❌ SlimPaneAI: 文本长度不足，提取失败');
         return null;
       }
 
@@ -160,10 +121,9 @@ export class WebContentExtractor {
         lang: this.detectLanguage()
       };
 
-      console.log('✅ SlimPaneAI: 纯文本提取完成');
       return result;
     } catch (error) {
-      console.error('❌ SlimPaneAI: Text mode extraction failed:', error);
+      console.error('SlimPaneAI: Text mode extraction failed:', error);
       return null;
     }
   }
@@ -173,27 +133,18 @@ export class WebContentExtractor {
    */
   private static async extractWithReadabilityMode(config: MergedExtractionConfig): Promise<ExtractedContent | null> {
     try {
-      console.log('📖 SlimPaneAI: 开始Readability智能提取 v2.0');
-      console.log('📖 SlimPaneAI: 配置的移除规则:', config.remove);
-      console.log('📖 SlimPaneAI: 元信息配置:', config.metadata);
-      console.log('📖 SlimPaneAI: Readability参数:', config.readabilityOptions);
-
       // 第一步：提取元信息（在移除元素之前，避免丢失）
       let extractedMetadata = '';
       if (config.metadata?.enabled) {
-        console.log('🏷️ SlimPaneAI: 开始提取元信息');
         extractedMetadata = this.extractMetadata(document, config.metadata);
-        console.log('🏷️ SlimPaneAI: 元信息提取完成:', extractedMetadata);
       }
 
       // 第二步：尝试加载 Readability
-      const readabilityLoaded = await this.loadReadability();
-      if (!readabilityLoaded || !window.Readability) {
-        console.warn('⚠️ SlimPaneAI: Readability库不可用，降级到纯文本模式');
+      const ReadabilityClass = await this.loadReadability();
+      if (!ReadabilityClass) {
+        console.warn('SlimPaneAI: Readability library unavailable, falling back to text mode');
         return this.extractWithTextMode(config);
       }
-
-      console.log('✅ SlimPaneAI: Readability库加载成功');
 
       const clonedDoc = document.cloneNode(true) as Document;
       // 移除基础元素
@@ -201,9 +152,6 @@ export class WebContentExtractor {
 
       // 应用配置的移除规则
       this.applyConfiguredRemoveRules(clonedDoc.body as HTMLElement, config.remove);
-
-      // v2.0: 移除preserve规则，改为元信息提取
-      console.log('📖 SlimPaneAI: v2.0版本不再使用preserve规则');
 
       // 使用简化的Readability参数 v2.0（移除classesToPreserve）
       const readabilityConfig = {
@@ -214,22 +162,12 @@ export class WebContentExtractor {
         maxElemsToDivide: config.readabilityOptions.maxElemsToDivide
       };
 
-      console.log('📖 SlimPaneAI: Readability配置:', readabilityConfig);
-
-      const reader = new window.Readability(clonedDoc, readabilityConfig);
+      const reader = new ReadabilityClass(clonedDoc, readabilityConfig);
       const article = reader.parse();
 
       if (!article) {
-        console.log('❌ SlimPaneAI: Readability解析失败，降级到纯文本模式');
         return this.extractWithTextMode(config);
       }
-
-      console.log('✅ SlimPaneAI: Readability解析成功');
-      console.log('📖 SlimPaneAI: 解析结果:', {
-        title: article.title,
-        length: article.length,
-        excerpt: article.excerpt?.substring(0, 100)
-      });
 
       // 第五步：格式化最终内容（将元信息添加到内容开头）
       let finalContent = article.content || '';
@@ -248,7 +186,6 @@ export class WebContentExtractor {
         const metadataText = `${extractedMetadata}\n---\n\n`;
         finalContent = metadataText + finalContent;
         finalTextContent = metadataText + finalTextContent;
-        console.log('🏷️ SlimPaneAI: 元信息已添加到内容中（纯文本格式）');
       }
 
       // 最终安全检查
@@ -265,11 +202,9 @@ export class WebContentExtractor {
         lang: this.detectLanguage()
       };
 
-      console.log('✅ SlimPaneAI: Readability提取完成 v2.0');
       return result;
     } catch (error) {
-      console.error('❌ SlimPaneAI: Readability extraction failed:', error);
-      console.log('🔄 SlimPaneAI: 降级到纯文本模式');
+      console.error('SlimPaneAI: Readability extraction failed:', error);
       // 降级到文本模式
       return this.extractWithTextMode(config);
     }
@@ -282,11 +217,9 @@ export class WebContentExtractor {
     // 只移除对内容提取绝对无用的元素
     // noscript, iframe, object, embed 已移到配置中，用户可以根据需要调整
     const alwaysRemoveSelectors = ['script', 'style'];
-    console.log('🧹 SlimPaneAI: 移除基础无用元素:', alwaysRemoveSelectors);
 
     alwaysRemoveSelectors.forEach(selector => {
       const elements = element.querySelectorAll(selector);
-      console.log(`🧹 SlimPaneAI: 移除 ${elements.length} 个 ${selector} 元素`);
       elements.forEach(el => el.remove());
     });
   }
@@ -296,23 +229,17 @@ export class WebContentExtractor {
    */
   private static applyConfiguredRemoveRules(element: HTMLElement, removeSelectors: string[]): void {
     if (removeSelectors.length === 0) {
-      console.log('🗑️ SlimPaneAI: 没有移除规则需要应用');
       return;
     }
-
-    console.log('🗑️ SlimPaneAI: 开始应用移除规则:', removeSelectors);
 
     removeSelectors.forEach(selector => {
       try {
         const elementsToRemove = element.querySelectorAll(selector);
-        console.log(`🗑️ SlimPaneAI: 选择器 "${selector}" 匹配到 ${elementsToRemove.length} 个元素`);
         elementsToRemove.forEach(el => el.remove());
       } catch (error) {
-        console.warn(`⚠️ SlimPaneAI: 无效的移除选择器: ${selector}`, error);
+        console.warn(`SlimPaneAI: Invalid remove selector: ${selector}`, error);
       }
     });
-
-    console.log('✅ SlimPaneAI: 移除规则应用完成');
   }
 
   /**
@@ -359,12 +286,8 @@ export class WebContentExtractor {
    */
   private static extractMetadata(document: Document, metadataConfig: WebChatMetadataConfig): string {
     if (!metadataConfig.enabled || !metadataConfig.selectors) {
-      console.log('🏷️ SlimPaneAI: 元信息提取未启用');
       return '';
     }
-
-    console.log('🏷️ SlimPaneAI: 开始提取元信息');
-    console.log('🏷️ SlimPaneAI: 选择器配置:', metadataConfig.selectors);
 
     const extractedData: Record<string, string> = {};
 
@@ -379,7 +302,6 @@ export class WebContentExtractor {
       try {
         // 支持多个选择器（用逗号分隔）
         const elements = document.querySelectorAll(field.selector);
-        console.log(`🏷️ SlimPaneAI: 字段 "${field.name}" (${field.key}): "${field.selector}" 匹配到 ${elements.length} 个元素`);
 
         if (elements.length > 0) {
           // 提取所有匹配元素的文本内容
@@ -394,11 +316,10 @@ export class WebContentExtractor {
           if (values.length > 0) {
             // 使用配置的分隔符连接多个值
             extractedData[field.key] = values.join(metadataConfig.format.separator);
-            console.log(`🏷️ SlimPaneAI: 提取到 ${field.name} (${field.key}):`, extractedData[field.key]);
           }
         }
       } catch (error) {
-        console.warn(`⚠️ SlimPaneAI: 无效的元信息选择器 ${field.name}: ${field.selector}`, error);
+        console.warn(`SlimPaneAI: Invalid metadata selector ${field.name}: ${field.selector}`, error);
       }
     });
 
@@ -413,10 +334,6 @@ export class WebContentExtractor {
     data: Record<string, string>,
     format: { template: string; separator: string; includeEmpty: boolean }
   ): string {
-    console.log('🏷️ SlimPaneAI: 开始格式化元信息');
-    console.log('🏷️ SlimPaneAI: 原始数据:', data);
-    console.log('🏷️ SlimPaneAI: 格式模板:', format.template);
-
     let result = format.template;
 
     // 替换模板中的占位符
@@ -435,7 +352,6 @@ export class WebContentExtractor {
     // 清理多余的分隔符和空白
     result = this.cleanupFormattedText(result, format.separator);
 
-    console.log('🏷️ SlimPaneAI: 格式化完成:', result);
     return result;
   }
 
@@ -584,30 +500,25 @@ export class WebContentExtractor {
   }
 
   /**
-   * 加载Readability库
+   * 加载Readability库 - 使用类属性缓存，避免全局污染
    */
-  private static async loadReadability(): Promise<boolean> {
-    if (window.Readability) {
-      return true;
+  private static async loadReadability(): Promise<ReadabilityClass | null> {
+    // 如果已经缓存，直接返回
+    if (this.readabilityClass) {
+      return this.readabilityClass;
     }
 
     try {
-      // 动态加载Readability
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('lib/readability/Readability.js');
-      
-      return new Promise((resolve) => {
-        script.onload = () => {
-          resolve(!!window.Readability);
-        };
-        script.onerror = () => {
-          resolve(false);
-        };
-        document.head.appendChild(script);
-      });
+      // 动态导入Readability库
+      const { Readability } = await import('@mozilla/readability');
+
+      // 缓存到类属性中，避免全局污染
+      this.readabilityClass = Readability;
+
+      return this.readabilityClass;
     } catch (error) {
       console.error('SlimPaneAI: Failed to load Readability:', error);
-      return false;
+      return null;
     }
   }
 }

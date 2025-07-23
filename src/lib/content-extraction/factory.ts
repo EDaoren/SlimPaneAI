@@ -40,7 +40,6 @@ export class ContentExtractionFactory {
       const { WebPageExtractor } = await import('./extractors/webpage-extractor');
       this.register(new WebPageExtractor());
 
-      console.log('SlimPaneAI: Content extractors initialized');
     } catch (error) {
       console.error('SlimPaneAI: Failed to initialize content extractors:', error);
     }
@@ -52,7 +51,6 @@ export class ContentExtractionFactory {
   static register(extractor: ContentExtractor): void {
     // 新注册的提取器优先级更高（插入到数组开头）
     this.extractors.unshift(extractor);
-    console.log(`SlimPaneAI: Registered ${extractor.type} extractor`);
   }
 
   /**
@@ -130,7 +128,6 @@ export class ContentExtractionFactory {
     }
 
     try {
-      console.log(`SlimPaneAI: Using ${extractor.type} extractor for URL: ${url}`);
       return await extractor.extract(url, options);
     } catch (error) {
       return {
@@ -186,8 +183,6 @@ export class ContentExtractionFactory {
     });
 
     try {
-      console.log(`SlimPaneAI: Using ${extractor.type} extractor with progress for URL: ${url}`);
-      
       // 如果提取器支持进度回调，使用它
       if (extractor.extractWithProgress) {
         return await extractor.extractWithProgress(url, onProgress, options);

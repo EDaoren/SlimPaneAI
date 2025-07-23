@@ -107,7 +107,8 @@ export class WebContentConfigManager {
           keepClasses: true,
           preserveLinks: false,
           maxElemsToDivide: 5
-        }
+        },
+        domainRulesEnabled: true  // 默认启用域名规则
       },
       domains: {
         "zhihu.com": {
@@ -330,24 +331,28 @@ export class WebContentConfigManager {
   async getMergedConfig(domain: string): Promise<MergedExtractionConfig> {
     const config = await this.getConfig();
     const normalizedDomain = this.normalizeDomain(domain);
-    const domainRule = config.domains[normalizedDomain];
+
+    // 检查域名规则是否启用
+    const domainRulesEnabled = config.global.domainRulesEnabled ?? true;
+    const domainRule = domainRulesEnabled ? config.domains[normalizedDomain] : null;
 
     console.log('⚙️ SlimPaneAI: 开始合并配置 v2.0');
     console.log('⚙️ SlimPaneAI: 原始域名:', domain);
     console.log('⚙️ SlimPaneAI: 标准化域名:', normalizedDomain);
     console.log('⚙️ SlimPaneAI: 提取模式:', config.mode);
+    console.log('⚙️ SlimPaneAI: 域名规则启用状态:', domainRulesEnabled);
     console.log('⚙️ SlimPaneAI: 找到域名规则:', !!domainRule);
     if (domainRule) {
       console.log('⚙️ SlimPaneAI: 域名规则详情:', domainRule);
     }
 
-    // remove选择器：域名配置 + 全局配置
+    // remove选择器：域名配置 + 全局配置（仅在域名规则启用时）
     const mergedRemove = [
       ...config.global.remove,
       ...(domainRule?.remove || [])
     ];
 
-    // metadata配置：域名配置优先，全局配置补充（仅Readability模式）
+    // metadata配置：域名配置优先，全局配置补充（仅Readability模式且域名规则启用时）
     let mergedMetadata: WebChatMetadataConfig | undefined;
     if (config.mode === 'readability') {
       if (domainRule?.metadata) {
@@ -359,10 +364,10 @@ export class WebContentConfigManager {
       }
     }
 
-    // Readability参数：域名配置覆盖全局配置
+    // Readability参数：域名配置覆盖全局配置（仅在域名规则启用时）
     const mergedReadabilityOptions = {
       ...config.global.readabilityOptions,
-      ...domainRule?.readabilityOptions
+      ...(domainRule?.readabilityOptions || {})
     };
 
     const mergedConfig = {
@@ -457,7 +462,8 @@ export class WebContentConfigManager {
       global: {
         remove: this.validateStringArray(config.global?.remove) || defaultConfig.global.remove,
         metadata: this.validateMetadata(config.global?.metadata) || defaultConfig.global.metadata,
-        readabilityOptions: this.validateReadabilityOptions(config.global?.readabilityOptions) || defaultConfig.global.readabilityOptions
+        readabilityOptions: this.validateReadabilityOptions(config.global?.readabilityOptions) || defaultConfig.global.readabilityOptions,
+        domainRulesEnabled: typeof config.global?.domainRulesEnabled === 'boolean' ? config.global.domainRulesEnabled : defaultConfig.global.domainRulesEnabled
       },
       domains: this.validateDomains(config.domains) || defaultConfig.domains,
       templates: this.validateTemplates(config.templates) || defaultConfig.templates
