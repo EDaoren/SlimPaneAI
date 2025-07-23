@@ -266,11 +266,7 @@ export class WebContentDomainManager {
         errors.push('元信息配置必须是对象');
       } else {
         if (rule.metadata.enabled && rule.metadata.selectors) {
-          Object.entries(rule.metadata.selectors).forEach(([key, selector]) => {
-            if (selector && !this.isValidSelector(selector)) {
-              errors.push(`元信息选择器 ${key} 语法无效: ${selector}`);
-            }
-          });
+          this.validateMetadataSelectorsInRule(rule.metadata.selectors, errors);
         }
       }
     }
@@ -296,6 +292,62 @@ export class WebContentDomainManager {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  /**
+   * 验证元信息选择器配置（支持新旧格式）
+   */
+  private static validateMetadataSelectorsInRule(
+    selectors: any,
+    errors: string[]
+  ): void {
+    if (Array.isArray(selectors)) {
+      // 新格式：字段数组
+      if (selectors.length === 0) {
+        // 空数组是允许的，不产生错误
+        return;
+      }
+
+      selectors.forEach((field, index) => {
+        if (field && typeof field === 'object') {
+          // 检查必要字段
+          if (!field.key || typeof field.key !== 'string') {
+            errors.push(`元信息选择器 ${index} 配置无效: 缺少字段键名`);
+            return;
+          }
+          if (!field.name || typeof field.name !== 'string') {
+            errors.push(`元信息选择器 ${index} (${field.key}) 配置无效: 缺少字段名称`);
+            return;
+          }
+          if (typeof field.enabled !== 'boolean') {
+            errors.push(`元信息选择器 ${index} (${field.key}) 配置无效: enabled字段必须是布尔值`);
+            return;
+          }
+
+          // 只有启用的字段才需要验证选择器
+          if (field.enabled) {
+            if (!field.selector || typeof field.selector !== 'string') {
+              errors.push(`元信息选择器 ${index} (${field.name}) 配置无效: 启用的字段必须有选择器`);
+            } else if (!this.isValidSelector(field.selector)) {
+              errors.push(`元信息选择器 ${index} (${field.name}) 语法无效: ${field.selector}`);
+            }
+          }
+        } else {
+          errors.push(`元信息选择器 ${index} 配置无效: 字段必须是对象`);
+        }
+      });
+    } else if (typeof selectors === 'object' && selectors !== null) {
+      // 旧格式：键值对对象
+      Object.entries(selectors).forEach(([key, selector]) => {
+        if (selector && typeof selector === 'string') {
+          if (!this.isValidSelector(selector)) {
+            errors.push(`元信息选择器 ${key} 语法无效: ${selector}`);
+          }
+        } else {
+          errors.push(`元信息选择器 ${key} 配置无效: 选择器必须是字符串`);
+        }
+      });
+    }
   }
 
   /**

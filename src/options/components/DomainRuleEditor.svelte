@@ -202,9 +202,11 @@
   }
 
   // 处理元信息字段变更
-  function handleMetadataFieldsChange(fields: WebChatMetadataField[]) {
+  function handleMetadataFieldsChange(event: CustomEvent<WebChatMetadataField[]>) {
+    const fields = event.detail;
     formData.metadataFields = fields;
-    formData.metadataTemplate = generateDefaultTemplate(fields);
+    // 不在这里更新模板，让 MetadataConfigSection 组件自己处理模板更新
+    console.log('🔄 域名规则: 字段变更，字段数量:', fields.length, '启用数量:', fields.filter(f => f.enabled).length);
   }
 
   // 从当前页面推荐规则
@@ -305,6 +307,7 @@
           title="🏷️ 元信息配置"
           description="为此域名配置专门的元信息提取规则"
           compact={true}
+          on:fieldsChange={handleMetadataFieldsChange}
         />
       </div>
 

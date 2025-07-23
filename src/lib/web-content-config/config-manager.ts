@@ -404,11 +404,7 @@ export class WebContentConfigManager {
     if (config.mode === 'readability' && config.global?.metadata?.enabled) {
       const metadata = config.global.metadata;
       if (metadata.selectors) {
-        Object.entries(metadata.selectors).forEach(([key, selector]) => {
-          if (selector && !this.isValidSelector(selector)) {
-            warnings.push(`全局元信息选择器 ${key} 可能无效: ${selector}`);
-          }
-        });
+        this.validateMetadataSelectorsInConfig(metadata.selectors, '全局', warnings);
       }
     }
 
@@ -427,11 +423,7 @@ export class WebContentConfigManager {
 
         // 验证域名的元信息配置
         if (rule.metadata?.enabled && rule.metadata.selectors) {
-          Object.entries(rule.metadata.selectors).forEach(([key, selector]) => {
-            if (selector && !this.isValidSelector(selector)) {
-              warnings.push(`域名 ${domain} 元信息选择器 ${key} 可能无效: ${selector}`);
-            }
-          });
+          this.validateMetadataSelectorsInConfig(rule.metadata.selectors, `域名 ${domain}`, warnings);
         }
       });
     }
@@ -509,9 +501,14 @@ export class WebContentConfigManager {
 
     // 验证选择器，如果无效则使用默认字段
     let selectors = this.validateMetadataSelectors(metadata.selectors);
-    if (!selectors || (Array.isArray(selectors) && selectors.length === 0) ||
-        (typeof selectors === 'object' && Object.keys(selectors).length === 0)) {
+    if (selectors === null) {
       console.log('🔧 元信息选择器无效，使用默认字段');
+      selectors = WebContentConfigManager.createDefaultMetadataFields();
+    } else if (Array.isArray(selectors) && selectors.length === 0) {
+      // 允许空的字段数组（用户可能暂时不需要任何字段）
+      console.log('🔧 元信息字段数组为空，保持空配置');
+    } else if (typeof selectors === 'object' && Object.keys(selectors).length === 0) {
+      console.log('🔧 元信息选择器对象为空，使用默认字段');
       selectors = WebContentConfigManager.createDefaultMetadataFields();
     }
 
@@ -551,7 +548,8 @@ export class WebContentConfigManager {
           });
         }
       }
-      return validatedFields.length > 0 ? validatedFields : null;
+      // 返回验证后的字段数组，即使为空也返回（允许用户配置空的字段列表）
+      return validatedFields;
     }
 
     // 如果是对象格式（旧格式）
@@ -671,6 +669,63 @@ export class WebContentConfigManager {
     }
 
     return validatedTemplates;
+  }
+
+  /**
+   * 验证元信息选择器配置（支持新旧格式）
+   */
+  private validateMetadataSelectorsInConfig(
+    selectors: WebChatMetadataField[] | Record<string, string>,
+    context: string,
+    warnings: string[]
+  ): void {
+    if (Array.isArray(selectors)) {
+      // 新格式：字段数组
+      if (selectors.length === 0) {
+        // 空数组是允许的，不产生警告
+        return;
+      }
+
+      selectors.forEach((field, index) => {
+        if (field && typeof field === 'object') {
+          // 检查必要字段
+          if (!field.key || typeof field.key !== 'string') {
+            warnings.push(`${context}元信息选择器 ${index} 配置无效: 缺少字段键名`);
+            return;
+          }
+          if (!field.name || typeof field.name !== 'string') {
+            warnings.push(`${context}元信息选择器 ${index} (${field.key}) 配置无效: 缺少字段名称`);
+            return;
+          }
+          if (typeof field.enabled !== 'boolean') {
+            warnings.push(`${context}元信息选择器 ${index} (${field.key}) 配置无效: enabled字段必须是布尔值`);
+            return;
+          }
+
+          // 只有启用的字段才需要验证选择器
+          if (field.enabled) {
+            if (!field.selector || typeof field.selector !== 'string') {
+              warnings.push(`${context}元信息选择器 ${index} (${field.name}) 配置无效: 启用的字段必须有选择器`);
+            } else if (!this.isValidSelector(field.selector)) {
+              warnings.push(`${context}元信息选择器 ${index} (${field.name}) 语法无效: ${field.selector}`);
+            }
+          }
+        } else {
+          warnings.push(`${context}元信息选择器 ${index} 配置无效: 字段必须是对象`);
+        }
+      });
+    } else if (typeof selectors === 'object' && selectors !== null) {
+      // 旧格式：键值对对象
+      Object.entries(selectors).forEach(([key, selector]) => {
+        if (selector && typeof selector === 'string') {
+          if (!this.isValidSelector(selector)) {
+            warnings.push(`${context}元信息选择器 ${key} 可能无效: ${selector}`);
+          }
+        } else {
+          warnings.push(`${context}元信息选择器 ${key} 配置无效: 选择器必须是字符串`);
+        }
+      });
+    }
   }
 
   /**

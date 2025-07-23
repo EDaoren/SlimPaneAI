@@ -190,6 +190,7 @@ export interface WebChatConfigUIState {
   showDomainEditor: boolean;
   showTemplateManager: boolean;
   showPreview: boolean;
+  showTestExtraction: boolean;
   editingDomain: string | null;
   selectedTemplate: string | null;
   previewUrl: string;
