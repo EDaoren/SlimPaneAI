@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '@/lib/i18n';
   import type { WebChatMetadataField } from '@/types/web-content-config';
   import { PREDEFINED_METADATA_FIELDS } from '@/types/web-content-config';
 
@@ -19,14 +20,14 @@
 
   // 添加自定义字段
   function addCustomField() {
-    const key = prompt('请输入字段键名（英文）:');
-    const name = prompt('请输入字段显示名称:');
+    const key = prompt($t('webChatConfig.fieldKeyRequired') + ':');
+    const name = prompt($t('webChatConfig.fieldNameRequired') + ':');
     
     if (!key || !name) return;
     
     // 检查键名是否已存在
     if (fields.some(f => f.key === key)) {
-      alert('字段键名已存在！');
+      alert($t('webChatConfig.fieldKeyExists'));
       return;
     }
 
@@ -44,7 +45,7 @@
 
   // 删除字段
   function removeField(index: number) {
-    if (confirm('确定要删除这个字段吗？')) {
+    if (confirm($t('common.confirmDelete'))) {
       fields = fields.filter((_, i) => i !== index);
       onFieldsChange(fields);
     }
@@ -66,11 +67,11 @@
 
 <div class="metadata-fields-manager">
   <div class="fields-header">
-    <h4>元信息字段配置</h4>
+    <h4>{$t('webChatConfig.metadataFieldsManager')}</h4>
     <div class="add-buttons">
       {#if availablePredefinedFields.length > 0}
         <div class="dropdown">
-          <button type="button" class="btn-add-predefined">+ 添加预定义字段</button>
+          <button type="button" class="btn-add-predefined">+ {$t('webChatConfig.addPredefinedField')}</button>
           <div class="dropdown-content">
             {#each availablePredefinedFields as fieldTemplate}
               <button 
@@ -84,7 +85,7 @@
           </div>
         </div>
       {/if}
-      <button type="button" class="btn-add-custom" on:click={addCustomField}>+ 自定义字段</button>
+      <button type="button" class="btn-add-custom" on:click={addCustomField}>+ {$t('webChatConfig.addCustomField')}</button>
     </div>
   </div>
 
@@ -117,12 +118,12 @@
         {#if field.enabled}
           <div class="field-config">
             <label class="selector-label">
-              CSS选择器:
+              {$t('webChatConfig.cssSelector')}:
               <input 
                 type="text" 
                 bind:value={field.selector}
                 on:input={() => updateField(index, { selector: field.selector })}
-                placeholder="例如: .author, .username"
+                placeholder={$t('webChatConfig.cssSelectorPlaceholder')}
                 class="selector-input"
               />
             </label>
@@ -133,8 +134,8 @@
     
     {#if fields.length === 0}
       <div class="empty-state">
-        <p>还没有配置任何元信息字段</p>
-        <p>点击上方按钮添加字段</p>
+        <p>{$t('webChatConfig.noEnabledFields')}</p>
+        <p>{$t('webChatConfig.noEnabledFieldsDesc')}</p>
       </div>
     {/if}
   </div>

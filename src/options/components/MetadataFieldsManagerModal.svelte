@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { t } from '@/lib/i18n';
   import type { WebChatMetadataField } from '@/types/web-content-config';
 
   // Props
@@ -22,18 +23,18 @@
 
   // 预定义字段选项
   $: availablePredefinedFields = [
-    { key: 'author', name: '作者信息', selector: '.author, .username, .nick-name' },
-    { key: 'date', name: '发布时间', selector: '.date, .time, .publish-time' },
-    { key: 'tags', name: '标签分类', selector: '.tags, .tag, .category' },
-    { key: 'title', name: '文章标题', selector: 'h1, .title, .article-title' },
-    { key: 'votes', name: '点赞数', selector: '.votes, .like, .thumbs-up' },
-    { key: 'views', name: '阅读量', selector: '.views, .read-count, .page-view' },
-    { key: 'source', name: '内容来源', selector: '.source, .from, .origin' },
-    { key: 'location', name: '地理位置', selector: '.location, .place, .address' },
-    { key: 'category', name: '内容分类', selector: '.category, .section, .topic' },
-    { key: 'comment_count', name: '评论数', selector: '.comment, .reply, .discuss' },
-    { key: 'reading_time', name: '阅读时长', selector: '.reading-time, .read-time' },
-    { key: 'word_count', name: '字数统计', selector: '.word-count, .length' }
+    { key: 'author', name: $t('webChatConfig.authorField'), selector: '.author, .username, .nick-name' },
+    { key: 'date', name: $t('webChatConfig.dateField'), selector: '.date, .time, .publish-time' },
+    { key: 'tags', name: $t('webChatConfig.tagsField'), selector: '.tags, .tag, .category' },
+    { key: 'title', name: $t('webChatConfig.titleField'), selector: 'h1, .title, .article-title' },
+    { key: 'votes', name: $t('webChatConfig.votesField'), selector: '.votes, .like, .thumbs-up' },
+    { key: 'views', name: $t('webChatConfig.viewsField'), selector: '.views, .read-count, .page-view' },
+    { key: 'source', name: $t('webChatConfig.sourceField'), selector: '.source, .from, .origin' },
+    { key: 'location', name: $t('webChatConfig.locationField'), selector: '.location, .place, .address' },
+    { key: 'category', name: $t('webChatConfig.categoryField'), selector: '.category, .section, .topic' },
+    { key: 'comment_count', name: $t('webChatConfig.commentCountField'), selector: '.comment, .reply, .discuss' },
+    { key: 'reading_time', name: $t('webChatConfig.readingTimeField'), selector: '.reading-time, .read-time' },
+    { key: 'word_count', name: $t('webChatConfig.wordCountField'), selector: '.word-count, .length' }
   ].filter(predefined => !fields.some(existing => existing.key === predefined.key));
 
   // 关闭主模态框
@@ -147,7 +148,7 @@
   <div class="modal-overlay" on:click={closeModal}>
     <div class="modal-content large-modal" on:click|stopPropagation>
       <div class="modal-header">
-        <h3>元信息字段管理</h3>
+        <h3>{$t('webChatConfig.metadataFieldsManager')}</h3>
         <button type="button" class="modal-close" on:click={closeModal}>×</button>
       </div>
 
@@ -155,18 +156,18 @@
         <div class="fields-manager">
           <div class="manager-header">
             <div class="manager-stats">
-              <span>共 {fields.length} 个字段，{fields.filter(f => f.enabled).length} 个已启用</span>
+              <span>{fields.length} {$t('webChatConfig.fieldsCount')}，{fields.filter(f => f.enabled).length} {$t('webChatConfig.enabledFields')}</span>
             </div>
-            <button type="button" class="btn-add-field" on:click={openAddFieldModal}>+ 添加字段</button>
+            <button type="button" class="btn-add-field" on:click={openAddFieldModal}>+ {$t('webChatConfig.addField')}</button>
           </div>
 
           <div class="fields-table">
             <div class="table-header">
-              <div class="col-enabled">启用</div>
-              <div class="col-name">字段名称</div>
-              <div class="col-key">键名</div>
-              <div class="col-selector">CSS选择器</div>
-              <div class="col-actions">操作</div>
+              <div class="col-enabled">{$t('common.enabled')}</div>
+              <div class="col-name">{$t('webChatConfig.fieldName')}</div>
+              <div class="col-key">{$t('webChatConfig.fieldKey')}</div>
+              <div class="col-selector">{$t('webChatConfig.fieldSelector')}</div>
+              <div class="col-actions">{$t('common.actions')}</div>
             </div>
 
             {#each fields as field, index}
@@ -181,7 +182,7 @@
                 <div class="col-name">
                   <span class="field-name">{field.name}</span>
                   {#if field.isPredefined}
-                    <span class="predefined-badge">预定义</span>
+                    <span class="predefined-badge">{$t('webChatConfig.predefinedField')}</span>
                   {/if}
                 </div>
                 <div class="col-key">
@@ -192,21 +193,21 @@
                     type="text"
                     value={field.selector}
                     on:input={(e) => updateFieldSelector(index, e.target.value)}
-                    placeholder="CSS选择器"
+                    placeholder={$t('webChatConfig.cssSelector')}
                     class="selector-input-inline"
                   />
                 </div>
                 <div class="col-actions">
-                  <button type="button" class="btn-edit" on:click={() => editField(index)}>编辑</button>
-                  <button type="button" class="btn-delete" on:click={() => deleteField(index)}>删除</button>
+                  <button type="button" class="btn-edit" on:click={() => editField(index)}>{$t('common.edit')}</button>
+                  <button type="button" class="btn-delete" on:click={() => deleteField(index)}>{$t('common.delete')}</button>
                 </div>
               </div>
             {/each}
 
             {#if fields.length === 0}
               <div class="empty-table">
-                <p>还没有配置任何字段</p>
-                <button type="button" class="btn-add-first" on:click={openAddFieldModal}>添加第一个字段</button>
+                <p>{$t('webChatConfig.noDomainRules')}</p>
+                <button type="button" class="btn-add-first" on:click={openAddFieldModal}>{$t('webChatConfig.addField')}</button>
               </div>
             {/if}
           </div>
@@ -214,7 +215,7 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" on:click={closeModal}>完成</button>
+        <button type="button" class="btn-cancel" on:click={closeModal}>{$t('common.done')}</button>
       </div>
     </div>
   </div>
@@ -225,7 +226,7 @@
   <div class="modal-overlay" on:click={closeAddFieldModal}>
     <div class="modal-content" on:click|stopPropagation>
       <div class="modal-header">
-        <h3>{editingFieldIndex >= 0 ? '编辑' : '添加'}元信息字段</h3>
+        <h3>{editingFieldIndex >= 0 ? $t('webChatConfig.editField') : $t('webChatConfig.addField')}</h3>
         <button type="button" class="modal-close" on:click={closeAddFieldModal}>×</button>
       </div>
 
@@ -233,57 +234,57 @@
         <!-- 预定义字段选择 -->
         {#if availablePredefinedFields.length > 0}
           <div class="form-group">
-            <label class="form-label">选择预定义字段</label>
+            <label class="form-label">{$t('webChatConfig.selectPredefinedField')}</label>
             <select bind:value={selectedPredefinedField} on:change={selectPredefinedField} class="form-select">
-              <option value="">-- 选择预定义字段 --</option>
+              <option value="">-- {$t('webChatConfig.selectPredefinedField')} --</option>
               {#each availablePredefinedFields as field}
                 <option value={field.key}>{field.name}</option>
               {/each}
             </select>
           </div>
 
-          <div class="divider"><span>或</span></div>
+          <div class="divider"><span>{$t('common.or')}</span></div>
         {/if}
 
         <!-- 自定义字段输入 -->
         <div class="form-group">
-          <label class="form-label">字段键名 *</label>
+          <label class="form-label">{$t('webChatConfig.fieldKeyRequired')}</label>
           <input
             type="text"
             bind:value={newFieldKey}
-            placeholder="如: author, date, tags"
+            placeholder="{$t('common.examples')}: author, date, tags"
             class="form-input"
             required
           />
         </div>
 
         <div class="form-group">
-          <label class="form-label">显示名称 *</label>
+          <label class="form-label">{$t('webChatConfig.fieldNameRequired')}</label>
           <input
             type="text"
             bind:value={newFieldName}
-            placeholder="如: 作者信息, 发布时间"
+            placeholder="{$t('common.examples')}: {$t('webChatConfig.authorField')}, {$t('webChatConfig.dateField')}"
             class="form-input"
             required
           />
         </div>
 
         <div class="form-group">
-          <label class="form-label">CSS选择器</label>
+          <label class="form-label">{$t('webChatConfig.cssSelector')}</label>
           <input
             type="text"
             bind:value={newFieldSelector}
-            placeholder="如: .author, .username"
+            placeholder={$t('webChatConfig.cssSelectorPlaceholder')}
             class="form-input"
           />
-          <div class="form-help">用于提取该字段内容的CSS选择器</div>
+          <div class="form-help">{$t('webChatConfig.removeElementsDesc')}</div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" on:click={closeAddFieldModal}>取消</button>
+        <button type="button" class="btn-cancel" on:click={closeAddFieldModal}>{$t('common.cancel')}</button>
         <button type="button" class="btn-save" on:click={saveField}>
-          {editingFieldIndex >= 0 ? '更新' : '添加'}
+          {editingFieldIndex >= 0 ? $t('common.update') : $t('common.add')}
         </button>
       </div>
     </div>

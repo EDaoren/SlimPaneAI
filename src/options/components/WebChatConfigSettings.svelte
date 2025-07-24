@@ -41,7 +41,7 @@
     // 重构后的元信息配置
     metadataEnabled: true,
     metadataFields: [],  // 将从配置中加载
-    metadataTemplate: '作者: {author}\n发布时间: {date}\n标签: {tags}',
+    metadataTemplate: 'Author: {author}\nDate: {date}\nTags: {tags}',
     metadataSeparator: '\n',
     metadataIncludeEmpty: false,
     // 域名规则开关
@@ -123,13 +123,13 @@
       console.log('⚠️ 没有元信息配置，生成默认配置');
       formData.metadataFields = generateDefaultFields();
       formData.metadataEnabled = true;
-      formData.metadataTemplate = '作者: {author}\n发布时间: {date}\n标签: {tags}';
+      formData.metadataTemplate = 'Author: {author}\nDate: {date}\nTags: {tags}';
       // 分隔符和空值控制使用固定默认值
     }
 
     // 如果模板为空或者是默认模板，根据当前字段重新生成
     if (!formData.metadataTemplate ||
-        formData.metadataTemplate === '作者: {author}\n发布时间: {date}\n标签: {tags}' ||
+        formData.metadataTemplate === 'Author: {author}\nDate: {date}\nTags: {tags}' ||
         formData.metadataTemplate.includes('作者：{author}')) {
       updateTemplate();
     }
@@ -570,28 +570,28 @@
   {#if uiState.isLoading}
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <span>加载配置中...</span>
+      <span>{$t('webChatConfig.loading')}</span>
     </div>
   {:else}
     <form on:submit|preventDefault={saveConfig}>
       <!-- 基础配置区 - MVP版本 -->
       <div class="config-section">
-        <h3 class="section-title">🔄 提取方式选择</h3>
+        <h3 class="section-title">🔄 {$t('webChatConfig.mode')}</h3>
 
         <div class="mode-options-compact">
           <label class="mode-option-compact {formData.mode === 'text' ? 'active' : ''}">
             <input type="radio" bind:group={formData.mode} value="text" />
             <div class="mode-content-compact">
-              <span class="mode-title">纯文本提取</span>
-              <span class="mode-desc">简单快速，适合个人博客</span>
+              <span class="mode-title">{$t('webChatConfig.modeText')}</span>
+              <span class="mode-desc">{$t('webChatConfig.modeTextDesc')}</span>
             </div>
           </label>
 
           <label class="mode-option-compact {formData.mode === 'readability' ? 'active' : ''}">
             <input type="radio" bind:group={formData.mode} value="readability" />
             <div class="mode-content-compact">
-              <span class="mode-title">Readability 智能提取（推荐）</span>
-              <span class="mode-desc">智能识别内容，适合新闻网站</span>
+              <span class="mode-title">{$t('webChatConfig.modeReadability')}</span>
+              <span class="mode-desc">{$t('webChatConfig.modeReadabilityDesc')}</span>
             </div>
           </label>
         </div>
@@ -601,18 +601,18 @@
 
       <!-- 通用配置区 - 两种模式都需要 -->
       <div class="config-section">
-        <h3 class="section-title">🗑️ 通用过滤配置</h3>
+        <h3 class="section-title">🗑️ {$t('webChatConfig.globalSettings')}</h3>
 
         <div class="form-group">
-          <label class="form-label">移除元素（CSS选择器）</label>
+          <label class="form-label">{$t('webChatConfig.removeElements')}</label>
           <textarea
             bind:value={formData.globalRemove}
-            placeholder=".ad, .sidebar, .navigation, footer, .comment"
+            placeholder={$t('webChatConfig.removeElementsPlaceholder')}
             class="form-textarea"
             rows="4"
           ></textarea>
-          <div class="form-help">多个选择器用换行分隔，支持CSS选择器语法</div>
-          <div class="form-help">常用: .ad, nav, footer, .sidebar, .popup</div>
+          <div class="form-help">{$t('webChatConfig.removeElementsDesc')}</div>
+          <div class="form-help">{$t('common.examples')}: .ad, nav, footer, .sidebar, .popup</div>
         </div>
       </div>
 
@@ -627,7 +627,7 @@
           class="section-toggle"
           on:click={toggleAdvanced}
         >
-          <span>⚙️ 高级配置</span>
+          <span>⚙️ {$t('settings.advanced')}</span>
           <span class="toggle-icon {uiState.showAdvanced ? 'expanded' : ''}">
             {uiState.showAdvanced ? '▼' : '▶'}
           </span>
@@ -638,11 +638,11 @@
           {#if formData.mode === 'readability'}
             <!-- Readability参数调整 -->
             <div class="advanced-section">
-              <h4 class="subsection-title">🔧 Readability参数调整</h4>
+              <h4 class="subsection-title">🔧 {$t('webChatConfig.readabilitySettings')}</h4>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">字符阈值</label>
+                  <label class="form-label">{$t('webChatConfig.charThreshold')}</label>
                   <input
                     type="number"
                     bind:value={formData.charThreshold}
@@ -650,11 +650,11 @@
                     max="1000"
                     class="form-input"
                   />
-                  <div class="form-help">小于此长度的段落将被移除</div>
+                  <div class="form-help">{$t('webChatConfig.charThresholdDesc')}</div>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">最大元素分割数</label>
+                  <label class="form-label">{$t('webChatConfig.maxElemsToDivide')}</label>
                   <input
                     type="number"
                     bind:value={formData.maxElemsToDivide}
@@ -662,7 +662,7 @@
                     max="20"
                     class="form-input"
                   />
-                  <div class="form-help">控制内容分析深度</div>
+                  <div class="form-help">{$t('webChatConfig.maxElemsToDivideDesc')}</div>
                 </div>
               </div>
             </div>
@@ -681,13 +681,13 @@
           <div class="advanced-section">
             <div class="feature-toggle-header">
               <div class="feature-info">
-                <h4 class="subsection-title">📍 域名特定规则 ({formData.mode === 'text' ? 'Text模式' : 'Readability模式'})</h4>
-                <div class="feature-description">为特定网站配置专门的提取规则，覆盖全局设置</div>
+                <h4 class="subsection-title">📍 {$t('webChatConfig.domainRules')} ({formData.mode === 'text' ? $t('webChatConfig.modeText') : $t('webChatConfig.modeReadability')})</h4>
+                <div class="feature-description">{$t('webChatConfig.domainRulesDescription')}</div>
               </div>
               <label class="toggle-switch">
                 <input type="checkbox" bind:checked={formData.domainRulesEnabled} />
                 <span class="toggle-slider"></span>
-                <span class="toggle-label">{formData.domainRulesEnabled ? '已启用' : '已禁用'}</span>
+                <span class="toggle-label">{formData.domainRulesEnabled ? $t('webChatConfig.domainRulesEnabled') : $t('webChatConfig.domainRulesDisabled')}</span>
               </label>
             </div>
 
@@ -700,19 +700,19 @@
                     <span class="domain-name">({rule.name})</span>
                   </div>
                   <div class="domain-details">
-                    <div>移除: {rule.remove.join(', ')}</div>
+                    <div>{$t('webChatConfig.removeElements')}: {rule.remove.join(', ')}</div>
                     {#if formData.mode === 'readability' && rule.metadata?.enabled}
-                      <div>元信息: 已启用</div>
+                      <div>{$t('webChatConfig.metadataSettings')}: {$t('webChatConfig.metadataEnabled')}</div>
                     {/if}
                   </div>
                   <div class="domain-actions">
-                    <button type="button" class="btn-small" on:click={() => editDomainRule(domain)}>编辑</button>
-                    <button type="button" class="btn-small btn-danger" on:click={() => deleteDomainRule(domain)}>删除</button>
+                    <button type="button" class="btn-small" on:click={() => editDomainRule(domain)}>{$t('common.edit')}</button>
+                    <button type="button" class="btn-small btn-danger" on:click={() => deleteDomainRule(domain)}>{$t('common.delete')}</button>
                   </div>
                 </div>
               {/each}
 
-                <button type="button" class="btn-add-domain" on:click={addNewDomainRule}>+ 添加新域名规则</button>
+                <button type="button" class="btn-add-domain" on:click={addNewDomainRule}>+ {$t('webChatConfig.addDomainRule')}</button>
               </div>
 
 
@@ -726,15 +726,15 @@
       <!-- 操作按钮 -->
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" on:click={resetToDefaults}>
-          重置默认
+          {$t('webChatConfig.resetToDefault')}
         </button>
-        
+
         <div class="action-group">
           <button type="submit" class="btn btn-primary" disabled={uiState.isSaving}>
             {#if uiState.isSaving}
               <div class="btn-spinner"></div>
             {/if}
-            保存配置
+            {$t('webChatConfig.saveChanges')}
           </button>
         </div>
       </div>
@@ -747,7 +747,7 @@
   <div class="modal-overlay" on:click={handleDomainRuleCancel}>
     <div class="modal-content large-modal" on:click|stopPropagation>
       <div class="modal-header">
-        <h3>{isDomainRuleEditing ? '编辑域名规则' : '添加域名规则'}</h3>
+        <h3>{isDomainRuleEditing ? $t('webChatConfig.editDomainRule') : $t('webChatConfig.addDomainRule')}</h3>
         <button class="modal-close" on:click={handleDomainRuleCancel}>×</button>
       </div>
 

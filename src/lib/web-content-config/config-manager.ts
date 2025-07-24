@@ -97,7 +97,7 @@ export class WebContentConfigManager {
           enabled: true,
           selectors: WebContentConfigManager.createDefaultMetadataFields(),
           format: {
-            template: "作者: {author}\n发布时间: {date}\n标签: {tags}",
+            template: "Author: {author}\nDate: {date}\nTags: {tags}",
             separator: ", ",
             includeEmpty: false
           }
@@ -130,7 +130,7 @@ export class WebContentConfigManager {
               comment_count: ".CommentCount"
             }, ['author', 'date', 'tags', 'votes']),
             format: {
-              template: "来源: 知乎\n作者: {author}\n发布时间: {date}\n标签: {tags}\n点赞数: {votes}",
+              template: "Source: Zhihu\nAuthor: {author}\nDate: {date}\nTags: {tags}\nVotes: {votes}",
               separator: ", ",
               includeEmpty: false
             }
@@ -301,13 +301,17 @@ export class WebContentConfigManager {
   async saveConfig(config: WebChatExtractionConfig): Promise<void> {
     try {
       const validatedConfig = this.validateAndMigrateConfig(config);
-      
+
       await chrome.runtime.sendMessage({
         type: 'set-storage',
         payload: { [this.STORAGE_KEY]: validatedConfig }
       });
 
+      // 更新本地缓存
       this.config = validatedConfig;
+
+      // 添加短暂延迟确保存储操作完成
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error('Failed to save web content config:', error);
       throw error;
@@ -325,10 +329,30 @@ export class WebContentConfigManager {
   }
 
   /**
+   * 强制重新加载配置（清除缓存）
+   */
+  async reloadConfig(): Promise<WebChatExtractionConfig> {
+    this.config = null;
+    return await this.loadConfig();
+  }
+
+  /**
+   * 清除配置缓存
+   */
+  clearCache(): void {
+    this.config = null;
+  }
+
+  /**
    * 获取合并后的配置 v2.0 - 移除preserve，增加metadata合并
    * 配置解析优先级：域名特定配置 > 全局配置 > 默认配置
    */
-  async getMergedConfig(domain: string): Promise<MergedExtractionConfig> {
+  async getMergedConfig(domain: string, forceReload = false): Promise<MergedExtractionConfig> {
+    // 如果需要强制重新加载，清除缓存
+    if (forceReload) {
+      this.clearCache();
+    }
+
     const config = await this.getConfig();
     const normalizedDomain = this.normalizeDomain(domain);
 

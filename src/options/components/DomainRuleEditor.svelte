@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { WebContentDomainManager } from '@/lib/web-content-config';
+  import { t } from '@/lib/i18n';
   import MetadataConfigSection from './MetadataConfigSection.svelte';
   import type {
     WebChatDomainRule,
@@ -230,10 +231,10 @@
 
 <div class="domain-rule-editor">
   <div class="editor-header">
-    <h3>{isEditing ? '编辑域名规则' : '添加域名规则'}</h3>
+    <h3>{isEditing ? $t('webChatConfig.editRule') : $t('webChatConfig.addRule')}</h3>
     <div class="mode-indicator">
       <span class="mode-badge mode-{mode}">
-        {mode === 'text' ? 'Text模式' : 'Readability模式'}
+        {mode === 'text' ? $t('webChatConfig.modeText') : $t('webChatConfig.modeReadability')}
       </span>
     </div>
   </div>
@@ -249,50 +250,50 @@
   <form on:submit|preventDefault={saveRule}>
     <!-- 基础配置 -->
     <div class="form-section">
-      <h4 class="section-title">🌐 基础配置</h4>
-      
+      <h4 class="section-title">🌐 {$t('webChatConfig.basicConfig')}</h4>
+
       <div class="form-group">
-        <label class="form-label">域名</label>
+        <label class="form-label">{$t('webChatConfig.domain')}</label>
         <div class="domain-input-group">
           <input
             type="text"
             bind:value={formData.domain}
-            placeholder="example.com"
+            placeholder={$t('webChatConfig.domainPlaceholder')}
             class="form-input"
             disabled={isEditing}
             required
           />
           {#if !isEditing}
             <button type="button" class="btn-suggest" on:click={suggestFromCurrentPage}>
-              从当前页面推荐
+              {$t('webChatConfig.suggestFromCurrentPage')}
             </button>
           {/if}
         </div>
-        <div class="form-help">输入域名，如：zhihu.com</div>
+        <div class="form-help">{$t('webChatConfig.domainHelp')}</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">规则名称</label>
+        <label class="form-label">{$t('webChatConfig.ruleName')}</label>
         <input
           type="text"
           bind:value={formData.name}
-          placeholder="规则显示名称"
+          placeholder={$t('webChatConfig.ruleNamePlaceholder')}
           class="form-input"
           required
         />
-        <div class="form-help">用于识别这个规则的友好名称</div>
+        <div class="form-help">{$t('webChatConfig.ruleNameHelp')}</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">移除元素（CSS选择器）</label>
+        <label class="form-label">{$t('webChatConfig.removeElements')}</label>
         <textarea
           bind:value={formData.remove}
-          placeholder=".ad, .sidebar, nav, footer"
+          placeholder={$t('webChatConfig.removeElementsPlaceholder')}
           class="form-textarea"
           rows="4"
           required
         ></textarea>
-        <div class="form-help">每行一个CSS选择器，用于移除不需要的页面元素</div>
+        <div class="form-help">{$t('webChatConfig.removeElementsDesc')}</div>
       </div>
     </div>
 
@@ -304,8 +305,8 @@
           bind:enabled={formData.metadataEnabled}
           bind:fields={formData.metadataFields}
           bind:template={formData.metadataTemplate}
-          title="🏷️ 元信息配置"
-          description="为此域名配置专门的元信息提取规则"
+          title="🏷️ {$t('webChatConfig.metadataSettings')}"
+          description={$t('webChatConfig.metadataDescription')}
           compact={true}
           on:fieldsChange={handleMetadataFieldsChange}
         />
@@ -313,11 +314,11 @@
 
       <!-- Readability参数 -->
       <div class="form-section">
-        <h4 class="section-title">🔧 Readability参数</h4>
+        <h4 class="section-title">🔧 {$t('webChatConfig.readabilitySettings')}</h4>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">字符阈值</label>
+            <label class="form-label">{$t('webChatConfig.charThreshold')}</label>
             <input
               type="number"
               bind:value={formData.charThreshold}
@@ -325,11 +326,11 @@
               max="1000"
               class="form-input"
             />
-            <div class="form-help">小于此长度的段落将被移除</div>
+            <div class="form-help">{$t('webChatConfig.charThresholdDesc')}</div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">最大元素分割数</label>
+            <label class="form-label">{$t('webChatConfig.maxElemsToDivide')}</label>
             <input
               type="number"
               bind:value={formData.maxElemsToDivide}
@@ -337,7 +338,7 @@
               max="20"
               class="form-input"
             />
-            <div class="form-help">控制内容分析深度</div>
+            <div class="form-help">{$t('webChatConfig.maxElemsToDivideDesc')}</div>
           </div>
         </div>
       </div>
@@ -346,13 +347,13 @@
     <!-- 操作按钮 -->
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" on:click={cancel}>
-        取消
+        {$t('common.cancel')}
       </button>
       <button type="submit" class="btn btn-primary" disabled={isSaving}>
         {#if isSaving}
           <div class="btn-spinner"></div>
         {/if}
-        {isEditing ? '更新规则' : '添加规则'}
+        {isEditing ? $t('webChatConfig.saveChanges') : $t('webChatConfig.addRule')}
       </button>
     </div>
   </form>

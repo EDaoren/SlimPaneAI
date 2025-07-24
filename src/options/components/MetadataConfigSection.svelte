@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { t } from '@/lib/i18n';
   import MetadataFieldsManagerModal from './MetadataFieldsManagerModal.svelte';
   import type { WebChatMetadataField } from '@/types/web-content-config';
 
@@ -172,7 +173,7 @@
       <label class="toggle-switch">
         <input type="checkbox" bind:checked={enabled} />
         <span class="toggle-slider"></span>
-        <span class="toggle-label">{enabled ? '已启用' : '已禁用'}</span>
+        <span class="toggle-label">{enabled ? $t('webChatConfig.metadataEnabled') : $t('webChatConfig.metadataDisabled')}</span>
       </label>
     </div>
   {:else}
@@ -188,21 +189,21 @@
       <div class="fields-overview-card">
         <div class="overview-header">
           <div class="overview-title">
-            <h4>📋 字段配置</h4>
+            <h4>📋 {$t('webChatConfig.fieldsManager')}</h4>
             <div class="overview-badges">
-              <span class="badge badge-total">{fields.length} 个字段</span>
-              <span class="badge badge-enabled">{fields.filter(f => f.enabled).length} 个启用</span>
+              <span class="badge badge-total">{fields.length} {$t('webChatConfig.fieldsCount')}</span>
+              <span class="badge badge-enabled">{fields.filter(f => f.enabled).length} {$t('webChatConfig.enabledFields')}</span>
             </div>
           </div>
           <button type="button" class="btn-manage" on:click={openFieldManager}>
             <span class="btn-icon">⚙️</span>
-            <span>管理字段</span>
+            <span>{$t('webChatConfig.manageFields')}</span>
           </button>
         </div>
 
         {#if fields.filter(field => field.enabled).length > 0}
           <div class="enabled-fields-preview">
-            <div class="preview-label">已启用字段:</div>
+            <div class="preview-label">{$t('webChatConfig.enabledFields')}:</div>
             <div class="fields-tags">
               {#each fields.filter(field => field.enabled) as field}
                 <span class="field-tag">
@@ -215,7 +216,7 @@
         {:else}
           <div class="no-fields-message">
             <span class="message-icon">⚠️</span>
-            <span>暂无启用的字段，点击"管理字段"开始配置</span>
+            <span>{$t('webChatConfig.noEnabledFieldsDesc')}</span>
           </div>
         {/if}
       </div>
@@ -223,10 +224,10 @@
       <!-- 模板配置区域 -->
       <div class="template-config-section">
         <div class="section-header">
-          <h4>📝 输出模板</h4>
+          <h4>📝 {$t('webChatConfig.outputTemplate')}</h4>
           <button type="button" class="btn-auto-generate" on:click={autoGenerateTemplate}>
             <span class="btn-icon">🔄</span>
-            <span>自动生成</span>
+            <span>{$t('webChatConfig.autoGenerate')}</span>
           </button>
         </div>
 
@@ -240,11 +241,11 @@
           <div class="template-help">
             <div class="help-item">
               <span class="help-icon">💡</span>
-              <span>使用 <code>&#123;字段键名&#125;</code> 作为占位符</span>
+              <span>{$t('webChatConfig.templateDescription')}</span>
             </div>
             <div class="help-item">
               <span class="help-icon">📋</span>
-              <span>支持多行格式，每行一个字段</span>
+              <span>{$t('common.examples')}: {$t('webChatConfig.authorField')}: &#123;author&#125;</span>
             </div>
           </div>
         </div>

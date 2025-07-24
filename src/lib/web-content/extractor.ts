@@ -45,9 +45,9 @@ export class WebContentExtractor {
         await this.waitForSPAContent();
       }
 
-      // 获取配置
+      // 获取配置（强制重新加载以确保获取最新配置）
       const domain = this.extractDomain(options.url || window.location.href);
-      const config = await WebContentConfigManager.getInstance().getMergedConfig(domain);
+      const config = await WebContentConfigManager.getInstance().getMergedConfig(domain, true);
 
       // 根据配置模式选择提取方法
       if (config.mode === 'text') {
@@ -297,7 +297,9 @@ export class WebContentExtractor {
       : this.convertLegacySelectors(metadataConfig.selectors);
 
     fields.forEach(field => {
-      if (!field.enabled || !field.selector) return;
+      if (!field.enabled || !field.selector) {
+        return;
+      }
 
       try {
         // 支持多个选择器（用逗号分隔）

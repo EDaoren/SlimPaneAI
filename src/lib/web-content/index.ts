@@ -47,12 +47,7 @@ export async function extractAndProcessCurrentPage(options: ExtractionOptions = 
     const totalTime = Date.now() - startTime;
     console.log('🎉 SlimPaneAI: 内容提取和处理完成');
     console.log('⏱️ SlimPaneAI: 总耗时:', totalTime + 'ms');
-    console.log('📄 SlimPaneAI: 最终结果:', {
-      success: true,
-      method: extractionResult.method,
-      contentLength: processedContent.rawText.length,
-      wordCount: processedContent.metadata.wordCount
-    });
+    console.log('📄 SlimPaneAI: 最终结果:', processedContent);
 
     return {
       success: true,

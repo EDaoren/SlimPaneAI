@@ -33,6 +33,13 @@ export interface Translations {
     all: string;
     yes: string;
     no: string;
+    examples: string;
+    actions: string;
+    done: string;
+    or: string;
+    add: string;
+    update: string;
+    confirmDelete: string;
   };
 
   // 聊天界面
@@ -371,6 +378,137 @@ export interface Translations {
     limitations: string;
     troubleshooting: string;
   };
+
+  // 网页聊天配置
+  webChatConfig: {
+    title: string;
+    description: string;
+    mode: string;
+    modeText: string;
+    modeReadability: string;
+    modeTextDesc: string;
+    modeReadabilityDesc: string;
+
+    // 全局配置
+    globalSettings: string;
+    removeElements: string;
+    removeElementsDesc: string;
+    removeElementsPlaceholder: string;
+
+    // Readability 配置
+    readabilitySettings: string;
+    charThreshold: string;
+    charThresholdDesc: string;
+    maxElemsToDivide: string;
+    maxElemsToDivideDesc: string;
+    keepClasses: string;
+    keepClassesDesc: string;
+    preserveLinks: string;
+    preserveLinksDesc: string;
+
+    // 元数据配置
+    metadataSettings: string;
+    metadataEnabled: string;
+    metadataDisabled: string;
+    metadataDescription: string;
+    manageFields: string;
+    fieldsManager: string;
+    fieldsCount: string;
+    enabledFields: string;
+    templateSettings: string;
+    outputTemplate: string;
+    templateDescription: string;
+    autoGenerate: string;
+
+    // 域名规则
+    domainRules: string;
+    domainRulesEnabled: string;
+    domainRulesDisabled: string;
+    domainRulesDescription: string;
+    addDomainRule: string;
+    editDomainRule: string;
+    deleteDomainRule: string;
+    noDomainRules: string;
+    noDomainRulesDesc: string;
+
+    // 域名规则编辑器
+    domainRuleEditor: string;
+    addRule: string;
+    editRule: string;
+    basicConfig: string;
+    domain: string;
+    domainPlaceholder: string;
+    domainHelp: string;
+    ruleName: string;
+    ruleNamePlaceholder: string;
+    ruleNameHelp: string;
+    suggestFromCurrentPage: string;
+
+    // 元数据字段管理
+    metadataFieldsManager: string;
+    addField: string;
+    editField: string;
+    deleteField: string;
+    fieldKey: string;
+    fieldName: string;
+    fieldSelector: string;
+    fieldEnabled: string;
+    fieldDisabled: string;
+    predefinedField: string;
+    customField: string;
+    addPredefinedField: string;
+    addCustomField: string;
+    selectPredefinedField: string;
+    fieldKeyRequired: string;
+    fieldNameRequired: string;
+    cssSelector: string;
+    cssSelectorPlaceholder: string;
+
+    // 预定义字段
+    authorField: string;
+    dateField: string;
+    tagsField: string;
+    titleField: string;
+    votesField: string;
+    viewsField: string;
+    sourceField: string;
+    locationField: string;
+    categoryField: string;
+    commentCountField: string;
+    readingTimeField: string;
+    wordCountField: string;
+
+    // 验证和错误
+    validationErrors: string;
+    domainRequired: string;
+    nameRequired: string;
+    invalidDomain: string;
+    duplicateDomain: string;
+    fieldKeyExists: string;
+    invalidSelector: string;
+
+    // 操作按钮
+    saveChanges: string;
+    discardChanges: string;
+    resetToDefault: string;
+    exportConfig: string;
+    importConfig: string;
+    testConfig: string;
+    previewExtraction: string;
+
+    // 状态信息
+    saving: string;
+    saved: string;
+    saveFailed: string;
+    loading: string;
+    loadFailed: string;
+    configUpdated: string;
+    configReset: string;
+
+    // 字段状态消息
+    noEnabledFields: string;
+    noEnabledFieldsDesc: string;
+  };
 }
 
 // 当前语言 store
@@ -497,6 +635,12 @@ const chineseTranslations: Translations = {
     all: '全部',
     yes: '是',
     no: '否',
+    examples: '示例',
+    actions: '操作',
+    done: '完成',
+    or: '或',
+    update: '更新',
+    confirmDelete: '确定要删除吗？',
   },
 
   chat: {
@@ -825,6 +969,137 @@ const chineseTranslations: Translations = {
     limitations: '限制',
     troubleshooting: '故障排除',
   },
+
+  // 网页聊天配置
+  webChatConfig: {
+    title: '网页聊天配置',
+    description: '配置网页内容提取和处理规则',
+    mode: '提取模式',
+    modeText: 'Text模式',
+    modeReadability: 'Readability模式',
+    modeTextDesc: '简单提取页面文本内容',
+    modeReadabilityDesc: '智能提取文章主体内容',
+
+    // 全局配置
+    globalSettings: '全局配置',
+    removeElements: '移除元素',
+    removeElementsDesc: '指定要从页面中移除的元素（CSS选择器）',
+    removeElementsPlaceholder: '例如: .ad, .sidebar, nav, footer',
+
+    // Readability 配置
+    readabilitySettings: 'Readability配置',
+    charThreshold: '字符阈值',
+    charThresholdDesc: '判断内容块是否为正文的最小字符数',
+    maxElemsToDivide: '最大元素分割数',
+    maxElemsToDivideDesc: '处理大型内容块时的最大分割数',
+    keepClasses: '保留CSS类',
+    keepClassesDesc: '保留元素的CSS类名',
+    preserveLinks: '保留链接',
+    preserveLinksDesc: '保留文本中的链接',
+
+    // 元数据配置
+    metadataSettings: '元信息配置',
+    metadataEnabled: '已启用',
+    metadataDisabled: '已禁用',
+    metadataDescription: '提取页面元信息（作者、日期、标签等）',
+    manageFields: '管理字段',
+    fieldsManager: '元信息字段管理',
+    fieldsCount: '个字段',
+    enabledFields: '个已启用',
+    templateSettings: '模板设置',
+    outputTemplate: '输出模板',
+    templateDescription: '使用 {key} 格式引用字段值',
+    autoGenerate: '自动生成',
+
+    // 域名规则
+    domainRules: '域名特定规则',
+    domainRulesEnabled: '已启用',
+    domainRulesDisabled: '已禁用',
+    domainRulesDescription: '为特定网站配置专门的提取规则，覆盖全局设置',
+    addDomainRule: '添加域名规则',
+    editDomainRule: '编辑域名规则',
+    deleteDomainRule: '删除域名规则',
+    noDomainRules: '暂无域名规则',
+    noDomainRulesDesc: '点击"添加域名规则"按钮创建新规则',
+
+    // 域名规则编辑器
+    domainRuleEditor: '域名规则编辑器',
+    addRule: '添加域名规则',
+    editRule: '编辑域名规则',
+    basicConfig: '基础配置',
+    domain: '域名',
+    domainPlaceholder: 'example.com',
+    domainHelp: '输入域名，如：zhihu.com',
+    ruleName: '规则名称',
+    ruleNamePlaceholder: '规则显示名称',
+    ruleNameHelp: '用于识别这个规则的友好名称',
+    suggestFromCurrentPage: '从当前页面推荐',
+
+    // 元数据字段管理
+    metadataFieldsManager: '元信息字段管理',
+    addField: '添加字段',
+    editField: '编辑字段',
+    deleteField: '删除字段',
+    fieldKey: '字段键名',
+    fieldName: '显示名称',
+    fieldSelector: 'CSS选择器',
+    fieldEnabled: '已启用',
+    fieldDisabled: '已禁用',
+    predefinedField: '预定义',
+    customField: '自定义字段',
+    addPredefinedField: '添加预定义字段',
+    addCustomField: '添加自定义字段',
+    selectPredefinedField: '选择预定义字段',
+    fieldKeyRequired: '字段键名 *',
+    fieldNameRequired: '显示名称 *',
+    cssSelector: 'CSS选择器',
+    cssSelectorPlaceholder: '例如: .author, .username',
+
+    // 预定义字段
+    authorField: '作者信息',
+    dateField: '发布时间',
+    tagsField: '标签分类',
+    titleField: '文章标题',
+    votesField: '点赞数',
+    viewsField: '阅读量',
+    sourceField: '内容来源',
+    locationField: '地理位置',
+    categoryField: '内容分类',
+    commentCountField: '评论数',
+    readingTimeField: '阅读时长',
+    wordCountField: '字数统计',
+
+    // 验证和错误
+    validationErrors: '验证错误',
+    domainRequired: '域名不能为空',
+    nameRequired: '规则名称不能为空',
+    invalidDomain: '无效的域名格式',
+    duplicateDomain: '该域名已存在规则',
+    fieldKeyExists: '字段键名已存在',
+    invalidSelector: '无效的CSS选择器',
+
+    // 操作按钮
+    saveChanges: '保存更改',
+    discardChanges: '放弃更改',
+    resetToDefault: '重置为默认',
+    exportConfig: '导出配置',
+    importConfig: '导入配置',
+    testConfig: '测试配置',
+    previewExtraction: '预览提取结果',
+
+    // 状态信息
+    saving: '保存中...',
+    saved: '已保存',
+    saveFailed: '保存失败',
+    loading: '加载中...',
+    loadFailed: '加载失败',
+    configUpdated: '配置已更新',
+    configReset: '配置已重置',
+
+    // 字段状态消息
+    noEnabledFields: '暂无启用的字段',
+    noEnabledFieldsDesc: '点击"管理字段"开始配置',
+  },
 };
 
 // 英文翻译
@@ -855,6 +1130,12 @@ const englishTranslations: Translations = {
     all: 'All',
     yes: 'Yes',
     no: 'No',
+    examples: 'Examples',
+    actions: 'Actions',
+    done: 'Done',
+    or: 'Or',
+    update: 'Update',
+    confirmDelete: 'Are you sure you want to delete?',
   },
 
   chat: {
@@ -1183,5 +1464,136 @@ const englishTranslations: Translations = {
     tips: 'Tips',
     limitations: 'Limitations',
     troubleshooting: 'Troubleshooting',
+  },
+
+  // Web Chat Configuration
+  webChatConfig: {
+    title: 'Web Chat Configuration',
+    description: 'Configure web content extraction and processing rules',
+    mode: 'Extraction Mode',
+    modeText: 'Text Mode',
+    modeReadability: 'Readability Mode',
+    modeTextDesc: 'Simple text content extraction',
+    modeReadabilityDesc: 'Intelligent article content extraction',
+
+    // Global Settings
+    globalSettings: 'Global Settings',
+    removeElements: 'Remove Elements',
+    removeElementsDesc: 'Specify elements to remove from page (CSS selectors)',
+    removeElementsPlaceholder: 'e.g., .ad, .sidebar, nav, footer',
+
+    // Readability Settings
+    readabilitySettings: 'Readability Settings',
+    charThreshold: 'Character Threshold',
+    charThresholdDesc: 'Minimum characters to consider content as main text',
+    maxElemsToDivide: 'Max Elements to Divide',
+    maxElemsToDivideDesc: 'Maximum divisions when processing large content blocks',
+    keepClasses: 'Keep CSS Classes',
+    keepClassesDesc: 'Preserve CSS class names on elements',
+    preserveLinks: 'Preserve Links',
+    preserveLinksDesc: 'Keep links in extracted text',
+
+    // Metadata Settings
+    metadataSettings: 'Metadata Settings',
+    metadataEnabled: 'Enabled',
+    metadataDisabled: 'Disabled',
+    metadataDescription: 'Extract page metadata (author, date, tags, etc.)',
+    manageFields: 'Manage Fields',
+    fieldsManager: 'Metadata Fields Manager',
+    fieldsCount: 'fields',
+    enabledFields: 'enabled',
+    templateSettings: 'Template Settings',
+    outputTemplate: 'Output Template',
+    templateDescription: 'Use {key} format to reference field values',
+    autoGenerate: 'Auto Generate',
+
+    // Domain Rules
+    domainRules: 'Domain-Specific Rules',
+    domainRulesEnabled: 'Enabled',
+    domainRulesDisabled: 'Disabled',
+    domainRulesDescription: 'Configure specific extraction rules for websites, overriding global settings',
+    addDomainRule: 'Add Domain Rule',
+    editDomainRule: 'Edit Domain Rule',
+    deleteDomainRule: 'Delete Domain Rule',
+    noDomainRules: 'No Domain Rules',
+    noDomainRulesDesc: 'Click "Add Domain Rule" button to create new rules',
+
+    // Domain Rule Editor
+    domainRuleEditor: 'Domain Rule Editor',
+    addRule: 'Add Domain Rule',
+    editRule: 'Edit Domain Rule',
+    basicConfig: 'Basic Configuration',
+    domain: 'Domain',
+    domainPlaceholder: 'example.com',
+    domainHelp: 'Enter domain, e.g., zhihu.com',
+    ruleName: 'Rule Name',
+    ruleNamePlaceholder: 'Rule display name',
+    ruleNameHelp: 'Friendly name to identify this rule',
+    suggestFromCurrentPage: 'Suggest from Current Page',
+
+    // Metadata Fields Manager
+    metadataFieldsManager: 'Metadata Fields Manager',
+    addField: 'Add Field',
+    editField: 'Edit Field',
+    deleteField: 'Delete Field',
+    fieldKey: 'Field Key',
+    fieldName: 'Display Name',
+    fieldSelector: 'CSS Selector',
+    fieldEnabled: 'Enabled',
+    fieldDisabled: 'Disabled',
+    predefinedField: 'Predefined',
+    customField: 'Custom Field',
+    addPredefinedField: 'Add Predefined Field',
+    addCustomField: 'Add Custom Field',
+    selectPredefinedField: 'Select Predefined Field',
+    fieldKeyRequired: 'Field Key *',
+    fieldNameRequired: 'Display Name *',
+    cssSelector: 'CSS Selector',
+    cssSelectorPlaceholder: 'e.g., .author, .username',
+
+    // Predefined Fields
+    authorField: 'Author Information',
+    dateField: 'Publication Date',
+    tagsField: 'Tags/Categories',
+    titleField: 'Article Title',
+    votesField: 'Vote Count',
+    viewsField: 'View Count',
+    sourceField: 'Content Source',
+    locationField: 'Geographic Location',
+    categoryField: 'Content Category',
+    commentCountField: 'Comment Count',
+    readingTimeField: 'Reading Time',
+    wordCountField: 'Word Count',
+
+    // Validation and Errors
+    validationErrors: 'Validation Errors',
+    domainRequired: 'Domain is required',
+    nameRequired: 'Rule name is required',
+    invalidDomain: 'Invalid domain format',
+    duplicateDomain: 'Domain rule already exists',
+    fieldKeyExists: 'Field key already exists',
+    invalidSelector: 'Invalid CSS selector',
+
+    // Action Buttons
+    saveChanges: 'Save Changes',
+    discardChanges: 'Discard Changes',
+    resetToDefault: 'Reset to Default',
+    exportConfig: 'Export Configuration',
+    importConfig: 'Import Configuration',
+    testConfig: 'Test Configuration',
+    previewExtraction: 'Preview Extraction',
+
+    // Status Information
+    saving: 'Saving...',
+    saved: 'Saved',
+    saveFailed: 'Save Failed',
+    loading: 'Loading...',
+    loadFailed: 'Load Failed',
+    configUpdated: 'Configuration Updated',
+    configReset: 'Configuration Reset',
+
+    // Field status messages
+    noEnabledFields: 'No enabled fields',
+    noEnabledFieldsDesc: 'Click "Manage Fields" to start configuration',
   },
 };
